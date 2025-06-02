@@ -1,0 +1,72 @@
+#!/bin/bash
+
+echo "🏛️  Bank Statement Parser - Project Overview"
+echo "============================================="
+echo ""
+
+echo "📁 Project Structure:"
+find . -type f -name "*.py" -o -name "*.js" -o -name "*.json" -o -name "*.csv" -o -name "*.md" | head -20
+
+echo ""
+echo "📋 What we've built:"
+echo "   ✅ Python Backend (FastAPI)"
+echo "      - CSV parsing and transformation logic"
+echo "      - REST API with 10+ endpoints"
+echo "      - Template saving/loading system"
+echo "      - Auto-detection of data ranges"
+echo ""
+echo "   ✅ React Frontend (Electron Desktop App)"
+echo "      - Intuitive 4-step wizard interface"
+echo "      - Drag & drop file upload"
+echo "      - Live data preview tables"
+echo "      - Column mapping interface"
+echo "      - Template management"
+echo ""
+echo "   ✅ Core Features Implemented:"
+echo "      - CSV file upload and preview"
+echo "      - Flexible data range selection"
+echo "      - Smart column mapping with auto-detection"
+echo "      - Real-time data transformation preview"
+echo "      - Template save/load for reusability"
+echo "      - Export to Cashew format"
+echo ""
+
+echo "🎯 Target Format (Cashew):"
+echo "Date,Amount,Category,Title,Note,Account"
+head -n 3 cashew_import.csv
+
+echo ""
+echo "📄 Sample Input (NayaPay):"
+echo "Headers found at row 13:"
+sed -n '14p' nayapay_statement.csv
+
+echo ""
+echo "🚀 Next Steps:"
+echo "   1. Start backend:    ./start_backend.sh"
+echo "   2. Start frontend:   ./start_frontend.sh"
+echo "   3. Test with sample: Upload nayapay_statement.csv"
+echo "   4. Save template:    Create 'NayaPay_Template'"
+echo "   5. Export result:    Download converted CSV"
+echo ""
+
+echo "🔧 Technical Stack:"
+echo "   Backend:  Python 3.8+, FastAPI, Pandas, Uvicorn"
+echo "   Frontend: Node.js 14+, React 18, Electron 25, Axios"
+echo "   Desktop:  Cross-platform (Windows, macOS, Linux)"
+echo ""
+
+echo "📊 API Endpoints Available:"
+echo "   POST /upload              - Upload CSV file"
+echo "   GET  /preview/{file_id}   - Preview file structure"
+echo "   GET  /detect-range/{id}   - Auto-detect data location"
+echo "   POST /parse-range/{id}    - Parse specific range"
+echo "   POST /transform           - Convert to Cashew format"
+echo "   POST /export              - Download converted CSV"
+echo "   POST /save-template       - Save parsing configuration"
+echo "   GET  /templates           - List saved templates"
+echo "   GET  /template/{name}     - Load template configuration"
+echo ""
+
+echo "✨ Ready to process bank statements from any bank!"
+echo "   Just define the data range and column mapping once,"
+echo "   save as template, and reuse for all future statements."

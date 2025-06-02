@@ -1,0 +1,18 @@
+{
+  "start_row": 13,
+  "end_row": null,
+  "start_col": 0,
+  "end_col": 5,
+  "column_mapping": {
+    "Date": "TIMESTAMP",
+    "Amount": "AMOUNT",
+    "Category": "",
+    "Title": "DESCRIPTION", 
+    "Note": "TYPE",
+    "Account": ""
+  },
+  "bank_name": "NayaPay",
+  "description": "Template for NayaPay bank statements. Data starts at row 13 with headers: TIMESTAMP, TYPE, DESCRIPTION, AMOUNT, BALANCE",
+  "created_date": "2025-06-02",
+  "version": "1.0"
+}

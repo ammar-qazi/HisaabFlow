@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+backend/venv/
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+frontend/node_modules/
+frontend/build/
+frontend/dist/
+
+# Temporary files
+*.tmp
+tmp*
+.DS_Store
+.vscode/
+.idea/
+
+# CSV files (except samples)
+*.csv
+!cashew_import.csv
+!nayapay_statement.csv
+
+# Logs
+*.log
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Electron
+frontend/dist/
+frontend/out/
+
+# System files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Temporary uploads
+/tmp/
+temp/
