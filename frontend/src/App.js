@@ -189,14 +189,32 @@ function App() {
     setLoading(true);
     
     try {
+      // Get categorization rules from the current template if available
+      let categorizationRules = null;
+      let defaultCategoryRules = null;
+      
+      if (selectedTemplate) {
+        try {
+          const templateResponse = await axios.get(`${API_BASE}/template/${selectedTemplate}`);
+          const templateConfig = templateResponse.data.config;
+          categorizationRules = templateConfig.categorization_rules;
+          defaultCategoryRules = templateConfig.default_category_rules;
+        } catch (err) {
+          console.warn('Could not load categorization rules from template:', err);
+        }
+      }
+      
       const response = await axios.post(`${API_BASE}/transform`, {
         data: parsedData.data,
         column_mapping: columnMapping,
-        bank_name: file?.name?.split('.')[0] || 'Unknown Bank'
+        bank_name: file?.name?.split('.')[0] || 'Unknown Bank',
+        categorization_rules: categorizationRules,
+        default_category_rules: defaultCategoryRules
       });
       
       setTransformedData(response.data.data);
-      setSuccess(`Transformed ${response.data.row_count} transactions successfully`);
+      const rulesApplied = categorizationRules ? ' with smart categorization' : '';
+      setSuccess(`Transformed ${response.data.row_count} transactions successfully${rulesApplied}!`);
       setCurrentStep(4);
       
     } catch (err) {
@@ -558,6 +576,11 @@ function App() {
               
               <div className="success">
                 ✅ Successfully converted {transformedData.length} transactions to Cashew format!
+                {selectedTemplate && (
+                  <div style={{ marginTop: '10px', fontSize: '14px' }}>
+                    🎯 Used template: <strong>{selectedTemplate}</strong> for smart categorization
+                  </div>
+                )}
               </div>
               
               <div className="data-preview">

@@ -8,6 +8,7 @@ import json
 import os
 import tempfile
 from csv_parser import CSVParser
+from enhanced_csv_parser import EnhancedCSVParser
 
 app = FastAPI(title="Bank Statement Parser API", version="1.0.0")
 
@@ -28,8 +29,9 @@ async def log_requests(request: Request, call_next):
     print(f"📤 Response: {response.status_code}")
     return response
 
-# Initialize parser
+# Initialize parsers
 parser = CSVParser()
+enhanced_parser = EnhancedCSVParser()
 
 # Pydantic models for request/response
 class PreviewRequest(BaseModel):
@@ -47,6 +49,8 @@ class TransformRequest(BaseModel):
     data: List[Dict[str, Any]]
     column_mapping: Dict[str, str]
     bank_name: str = ""
+    categorization_rules: Optional[List[Dict[str, Any]]] = None
+    default_category_rules: Optional[Dict[str, str]] = None
 
 class SaveTemplateRequest(BaseModel):
     template_name: str
@@ -160,13 +164,24 @@ async def parse_range(file_id: str, request: ParseRangeRequest):
 
 @app.post("/transform")
 async def transform_data(request: TransformRequest):
-    """Transform data to Cashew format"""
+    """Transform data to Cashew format with smart categorization"""
     try:
-        result = parser.transform_to_cashew(
-            request.data, 
-            request.column_mapping, 
-            request.bank_name
-        )
+        # Use enhanced parser if categorization rules are provided
+        if request.categorization_rules or request.default_category_rules:
+            result = enhanced_parser.transform_to_cashew(
+                request.data, 
+                request.column_mapping, 
+                request.bank_name,
+                request.categorization_rules,
+                request.default_category_rules
+            )
+        else:
+            # Fall back to basic parser
+            result = parser.transform_to_cashew(
+                request.data, 
+                request.column_mapping, 
+                request.bank_name
+            )
         return {
             "success": True,
             "data": result,
@@ -229,14 +244,40 @@ async def list_templates():
 @app.get("/template/{template_name}")
 async def load_template(template_name: str):
     """Load saved template"""
+    print(f"🔍 Loading template: {template_name}")
+    template_path = f"../templates/{template_name}.json"
+    print(f"📁 Template path: {template_path}")
+    
     try:
-        config = parser.load_template(template_name, "../templates")
+        # Check if file exists
+        if not os.path.exists(template_path):
+            print(f"❌ Template file not found: {template_path}")
+            available_files = os.listdir("../templates") if os.path.exists("../templates") else []
+            print(f"📂 Available templates: {available_files}")
+            raise HTTPException(status_code=404, detail=f"Template '{template_name}' not found")
+        
+        # Try enhanced parser first, then fall back to basic parser
+        try:
+            config = enhanced_parser.load_template(template_name, "../templates")
+            print(f"✅ Template loaded successfully with enhanced parser")
+        except Exception as e1:
+            print(f"⚠️ Enhanced parser failed: {e1}, trying basic parser...")
+            try:
+                config = parser.load_template(template_name, "../templates")
+                print(f"✅ Template loaded successfully with basic parser")
+            except Exception as e2:
+                print(f"❌ Both parsers failed: {e2}")
+                raise e2
+        
         return {
             "success": True,
             "config": config
         }
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=404, detail="Template not found")
+        print(f"❌ Template load error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error loading template: {str(e)}")
 
 # Cleanup endpoint
 @app.delete("/cleanup/{file_id}")

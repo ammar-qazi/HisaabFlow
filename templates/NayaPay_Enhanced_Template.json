@@ -1,0 +1,244 @@
+{
+  "start_row": 13,
+  "end_row": null,
+  "start_col": 0,
+  "end_col": 5,
+  "column_mapping": {
+    "Date": "TIMESTAMP",
+    "Amount": "AMOUNT",
+    "Category": "",
+    "Title": "DESCRIPTION", 
+    "Note": "TYPE",
+    "Account": ""
+  },
+  "bank_name": "NayaPay",
+  "description": "Enhanced NayaPay template with smart categorization rules",
+  "created_date": "2025-06-02",
+  "version": "2.1",
+  "categorization_rules": [
+    {
+      "rule_name": "Surraiya Riaz Transactions",
+      "priority": 1,
+      "conditions": {
+        "and": [
+          {
+            "field": "DESCRIPTION",
+            "operator": "contains",
+            "value": "Surraiya Riaz",
+            "case_sensitive": false
+          }
+        ]
+      },
+      "actions": {
+        "set_title": "Zunayyara Quran"
+      }
+    },
+    {
+      "rule_name": "Ride Hailing Services",
+      "priority": 2,
+      "conditions": {
+        "and": [
+          {
+            "field": "TYPE",
+            "operator": "contains",
+            "value": "Raast Out",
+            "case_sensitive": false
+          },
+          {
+            "field": "AMOUNT",
+            "operator": "range",
+            "min": -2000,
+            "max": 0
+          }
+        ]
+      },
+      "actions": {
+        "set_category": "Travel",
+        "set_title": "Ride Hailing App"
+      }
+    },
+    {
+      "rule_name": "Mobile Top-ups",
+      "priority": 3,
+      "conditions": {
+        "or": [
+          {
+            "field": "DESCRIPTION",
+            "operator": "contains",
+            "value": "mobile topup",
+            "case_sensitive": false
+          },
+          {
+            "field": "DESCRIPTION",
+            "operator": "contains",
+            "value": "recharge",
+            "case_sensitive": false
+          },
+          {
+            "field": "TYPE",
+            "operator": "contains",
+            "value": "topup",
+            "case_sensitive": false
+          }
+        ]
+      },
+      "actions": {
+        "set_category": "Bills & Fees",
+        "set_title_template": "Mobile charge for {extract_name}",
+        "extract_name": {
+          "from_field": "DESCRIPTION",
+          "pattern": "Nickname:\\\\s*([^\\\\n]+)",
+          "group": 1,
+          "default": "Unknown Contact"
+        }
+      }
+    },
+    {
+      "rule_name": "ATM Withdrawals",
+      "priority": 4,
+      "conditions": {
+        "and": [
+          {
+            "field": "TYPE",
+            "operator": "contains",
+            "value": "ATM",
+            "case_sensitive": false
+          },
+          {
+            "field": "AMOUNT",
+            "operator": "less_than",
+            "value": 0
+          }
+        ]
+      },
+      "actions": {
+        "set_category": "Cash",
+        "set_title": "ATM Withdrawal"
+      }
+    },
+    {
+      "rule_name": "Bank Transfers Out",
+      "priority": 5,
+      "conditions": {
+        "and": [
+          {
+            "field": "TYPE",
+            "operator": "equals",
+            "value": "Transfer Out",
+            "case_sensitive": false
+          }
+        ]
+      },
+      "actions": {
+        "set_category": "Transfer",
+        "keep_original_title": true
+      }
+    },
+    {
+      "rule_name": "Bank Transfers In",
+      "priority": 6,
+      "conditions": {
+        "and": [
+          {
+            "field": "TYPE",
+            "operator": "equals",
+            "value": "Transfer In",
+            "case_sensitive": false
+          }
+        ]
+      },
+      "actions": {
+        "set_category": "Transfer",
+        "keep_original_title": true
+      }
+    },
+    {
+      "rule_name": "Salary Income",
+      "priority": 7,
+      "conditions": {
+        "and": [
+          {
+            "field": "DESCRIPTION",
+            "operator": "contains",
+            "value": "salary",
+            "case_sensitive": false
+          },
+          {
+            "field": "AMOUNT",
+            "operator": "greater_than",
+            "value": 0
+          }
+        ]
+      },
+      "actions": {
+        "set_category": "Income",
+        "set_title": "Salary"
+      }
+    },
+    {
+      "rule_name": "Online Shopping",
+      "priority": 8,
+      "conditions": {
+        "or": [
+          {
+            "field": "DESCRIPTION",
+            "operator": "contains",
+            "value": "amazon",
+            "case_sensitive": false
+          },
+          {
+            "field": "DESCRIPTION",
+            "operator": "contains",
+            "value": "daraz",
+            "case_sensitive": false
+          },
+          {
+            "field": "DESCRIPTION",
+            "operator": "contains",
+            "value": "aliexpress",
+            "case_sensitive": false
+          }
+        ]
+      },
+      "actions": {
+        "set_category": "Shopping",
+        "set_title": "Online Shopping"
+      }
+    },
+    {
+      "rule_name": "Grocery Stores",
+      "priority": 9,
+      "conditions": {
+        "or": [
+          {
+            "field": "DESCRIPTION",
+            "operator": "contains",
+            "value": "carrefour",
+            "case_sensitive": false
+          },
+          {
+            "field": "DESCRIPTION",
+            "operator": "contains",
+            "value": "metro",
+            "case_sensitive": false
+          },
+          {
+            "field": "DESCRIPTION",
+            "operator": "contains",
+            "value": "grocery",
+            "case_sensitive": false
+          }
+        ]
+      },
+      "actions": {
+        "set_category": "Groceries",
+        "set_title": "Grocery Shopping"
+      }
+    }
+  ],
+  "default_category_rules": {
+    "positive_amount": "Income",
+    "negative_amount": "Expense",
+    "zero_amount": "Transfer"
+  }
+}
