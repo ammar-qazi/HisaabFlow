@@ -189,9 +189,10 @@ function App() {
     setLoading(true);
     
     try {
-      // Get categorization rules from the current template if available
+      // Get categorization rules and bank name from the current template if available
       let categorizationRules = null;
       let defaultCategoryRules = null;
+      let bankName = file?.name?.split('.')[0] || 'Unknown Bank';
       
       if (selectedTemplate) {
         try {
@@ -199,6 +200,10 @@ function App() {
           const templateConfig = templateResponse.data.config;
           categorizationRules = templateConfig.categorization_rules;
           defaultCategoryRules = templateConfig.default_category_rules;
+          // Use bank name from template if available
+          if (templateConfig.bank_name) {
+            bankName = templateConfig.bank_name;
+          }
         } catch (err) {
           console.warn('Could not load categorization rules from template:', err);
         }
@@ -207,7 +212,7 @@ function App() {
       const response = await axios.post(`${API_BASE}/transform`, {
         data: parsedData.data,
         column_mapping: columnMapping,
-        bank_name: file?.name?.split('.')[0] || 'Unknown Bank',
+        bank_name: bankName,
         categorization_rules: categorizationRules,
         default_category_rules: defaultCategoryRules
       });

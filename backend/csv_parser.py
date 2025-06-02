@@ -11,8 +11,57 @@ class CSVParser:
     def preview_csv(self, file_path: str, encoding: str = 'utf-8') -> Dict:
         """Preview CSV file and return basic info"""
         try:
-            # Read first 20 rows to identify structure
-            df_preview = pd.read_csv(file_path, encoding=encoding, nrows=20, header=None)
+            # Try multiple approaches to handle inconsistent CSV formats
+            df_preview = None
+            error_msg = None
+            
+            # Approach 1: Try with error handling for bad lines
+            try:
+                df_preview = pd.read_csv(
+                    file_path, 
+                    encoding=encoding, 
+                    nrows=20, 
+                    header=None,
+                    on_bad_lines='skip',  # Skip problematic lines
+                    engine='python'  # More flexible parser
+                )
+            except Exception as e1:
+                error_msg = str(e1)
+                
+                # Approach 2: Try reading as text and manual parsing
+                try:
+                    with open(file_path, 'r', encoding=encoding) as f:
+                        lines = []
+                        for i, line in enumerate(f):
+                            if i >= 20:
+                                break
+                            # Split by comma and pad/truncate to consistent length
+                            parts = line.strip().split(',')
+                            lines.append(parts)
+                    
+                    # Find the maximum number of columns
+                    max_cols = max(len(line) for line in lines) if lines else 0
+                    
+                    # Pad all rows to have the same number of columns
+                    padded_lines = []
+                    for line in lines:
+                        padded_line = line + [''] * (max_cols - len(line))
+                        padded_lines.append(padded_line[:max_cols])  # Truncate if too long
+                    
+                    # Create DataFrame from padded data
+                    df_preview = pd.DataFrame(padded_lines)
+                    
+                except Exception as e2:
+                    return {
+                        'success': False,
+                        'error': f"Failed to parse CSV: {error_msg}. Manual parsing also failed: {str(e2)}"
+                    }
+            
+            if df_preview is None or df_preview.empty:
+                return {
+                    'success': False,
+                    'error': 'Could not read any data from the CSV file'
+                }
             
             # Replace NaN values with empty strings for JSON serialization
             df_preview = df_preview.fillna('')
@@ -33,7 +82,31 @@ class CSVParser:
     def detect_data_range(self, file_path: str, encoding: str = 'utf-8') -> Dict:
         """Auto-detect where the actual data starts"""
         try:
-            df = pd.read_csv(file_path, encoding=encoding, header=None)
+            # Use the same robust reading approach as preview
+            df = None
+            try:
+                df = pd.read_csv(
+                    file_path, 
+                    encoding=encoding, 
+                    header=None,
+                    on_bad_lines='skip',
+                    engine='python'
+                )
+            except Exception:
+                # Fallback to manual parsing
+                with open(file_path, 'r', encoding=encoding) as f:
+                    lines = []
+                    for line in f:
+                        parts = line.strip().split(',')
+                        lines.append(parts)
+                
+                max_cols = max(len(line) for line in lines) if lines else 0
+                padded_lines = []
+                for line in lines:
+                    padded_line = line + [''] * (max_cols - len(line))
+                    padded_lines.append(padded_line[:max_cols])
+                
+                df = pd.DataFrame(padded_lines)
             
             # Look for rows that might contain headers
             header_indicators = ['timestamp', 'date', 'amount', 'description', 'balance', 'type']
@@ -61,8 +134,31 @@ class CSVParser:
                         encoding: str = 'utf-8') -> Dict:
         """Parse CSV with specified range"""
         try:
-            # Read the full file first
-            df_full = pd.read_csv(file_path, encoding=encoding, header=None)
+            # Read the full file with robust parsing
+            df_full = None
+            try:
+                df_full = pd.read_csv(
+                    file_path, 
+                    encoding=encoding, 
+                    header=None,
+                    on_bad_lines='skip',
+                    engine='python'
+                )
+            except Exception:
+                # Fallback to manual parsing
+                with open(file_path, 'r', encoding=encoding) as f:
+                    lines = []
+                    for line in f:
+                        parts = line.strip().split(',')
+                        lines.append(parts)
+                
+                max_cols = max(len(line) for line in lines) if lines else 0
+                padded_lines = []
+                for line in lines:
+                    padded_line = line + [''] * (max_cols - len(line))
+                    padded_lines.append(padded_line[:max_cols])
+                
+                df_full = pd.DataFrame(padded_lines)
             
             # Extract the specified range
             if end_row is None:

@@ -61,8 +61,31 @@ class EnhancedCSVParser:
                         encoding: str = 'utf-8') -> Dict:
         """Parse CSV with specified range"""
         try:
-            # Read the full file first
-            df_full = pd.read_csv(file_path, encoding=encoding, header=None)
+            # Read the full file with robust parsing
+            df_full = None
+            try:
+                df_full = pd.read_csv(
+                    file_path, 
+                    encoding=encoding, 
+                    header=None,
+                    on_bad_lines='skip',
+                    engine='python'
+                )
+            except Exception:
+                # Fallback to manual parsing
+                with open(file_path, 'r', encoding=encoding) as f:
+                    lines = []
+                    for line in f:
+                        parts = line.strip().split(',')
+                        lines.append(parts)
+                
+                max_cols = max(len(line) for line in lines) if lines else 0
+                padded_lines = []
+                for line in lines:
+                    padded_line = line + [''] * (max_cols - len(line))
+                    padded_lines.append(padded_line[:max_cols])
+                
+                df_full = pd.DataFrame(padded_lines)
             
             # Extract the specified range
             if end_row is None:
@@ -163,6 +186,10 @@ class EnhancedCSVParser:
                         cashew_row['Title'] = template.format(extract_name=extracted_name)
                     else:
                         cashew_row['Title'] = template
+                elif 'clean_description' in actions:
+                    # Clean and shorten the description
+                    cleaned_desc = self._clean_description(original_row, actions['clean_description'])
+                    cashew_row['Title'] = cleaned_desc
                 elif not actions.get('keep_original_title', False):
                     # Keep original title if not specified otherwise
                     pass
@@ -256,6 +283,31 @@ class EnhancedCSVParser:
                 extracted = match.group(group).strip()
                 return extracted if extracted else default
             return default
+        except Exception:
+            return default
+    
+    def _clean_description(self, row: Dict, clean_config: Dict) -> str:
+        """Clean and shorten transaction descriptions"""
+        from_field = clean_config.get('from_field', 'DESCRIPTION')
+        rules = clean_config.get('rules', [])
+        default = clean_config.get('default', 'Transaction')
+        
+        if from_field not in row:
+            return default
+        
+        description = str(row[from_field])
+        
+        try:
+            for rule in rules:
+                pattern = rule.get('pattern')
+                replacement = rule.get('replacement', '')
+                if pattern:
+                    description = re.sub(pattern, replacement, description, flags=re.IGNORECASE | re.MULTILINE)
+            
+            # Clean up extra whitespace and newlines
+            description = re.sub(r'\s+', ' ', description).strip()
+            
+            return description if description else default
         except Exception:
             return default
     

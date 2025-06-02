@@ -9,6 +9,7 @@ import os
 import tempfile
 from csv_parser import CSVParser
 from enhanced_csv_parser import EnhancedCSVParser
+from robust_csv_parser import RobustCSVParser
 
 app = FastAPI(title="Bank Statement Parser API", version="1.0.0")
 
@@ -32,6 +33,7 @@ async def log_requests(request: Request, call_next):
 # Initialize parsers
 parser = CSVParser()
 enhanced_parser = EnhancedCSVParser()
+robust_parser = RobustCSVParser()
 
 # Pydantic models for request/response
 class PreviewRequest(BaseModel):
@@ -103,7 +105,8 @@ async def preview_csv(file_id: str, encoding: str = "utf-8"):
     print(f"📁 Reading file: {file_path}")
     
     try:
-        result = parser.preview_csv(file_path, encoding)
+        # Use robust parser for better CSV handling
+        result = robust_parser.preview_csv(file_path, encoding)
         
         if not result['success']:
             print(f"❌ Preview failed: {result.get('error', 'Unknown error')}")
@@ -122,7 +125,7 @@ async def detect_data_range(file_id: str, encoding: str = "utf-8"):
         raise HTTPException(status_code=404, detail="File not found")
     
     file_path = uploaded_files[file_id]["temp_path"]
-    result = parser.detect_data_range(file_path, encoding)
+    result = robust_parser.detect_data_range(file_path, encoding)
     
     if not result['success']:
         raise HTTPException(status_code=400, detail=result['error'])
@@ -143,7 +146,8 @@ async def parse_range(file_id: str, request: ParseRangeRequest):
     print(f"📁 Processing file: {file_path}")
     
     try:
-        result = parser.parse_with_range(
+        # Try enhanced parser first, then robust parser as fallback
+        enhanced_result = enhanced_parser.parse_with_range(
             file_path, 
             request.start_row, 
             request.end_row, 
@@ -152,11 +156,32 @@ async def parse_range(file_id: str, request: ParseRangeRequest):
             request.encoding
         )
         
+        robust_result = robust_parser.parse_with_range(
+            file_path, 
+            request.start_row, 
+            request.end_row, 
+            request.start_col, 
+            request.end_col, 
+            request.encoding
+        )
+        
+        # Choose the better result (robust parser if it has more data)
+        result = enhanced_result
+        parser_used = "enhanced"
+        
+        if (robust_result['success'] and 
+            robust_result.get('row_count', 0) > enhanced_result.get('row_count', 0)):
+            result = robust_result
+            parser_used = "robust"
+        elif not enhanced_result['success'] and robust_result['success']:
+            result = robust_result
+            parser_used = "robust (fallback)"
+        
         if not result['success']:
-            print(f"❌ Parse failed: {result.get('error', 'Unknown error')}")
+            print(f"❌ Both parsers failed: {result.get('error', 'Unknown error')}")
             raise HTTPException(status_code=400, detail=result['error'])
         
-        print(f"✅ Parse successful: {result.get('row_count', 0)} rows")
+        print(f"✅ Parse successful using {parser_used} parser: {result.get('row_count', 0)} rows")
         return result
     except Exception as e:
         print(f"❌ Parse exception: {str(e)}")

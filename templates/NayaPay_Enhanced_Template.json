@@ -17,8 +17,113 @@
   "version": "2.1",
   "categorization_rules": [
     {
-      "rule_name": "Surraiya Riaz Transactions",
+      "rule_name": "Outgoing Fund Transfers (Raast Out)",
       "priority": 1,
+      "conditions": {
+        "and": [
+          {
+            "field": "TYPE",
+            "operator": "equals",
+            "value": "Raast Out",
+            "case_sensitive": false
+          }
+        ]
+      },
+      "actions": {
+        "set_category": "Transfer",
+        "clean_description": {
+          "from_field": "DESCRIPTION",
+          "rules": [
+            {
+              "pattern": "Outgoing fund transfer to",
+              "replacement": "Transfer to"
+            },
+            {
+              "pattern": "\\|Transaction ID [^\\n]*",
+              "replacement": ""
+            },
+            {
+              "pattern": "Transaction ID [^\\n]*",
+              "replacement": ""
+            }
+          ],
+          "default": "Transfer"
+        }
+      }
+    },
+    {
+      "rule_name": "Incoming Fund Transfers (IBFT In)",
+      "priority": 2,
+      "conditions": {
+        "and": [
+          {
+            "field": "TYPE",
+            "operator": "equals",
+            "value": "IBFT In",
+            "case_sensitive": false
+          }
+        ]
+      },
+      "actions": {
+        "set_category": "Transfer",
+        "clean_description": {
+          "from_field": "DESCRIPTION",
+          "rules": [
+            {
+              "pattern": "Incoming fund transfer from",
+              "replacement": "Transfer from"
+            },
+            {
+              "pattern": "\\|Transaction ID [^\\n]*",
+              "replacement": ""
+            },
+            {
+              "pattern": "Transaction ID [^\\n]*",
+              "replacement": ""
+            }
+          ],
+          "default": "Transfer"
+        }
+      }
+    },
+    {
+      "rule_name": "Peer to Peer Transfers",
+      "priority": 3,
+      "conditions": {
+        "and": [
+          {
+            "field": "TYPE",
+            "operator": "equals",
+            "value": "Peer to Peer",
+            "case_sensitive": false
+          }
+        ]
+      },
+      "actions": {
+        "set_category": "Transfer",
+        "clean_description": {
+          "from_field": "DESCRIPTION",
+          "rules": [
+            {
+              "pattern": "Money sent to",
+              "replacement": "Transfer to"
+            },
+            {
+              "pattern": "\\|Transaction ID [^\\n]*",
+              "replacement": ""
+            },
+            {
+              "pattern": "Transaction ID [^\\n]*",
+              "replacement": ""
+            }
+          ],
+          "default": "Transfer"
+        }
+      }
+    },
+    {
+      "rule_name": "Surraiya Riaz Transactions",
+      "priority": 4,
       "conditions": {
         "and": [
           {
@@ -35,7 +140,7 @@
     },
     {
       "rule_name": "Ride Hailing Services",
-      "priority": 2,
+      "priority": 5,
       "conditions": {
         "and": [
           {
@@ -59,7 +164,7 @@
     },
     {
       "rule_name": "Mobile Top-ups",
-      "priority": 3,
+      "priority": 6,
       "conditions": {
         "or": [
           {
@@ -95,7 +200,7 @@
     },
     {
       "rule_name": "ATM Withdrawals",
-      "priority": 4,
+      "priority": 7,
       "conditions": {
         "and": [
           {
@@ -118,7 +223,7 @@
     },
     {
       "rule_name": "Bank Transfers Out",
-      "priority": 5,
+      "priority": 8,
       "conditions": {
         "and": [
           {
@@ -136,7 +241,7 @@
     },
     {
       "rule_name": "Bank Transfers In",
-      "priority": 6,
+      "priority": 9,
       "conditions": {
         "and": [
           {
@@ -154,7 +259,7 @@
     },
     {
       "rule_name": "Salary Income",
-      "priority": 7,
+      "priority": 10,
       "conditions": {
         "and": [
           {
@@ -177,7 +282,7 @@
     },
     {
       "rule_name": "Online Shopping",
-      "priority": 8,
+      "priority": 11,
       "conditions": {
         "or": [
           {
@@ -207,7 +312,7 @@
     },
     {
       "rule_name": "Grocery Stores",
-      "priority": 9,
+      "priority": 12,
       "conditions": {
         "or": [
           {
