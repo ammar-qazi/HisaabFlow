@@ -79,6 +79,10 @@ class RobustCSVParser:
             # Replace NaN values with empty strings for JSON serialization
             df_preview = df_preview.fillna('')
             
+            # Ensure all values are JSON serializable
+            for col in df_preview.columns:
+                df_preview[col] = df_preview[col].astype(str).replace('nan', '')
+            
             return {
                 'success': True,
                 'total_rows': len(df_preview),
@@ -142,6 +146,10 @@ class RobustCSVParser:
             
             # Replace NaN values with empty strings for JSON serialization
             df_range = df_range.fillna('')
+            
+            # Ensure all values are JSON serializable
+            for col in df_range.columns:
+                df_range[col] = df_range[col].astype(str).replace('nan', '')
             
             return {
                 'success': True,

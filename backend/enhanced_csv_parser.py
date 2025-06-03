@@ -105,6 +105,10 @@ class EnhancedCSVParser:
             # Replace NaN values with empty strings for JSON serialization
             df_range = df_range.fillna('')
             
+            # Ensure all values are JSON serializable
+            for col in df_range.columns:
+                df_range[col] = df_range[col].astype(str).replace('nan', '')
+            
             return {
                 'success': True,
                 'headers': df_range.columns.tolist(),
@@ -119,7 +123,7 @@ class EnhancedCSVParser:
     
     def transform_to_cashew(self, data: List[Dict], column_mapping: Dict[str, str], 
                            bank_name: str = "", categorization_rules: List[Dict] = None,
-                           default_category_rules: Dict = None) -> List[Dict]:
+                           default_category_rules: Dict = None, account_mapping: Dict = None) -> List[Dict]:
         """Transform parsed data to Cashew format with smart categorization"""
         cashew_data = []
         
@@ -142,6 +146,10 @@ class EnhancedCSVParser:
                     elif cashew_col == 'Amount':
                         # Clean and format amount
                         cashew_row[cashew_col] = self._parse_amount(str(row[source_col]))
+                    elif cashew_col == 'Account' and account_mapping:
+                        # Use currency-based account mapping
+                        currency = str(row[source_col])
+                        cashew_row[cashew_col] = account_mapping.get(currency, bank_name)
                     else:
                         cashew_row[cashew_col] = str(row[source_col])
             
@@ -187,15 +195,41 @@ class EnhancedCSVParser:
                     else:
                         cashew_row['Title'] = template
                 elif 'clean_description' in actions:
-                    # Clean and shorten the description
-                    cleaned_desc = self._clean_description(original_row, actions['clean_description'])
-                    cashew_row['Title'] = cleaned_desc
+                    # Clean and shorten the description using regex pattern
+                    clean_config = actions['clean_description']
+                    description_field = None
+                    
+                    # Find description field in the row
+                    for key in original_row:
+                        if 'description' in key.lower():
+                            description_field = key
+                            break
+                    
+                    if description_field and 'pattern' in clean_config:
+                        import re
+                        original_desc = str(original_row[description_field])
+                        pattern = clean_config['pattern']
+                        replacement = clean_config['replacement']
+                        
+                        # Apply regex replacement
+                        cleaned_desc = re.sub(pattern, replacement, original_desc)
+                        cashew_row['Title'] = cleaned_desc
+                    else:
+                        # Fallback to original description
+                        cashew_row['Title'] = str(original_row.get(description_field, ''))
+                    
+                    # If clean_description doesn't set title, try original logic
+                    if not cashew_row['Title']:
+                        cleaned_desc = self._clean_description(original_row, actions['clean_description'])
+                        cashew_row['Title'] = cleaned_desc
                 elif not actions.get('keep_original_title', False):
                     # Keep original title if not specified otherwise
                     pass
                 
-                # Rule matched, stop processing further rules
-                break
+                # Rule matched - check if we should continue processing
+                if not actions.get('continue_processing', False):
+                    # Stop processing further rules unless explicitly told to continue
+                    break
         
         # Apply default categorization if no category was set
         if not cashew_row['Category']:
@@ -208,6 +242,57 @@ class EnhancedCSVParser:
         if not conditions:
             return False
         
+        # Handle new-style conditions with simple field checks
+        if 'description_contains' in conditions:
+            description_field = None
+            # Find description field in the row
+            for key in row:
+                if 'description' in key.lower():
+                    description_field = key
+                    break
+            
+            if description_field:
+                description_text = str(row[description_field]).lower()
+                for search_term in conditions['description_contains']:
+                    if search_term.lower() in description_text:
+                        # Check if there are additional conditions to verify
+                        if 'amount_exact' in conditions:
+                            amount_field = None
+                            for key in row:
+                                if 'amount' in key.lower():
+                                    amount_field = key
+                                    break
+                            if amount_field:
+                                try:
+                                    amount = float(self._parse_amount(str(row[amount_field])))
+                                    if amount == conditions['amount_exact']:
+                                        return True
+                                except (ValueError, TypeError):
+                                    pass
+                            return False
+                        else:
+                            return True
+            return False
+        
+        if 'amount_range' in conditions:
+            amount_field = None
+            # Find amount field in the row
+            for key in row:
+                if 'amount' in key.lower():
+                    amount_field = key
+                    break
+            
+            if amount_field:
+                try:
+                    amount = float(self._parse_amount(str(row[amount_field])))
+                    min_val = conditions['amount_range'].get('min', float('-inf'))
+                    max_val = conditions['amount_range'].get('max', float('inf'))
+                    return min_val <= amount <= max_val
+                except (ValueError, TypeError):
+                    pass
+            return False
+        
+        # Handle old-style conditions
         if 'and' in conditions:
             return all(self._check_single_condition(row, cond) for cond in conditions['and'])
         elif 'or' in conditions:

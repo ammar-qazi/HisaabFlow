@@ -1,0 +1,291 @@
+{
+  "name": "Transferwise Hungarian Template",
+  "bank_name": "Transferwise",
+  "description": "Template for Transferwise CSV statements with Hungarian account",
+  "csv_config": {
+    "has_header": true,
+    "skip_rows": 0,
+    "date_format": "%Y-%m-%d",
+    "encoding": "utf-8"
+  },
+  "column_mapping": {
+    "Date": "Date",
+    "Amount": "Amount",
+    "Title": "Description",
+    "Note": "Payment Reference",
+    "Account": "Currency"
+  },
+  "account_mapping": {
+    "HUF": "Hungarian",
+    "USD": "TransferWise",
+    "EUR": "EURO Wise"
+  },
+  "categorization_rules": [
+    {
+      "priority": 1,
+      "name": "Clean Card Transaction Descriptions",
+      "conditions": {
+        "description_contains": ["Card transaction of", "issued by"]
+      },
+      "actions": {
+        "clean_description": {
+          "pattern": "Card transaction of [\\d,]+\\.\\d{2} [A-Z]{3} issued by (.+)",
+          "replacement": "\\1"
+        },
+        "continue_processing": true
+      }
+    },
+    {
+      "priority": 2,
+      "name": "Business Taxes - Hungary Szocho",
+      "conditions": {
+        "description_contains": ["Hungary Szocho"]
+      },
+      "actions": {
+        "clean_description": {
+          "pattern": "Sent money to (.+)",
+          "replacement": "\\1"
+        },
+        "set_category": "Business Taxes",
+        "continue_processing": true
+      }
+    },
+    {
+      "priority": 3,
+      "name": "Business Taxes - Hungary NAV TB",
+      "conditions": {
+        "description_contains": ["Hungary NAV TB"]
+      },
+      "actions": {
+        "clean_description": {
+          "pattern": "Sent money to (.+)",
+          "replacement": "\\1"
+        },
+        "set_category": "Business Taxes",
+        "continue_processing": true
+      }
+    },
+    {
+      "priority": 4,
+      "name": "Business Taxes - NAV SZJA",
+      "conditions": {
+        "description_contains": ["NAV SZJA"]
+      },
+      "actions": {
+        "clean_description": {
+          "pattern": "Sent money to (.+)",
+          "replacement": "\\1"
+        },
+        "set_category": "Business Taxes",
+        "continue_processing": true
+      }
+    },
+    {
+      "priority": 5,
+      "name": "The Blogsmith Payments",
+      "conditions": {
+        "description_contains": ["Received money from The Blogsmith"]
+      },
+      "actions": {
+        "set_title": "The Blogsmith Payments",
+        "set_category": "Income"
+      }
+    },
+    {
+      "priority": 6,
+      "name": "Amazon Blog Payment",
+      "conditions": {
+        "description_contains": ["Received money from Amazon"]
+      },
+      "actions": {
+        "set_title": "Amazon Blog Payment",
+        "set_category": "Income"
+      }
+    },
+    {
+      "priority": 7,
+      "name": "Travel - Airalo",
+      "conditions": {
+        "description_contains": ["Airalo"]
+      },
+      "actions": {
+        "set_category": "Travel"
+      }
+    },
+    {
+      "priority": 8,
+      "name": "Travel - Riyadh Metro",
+      "conditions": {
+        "description_contains": ["Riyadh Metro"]
+      },
+      "actions": {
+        "set_category": "Travel"
+      }
+    },
+    {
+      "priority": 9,
+      "name": "Travel - Kiwi.com",
+      "conditions": {
+        "description_contains": ["Kiwi.com"]
+      },
+      "actions": {
+        "set_category": "Travel"
+      }
+    },
+    {
+      "priority": 10,
+      "name": "Travel - Pegasus UK",
+      "conditions": {
+        "description_contains": ["Pegasus UK"]
+      },
+      "actions": {
+        "set_category": "Travel"
+      }
+    },
+    {
+      "priority": 11,
+      "name": "Pest County Pass - Budapest 9450",
+      "conditions": {
+        "description_contains": ["Budapest"],
+        "amount_exact": -9450
+      },
+      "actions": {
+        "set_title": "Pest County Pass",
+        "set_category": "Bills & Fees"
+      }
+    },
+    {
+      "priority": 12,
+      "name": "Szamlazz Accounting Fee",
+      "conditions": {
+        "description_contains": ["Szamlazz"]
+      },
+      "actions": {
+        "set_title": "Szamlazz accounting fee",
+        "set_category": "Bills & Fees"
+      }
+    },
+    {
+      "priority": 13,
+      "name": "Yettel Recharge",
+      "conditions": {
+        "description_contains": ["Yettelfelto"]
+      },
+      "actions": {
+        "set_title": "Yettel Recharge",
+        "set_category": "Bills & Fees"
+      }
+    },
+    {
+      "priority": 14,
+      "name": "Accountant Fee - Bajusz Alexa",
+      "conditions": {
+        "description_contains": ["Sent money to Bajusz Alexa"]
+      },
+      "actions": {
+        "set_title": "Accountant Fee",
+        "set_category": "Bills & Fees"
+      }
+    },
+    {
+      "priority": 15,
+      "name": "Groceries - Lidl",
+      "conditions": {
+        "description_contains": ["Lidl"]
+      },
+      "actions": {
+        "set_category": "Groceries"
+      }
+    },
+    {
+      "priority": 16,
+      "name": "Groceries - Aldi",
+      "conditions": {
+        "description_contains": ["Aldi"]
+      },
+      "actions": {
+        "set_category": "Groceries"
+      }
+    },
+    {
+      "priority": 17,
+      "name": "Groceries - Plusmarket",
+      "conditions": {
+        "description_contains": ["Plusmarket"]
+      },
+      "actions": {
+        "set_category": "Groceries"
+      }
+    },
+    {
+      "priority": 18,
+      "name": "Shopping - Alza",
+      "conditions": {
+        "description_contains": ["Alza.cz", "Alza"]
+      },
+      "actions": {
+        "set_category": "Shopping"
+      }
+    },
+    {
+      "priority": 19,
+      "name": "Shopping - Tedi",
+      "conditions": {
+        "description_contains": ["Tedi"]
+      },
+      "actions": {
+        "set_category": "Shopping"
+      }
+    },
+    {
+      "priority": 20,
+      "name": "Shopping - Kik",
+      "conditions": {
+        "description_contains": ["Kik"]
+      },
+      "actions": {
+        "set_category": "Shopping"
+      }
+    },
+    {
+      "priority": 21,
+      "name": "Bills & Fees - Yettel (General)",
+      "conditions": {
+        "description_contains": ["Yettel"]
+      },
+      "actions": {
+        "set_category": "Bills & Fees"
+      }
+    },
+    {
+      "priority": 22,
+      "name": "Bills & Fees - Vimpay.mav",
+      "conditions": {
+        "description_contains": ["Vimpay.mav"]
+      },
+      "actions": {
+        "set_category": "Bills & Fees"
+      }
+    },
+    {
+      "priority": 23,
+      "name": "Dining - Cafe",
+      "conditions": {
+        "description_contains": ["Cafe"]
+      },
+      "actions": {
+        "set_category": "Dining"
+      }
+    },
+    {
+      "priority": 24,
+      "name": "Dining - Burger",
+      "conditions": {
+        "description_contains": ["Burger"]
+      },
+      "actions": {
+        "set_category": "Dining"
+      }
+    }
+  ]
+}

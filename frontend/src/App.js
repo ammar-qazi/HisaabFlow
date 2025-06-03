@@ -111,7 +111,12 @@ function App() {
       await previewFile(response.data.file_id);
       
     } catch (err) {
-      setError(`Upload failed: ${err.response?.data?.detail || err.message}`);
+      console.error('Upload error details:', err.response?.data);
+      let errorMessage = err.response?.data?.detail || err.message;
+      if (typeof errorMessage === 'object') {
+        errorMessage = JSON.stringify(errorMessage);
+      }
+      setError(`Upload failed: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -132,7 +137,12 @@ function App() {
       }
       
     } catch (err) {
-      setError(`Preview failed: ${err.response?.data?.detail || err.message}`);
+      console.error('Preview error details:', err.response?.data);
+      let errorMessage = err.response?.data?.detail || err.message;
+      if (typeof errorMessage === 'object') {
+        errorMessage = JSON.stringify(errorMessage);
+      }
+      setError(`Preview failed: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -145,12 +155,24 @@ function App() {
     setLoading(true);
     
     try {
-      const response = await axios.post(`${API_BASE}/parse-range/${fileId}`, {
-        start_row: parseInt(startRow),
+      const requestData = {
+        start_row: parseInt(startRow) || 0,
         end_row: endRow ? parseInt(endRow) : null,
-        start_col: parseInt(startCol),
-        end_col: endCol ? parseInt(endCol) : null
+        start_col: parseInt(startCol) || 0,
+        end_col: endCol ? parseInt(endCol) : null,
+        encoding: 'utf-8'
+      };
+      
+      console.log('Parse request data:', requestData);
+      console.log('File ID:', fileId);
+      
+      const response = await axios.post(`${API_BASE}/parse-range/${fileId}`, requestData, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
+      
+      console.log('Parse response:', response.data);
       
       setParsedData(response.data);
       setSuccess(`Parsed ${response.data.row_count} rows successfully`);
@@ -176,7 +198,26 @@ function App() {
       setColumnMapping(newMapping);
       
     } catch (err) {
-      setError(`Parsing failed: ${err.response?.data?.detail || err.message}`);
+      console.error('Parse error full details:', err);
+      console.error('Parse error response:', err.response);
+      console.error('Parse error data:', err.response?.data);
+      
+      let errorMessage = 'Unknown parsing error';
+      
+      if (err.response?.data?.detail) {
+        // Handle both string and object error details
+        if (typeof err.response.data.detail === 'string') {
+          errorMessage = err.response.data.detail;
+        } else {
+          errorMessage = JSON.stringify(err.response.data.detail);
+        }
+      } else if (err.response?.data) {
+        errorMessage = JSON.stringify(err.response.data);
+      } else {
+        errorMessage = err.message;
+      }
+      
+      setError(`Parsing failed: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -192,6 +233,7 @@ function App() {
       // Get categorization rules and bank name from the current template if available
       let categorizationRules = null;
       let defaultCategoryRules = null;
+      let accountMapping = null;
       let bankName = file?.name?.split('.')[0] || 'Unknown Bank';
       
       if (selectedTemplate) {
@@ -200,6 +242,7 @@ function App() {
           const templateConfig = templateResponse.data.config;
           categorizationRules = templateConfig.categorization_rules;
           defaultCategoryRules = templateConfig.default_category_rules;
+          accountMapping = templateConfig.account_mapping;
           // Use bank name from template if available
           if (templateConfig.bank_name) {
             bankName = templateConfig.bank_name;
@@ -214,7 +257,8 @@ function App() {
         column_mapping: columnMapping,
         bank_name: bankName,
         categorization_rules: categorizationRules,
-        default_category_rules: defaultCategoryRules
+        default_category_rules: defaultCategoryRules,
+        account_mapping: accountMapping
       });
       
       setTransformedData(response.data.data);

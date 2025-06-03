@@ -53,6 +53,7 @@ class TransformRequest(BaseModel):
     bank_name: str = ""
     categorization_rules: Optional[List[Dict[str, Any]]] = None
     default_category_rules: Optional[Dict[str, str]] = None
+    account_mapping: Optional[Dict[str, str]] = None
 
 class SaveTemplateRequest(BaseModel):
     template_name: str
@@ -179,7 +180,8 @@ async def parse_range(file_id: str, request: ParseRangeRequest):
         
         if not result['success']:
             print(f"❌ Both parsers failed: {result.get('error', 'Unknown error')}")
-            raise HTTPException(status_code=400, detail=result['error'])
+            error_detail = result.get('error', 'Unknown parsing error')
+            raise HTTPException(status_code=400, detail=f"Parsing failed: {error_detail}")
         
         print(f"✅ Parse successful using {parser_used} parser: {result.get('row_count', 0)} rows")
         return result
@@ -198,7 +200,8 @@ async def transform_data(request: TransformRequest):
                 request.column_mapping, 
                 request.bank_name,
                 request.categorization_rules,
-                request.default_category_rules
+                request.default_category_rules,
+                getattr(request, 'account_mapping', None)
             )
         else:
             # Fall back to basic parser
