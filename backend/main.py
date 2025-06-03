@@ -10,6 +10,7 @@ import tempfile
 from csv_parser import CSVParser
 from enhanced_csv_parser import EnhancedCSVParser
 from robust_csv_parser import RobustCSVParser
+from transfer_detector import TransferDetector
 
 app = FastAPI(title="Bank Statement Parser API", version="1.0.0")
 
@@ -54,6 +55,18 @@ class TransformRequest(BaseModel):
     categorization_rules: Optional[List[Dict[str, Any]]] = None
     default_category_rules: Optional[Dict[str, str]] = None
     account_mapping: Optional[Dict[str, str]] = None
+
+class MultiCSVParseRequest(BaseModel):
+    file_ids: List[str]
+    parse_configs: List[Dict[str, Any]]  # Individual parse config for each CSV
+    user_name: str = "Ammar Qazi"  # For transfer detection
+    date_tolerance_hours: int = 24
+
+class MultiCSVTransformRequest(BaseModel):
+    csv_data_list: List[Dict[str, Any]]
+    user_name: str = "Ammar Qazi"
+    enable_transfer_detection: bool = True
+    date_tolerance_hours: int = 24
 
 class SaveTemplateRequest(BaseModel):
     template_name: str
@@ -307,7 +320,116 @@ async def load_template(template_name: str):
         print(f"❌ Template load error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error loading template: {str(e)}")
 
-# Cleanup endpoint
+@app.post("/multi-csv/parse")
+async def parse_multiple_csvs(request: MultiCSVParseRequest):
+    """Parse multiple CSV files with individual configurations"""
+    try:
+        results = []
+        
+        for i, file_id in enumerate(request.file_ids):
+            if file_id not in uploaded_files:
+                raise HTTPException(status_code=404, detail=f"File {file_id} not found")
+            
+            file_path = uploaded_files[file_id]["temp_path"]
+            config = request.parse_configs[i] if i < len(request.parse_configs) else {}
+            
+            # Parse with enhanced parser
+            parse_result = enhanced_parser.parse_with_range(
+                file_path,
+                config.get('start_row', 0),
+                config.get('end_row'),
+                config.get('start_col', 0),
+                config.get('end_col'),
+                config.get('encoding', 'utf-8')
+            )
+            
+            if not parse_result['success']:
+                raise HTTPException(status_code=400, detail=f"Failed to parse {file_id}: {parse_result['error']}")
+            
+            results.append({
+                "file_id": file_id,
+                "file_name": uploaded_files[file_id]["original_name"],
+                "parse_result": parse_result,
+                "config": config
+            })
+        
+        return {
+            "success": True,
+            "parsed_csvs": results,
+            "total_files": len(results)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/multi-csv/transform")
+async def transform_multiple_csvs(request: MultiCSVTransformRequest):
+    """Transform multiple CSVs with transfer detection"""
+    try:
+        # Initialize transfer detector
+        transfer_detector = TransferDetector(
+            user_name=request.user_name,
+            date_tolerance_hours=request.date_tolerance_hours
+        )
+        
+        # Detect transfers if enabled
+        transfer_analysis = None
+        if request.enable_transfer_detection:
+            transfer_analysis = transfer_detector.detect_transfers(request.csv_data_list)
+        
+        # Transform each CSV individually
+        all_transformed_data = []
+        transformation_results = []
+        
+        for csv_data in request.csv_data_list:
+            # Get template configuration
+            template_config = csv_data.get('template_config', {})
+            column_mapping = template_config.get('column_mapping', {})
+            bank_name = template_config.get('bank_name', csv_data.get('file_name', 'Unknown'))
+            categorization_rules = template_config.get('categorization_rules', [])
+            default_category_rules = template_config.get('default_category_rules')
+            account_mapping = template_config.get('account_mapping')
+            
+            # Transform data
+            transformed = enhanced_parser.transform_to_cashew(
+                csv_data['data'],
+                column_mapping,
+                bank_name,
+                categorization_rules,
+                default_category_rules,
+                account_mapping
+            )
+            
+            transformation_results.append({
+                "file_name": csv_data.get('file_name'),
+                "transactions": len(transformed),
+                "template_used": template_config.get('name', 'None')
+            })
+            
+            all_transformed_data.extend(transformed)
+        
+        # Apply transfer categorization if transfers were detected
+        if transfer_analysis and transfer_analysis['transfers']:
+            all_transformed_data = transfer_detector.apply_transfer_categorization(
+                all_transformed_data, 
+                transfer_analysis['transfers']
+            )
+        
+        return {
+            "success": True,
+            "transformed_data": all_transformed_data,
+            "transfer_analysis": transfer_analysis,
+            "transformation_summary": {
+                "total_transactions": len(all_transformed_data),
+                "files_processed": len(request.csv_data_list),
+                "transfers_detected": len(transfer_analysis['transfers']) if transfer_analysis else 0,
+                "balance_corrections_applied": len([t for t in all_transformed_data if t.get('Category') == 'Balance Correction'])
+            },
+            "file_results": transformation_results
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 @app.delete("/cleanup/{file_id}")
 async def cleanup_file(file_id: str):
     """Remove uploaded file from temp storage"""
