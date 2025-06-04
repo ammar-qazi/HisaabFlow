@@ -497,19 +497,32 @@ async def transform_multiple_csvs(request: MultiCSVTransformRequest):
                             date_match = transaction.get('Date', '').startswith(match['date'])
                             
                             if amount_match and date_match:
-                                # Additional check for description similarity to avoid false matches
+                                # Enhanced matching for transfer detection override
                                 trans_desc = str(transaction.get('Title', '')).lower()
                                 match_desc = str(match['description']).lower()
                                 
-                                # Check if descriptions contain similar key words (avoid very short words)
-                                desc_words_trans = [word for word in trans_desc.split() if len(word) > 3]
-                                desc_words_match = [word for word in match_desc.split() if len(word) > 3]
+                                # Simple but effective matching for transfers
+                                desc_match = False
                                 
-                                desc_match = (len(desc_words_trans) == 0 or len(desc_words_match) == 0 or 
-                                            any(word in trans_desc for word in desc_words_match) or 
-                                            any(word in match_desc for word in desc_words_trans))
+                                # Direct key phrase matching (most reliable)
+                                if 'sent money' in match_desc and 'sent money' in trans_desc:
+                                    desc_match = True
+                                elif 'incoming fund transfer' in match_desc and 'incoming fund transfer' in trans_desc:
+                                    desc_match = True
+                                elif 'converted' in match_desc and 'converted' in trans_desc:
+                                    desc_match = True
+                                else:
+                                    # Fallback: check if at least 2 significant words match
+                                    desc_words_trans = [word for word in trans_desc.split() if len(word) > 3]
+                                    desc_words_match = [word for word in match_desc.split() if len(word) > 3]
+                                    
+                                    # More lenient matching for transfer override
+                                    desc_match = (len(desc_words_trans) == 0 or len(desc_words_match) == 0 or 
+                                                any(word in trans_desc for word in desc_words_match) or 
+                                                any(word in match_desc for word in desc_words_trans))
                                 
                                 if desc_match:
+                                    print(f"🎯 OVERRIDE: '{transaction['Category']}' → 'Balance Correction' for {trans_desc[:30]}...")
                                     all_transformed_data[i]['Category'] = match['category']
                                     all_transformed_data[i]['Note'] = match['note']
                                     all_transformed_data[i]['_transfer_pair_id'] = match['pair_id']
@@ -517,6 +530,8 @@ async def transform_multiple_csvs(request: MultiCSVTransformRequest):
                                     all_transformed_data[i]['_is_transfer'] = True
                                     balance_corrections_applied += 1
                                     break
+                                else:
+                                    print(f"⚠️  NO MATCH: '{trans_desc[:30]}...' vs '{match_desc[:30]}...'")
                     
                     print(f"✅ Transfer categorization applied")
                 else:
