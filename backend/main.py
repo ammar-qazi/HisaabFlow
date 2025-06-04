@@ -10,7 +10,7 @@ import tempfile
 from csv_parser import CSVParser
 from enhanced_csv_parser import EnhancedCSVParser
 from robust_csv_parser import RobustCSVParser
-from transfer_detector_enhanced import EnhancedTransferDetector as TransferDetector
+from transfer_detector import TransferDetector
 
 app = FastAPI(title="Bank Statement Parser API", version="1.0.0")
 
@@ -476,13 +476,6 @@ async def transform_multiple_csvs(request: MultiCSVTransformRequest):
                         print(f"     - Amount: {trans.get('Amount', 'N/A')}, Desc: {trans.get('Description', 'N/A')[:50]}...")
                 
                 # Detect transfers
-                # DEBUG: Print sample data for debugging
-                for idx, csv_data in enumerate(request.csv_data_list):
-                    print(f"   📊 CSV {idx+1} ({csv_data.get('file_name', 'Unknown')}):") 
-                    sample_transactions = csv_data.get('data', [])[:2]  # First 2 transactions
-                    for trans in sample_transactions:
-                        print(f"     - Amount: {trans.get('Amount', 'N/A')}, Desc: {trans.get('Description', 'N/A')[:50]}...")
-                
                 transfer_analysis = transfer_detector.detect_transfers(request.csv_data_list)
                 print(f"✅ Transfer detection complete: {transfer_analysis['summary']}")
                 
@@ -504,42 +497,19 @@ async def transform_multiple_csvs(request: MultiCSVTransformRequest):
                             date_match = transaction.get('Date', '').startswith(match['date'])
                             
                             if amount_match and date_match:
-                                # Use BOTH Title and original description for matching (more reliable)
-                                trans_title = str(transaction.get('Title', '')).lower()
-                                trans_desc = str(transaction.get('Description', trans_title)).lower()  # Fallback to Title
+                                # Additional check for description similarity to avoid false matches
+                                trans_desc = str(transaction.get('Title', '')).lower()
                                 match_desc = str(match['description']).lower()
                                 
-                                # Enhanced description matching for transfer phrases
-                                desc_match = False
+                                # Check if descriptions contain similar key words (avoid very short words)
+                                desc_words_trans = [word for word in trans_desc.split() if len(word) > 3]
+                                desc_words_match = [word for word in match_desc.split() if len(word) > 3]
                                 
-                                # Check both Title and Description fields
-                                all_trans_text = f"{trans_title} {trans_desc}".lower()
-                                
-                                # Direct substring matching for key phrases
-                                if 'sent money' in match_desc and 'sent money' in all_trans_text:
-                                    desc_match = True
-                                    print(f"   ✅ Matched 'sent money' pattern")
-                                elif 'incoming fund transfer' in match_desc and 'incoming fund transfer' in all_trans_text:
-                                    desc_match = True
-                                    print(f"   ✅ Matched 'incoming fund transfer' pattern")
-                                elif 'converted' in match_desc and 'converted' in all_trans_text:
-                                    desc_match = True
-                                    print(f"   ✅ Matched 'converted' pattern")
-                                else:
-                                    # Fallback to word matching
-                                    desc_words_trans = [word for word in all_trans_text.split() if len(word) > 3]
-                                    desc_words_match = [word for word in match_desc.split() if len(word) > 3]
-                                    
-                                    common_words = set(desc_words_trans) & set(desc_words_match)
-                                    if len(common_words) >= 2:  # At least 2 common words
-                                        desc_match = True
-                                        print(f"   ✅ Matched common words: {common_words}")
-                                    else:
-                                        print(f"   ❌ No match: trans='{all_trans_text[:30]}...' vs match='{match_desc[:30]}...'")
+                                desc_match = (len(desc_words_trans) == 0 or len(desc_words_match) == 0 or 
+                                            any(word in trans_desc for word in desc_words_match) or 
+                                            any(word in match_desc for word in desc_words_trans))
                                 
                                 if desc_match:
-                                    print(f"   🎯 Applying transfer categorization to: {trans_desc[:50]}...")
-                                    print(f"   🔄 Overriding '{all_transformed_data[i]['Category']}' → '{match['category']}'")
                                     all_transformed_data[i]['Category'] = match['category']
                                     all_transformed_data[i]['Note'] = match['note']
                                     all_transformed_data[i]['_transfer_pair_id'] = match['pair_id']
@@ -548,7 +518,7 @@ async def transform_multiple_csvs(request: MultiCSVTransformRequest):
                                     balance_corrections_applied += 1
                                     break
                     
-                    print(f"✅ Transfer categorization applied to {balance_corrections_applied} transactions")
+                    print(f"✅ Transfer categorization applied")
                 else:
                     print(f"⚠️  No transfers detected - check your data patterns")
                 
