@@ -482,18 +482,37 @@ async def transform_multiple_csvs(request: MultiCSVTransformRequest):
                 # Apply transfer categorization if transfers were detected
                 if transfer_analysis and transfer_analysis['transfers']:
                     print(f"🔄 Applying transfer categorization to {len(transfer_analysis['transfers'])} pairs...")
+                    
+                    # DEBUG: Show what transfers were detected
+                    print(f"📋 DETECTED TRANSFERS:")
+                    for i, pair in enumerate(transfer_analysis['transfers'], 1):
+                        print(f"   {i}. OUT: {pair['outgoing']['Description']} ({pair['outgoing']['Amount']})")
+                        print(f"      IN:  {pair['incoming']['Description']} ({pair['incoming']['Amount']})")
+                        print(f"      Confidence: {pair['confidence']:.2f}")
+                    
                     transfer_matches = transfer_detector.apply_transfer_categorization(
                         request.csv_data_list, 
                         transfer_analysis['transfers']
                     )
                     
+                    print(f"📝 TRANSFER MATCHES CREATED: {len(transfer_matches)}")
+                    for i, match in enumerate(transfer_matches):
+                        print(f"   {i+1}. Amount: {match['amount']}, Date: {match['date']}")
+                        print(f"      Desc: {match['description'][:50]}...")
+                        print(f"      Category: {match['category']}, Type: {match['transfer_type']}")
+                    
                     # FIXED: Apply balance corrections with enhanced matching
                     balance_corrections_applied = 0
                     
+                    print(f"🔍 TRYING TO MATCH {len(transfer_matches)} transfer matches with {len(all_transformed_data)} transactions...")
+                    
                     for i, transaction in enumerate(all_transformed_data):
-                        for match in transfer_matches:
+                        transaction_matched = False
+                        for j, match in enumerate(transfer_matches):
                             # Enhanced matching logic
-                            amount_match = abs(float(transaction.get('Amount', '0')) - float(match['amount'])) < 0.01
+                            trans_amount = float(transaction.get('Amount', '0'))
+                            match_amount = float(match['amount'])
+                            amount_match = abs(trans_amount - match_amount) < 0.01
                             date_match = transaction.get('Date', '').startswith(match['date'])
                             
                             if amount_match and date_match:
@@ -501,39 +520,65 @@ async def transform_multiple_csvs(request: MultiCSVTransformRequest):
                                 trans_desc = str(transaction.get('Title', '')).lower()
                                 match_desc = str(match['description']).lower()
                                 
+                                print(f"🔎 POTENTIAL MATCH {j+1}:")
+                                print(f"   Transaction: {transaction.get('Title', 'N/A')[:50]}... (Amount: {trans_amount})")
+                                print(f"   Match: {match['description'][:50]}... (Amount: {match_amount})")
+                                print(f"   Amount match: {amount_match}, Date match: {date_match}")
+                                
                                 # Simple but effective matching for transfers
                                 desc_match = False
                                 
                                 # Direct key phrase matching (most reliable)
                                 if 'sent money' in match_desc and 'sent money' in trans_desc:
                                     desc_match = True
+                                    print(f"   ✅ PHRASE MATCH: 'sent money'")
                                 elif 'incoming fund transfer' in match_desc and 'incoming fund transfer' in trans_desc:
                                     desc_match = True
+                                    print(f"   ✅ PHRASE MATCH: 'incoming fund transfer'")
                                 elif 'converted' in match_desc and 'converted' in trans_desc:
                                     desc_match = True
+                                    print(f"   ✅ PHRASE MATCH: 'converted'")
                                 else:
                                     # Fallback: check if at least 2 significant words match
                                     desc_words_trans = [word for word in trans_desc.split() if len(word) > 3]
                                     desc_words_match = [word for word in match_desc.split() if len(word) > 3]
                                     
+                                    print(f"   Trans words: {desc_words_trans[:5]}...")
+                                    print(f"   Match words: {desc_words_match[:5]}...")
+                                    
                                     # More lenient matching for transfer override
                                     desc_match = (len(desc_words_trans) == 0 or len(desc_words_match) == 0 or 
                                                 any(word in trans_desc for word in desc_words_match) or 
                                                 any(word in match_desc for word in desc_words_trans))
+                                    
+                                    if desc_match:
+                                        matching_words = [word for word in desc_words_match if word in trans_desc]
+                                        print(f"   ✅ WORD MATCH: {matching_words}")
+                                    else:
+                                        print(f"   ❌ NO WORD MATCH")
                                 
                                 if desc_match:
-                                    print(f"🎯 OVERRIDE: '{transaction['Category']}' → 'Balance Correction' for {trans_desc[:30]}...")
+                                    print(f"🎯 OVERRIDE SUCCESS: '{transaction.get('Category', 'Unknown')}' → 'Balance Correction'")
                                     all_transformed_data[i]['Category'] = match['category']
                                     all_transformed_data[i]['Note'] = match['note']
                                     all_transformed_data[i]['_transfer_pair_id'] = match['pair_id']
                                     all_transformed_data[i]['_transfer_type'] = match['transfer_type']
                                     all_transformed_data[i]['_is_transfer'] = True
                                     balance_corrections_applied += 1
+                                    transaction_matched = True
                                     break
                                 else:
-                                    print(f"⚠️  NO MATCH: '{trans_desc[:30]}...' vs '{match_desc[:30]}...'")
+                                    print(f"⚠️  NO MATCH: Description doesn't match")
+                            else:
+                                if not amount_match:
+                                    print(f"⚠️  SKIP: Amount mismatch ({trans_amount} vs {match_amount})")
+                                if not date_match:
+                                    print(f"⚠️  SKIP: Date mismatch ({transaction.get('Date', 'N/A')} vs {match['date']})")
+                        
+                        if not transaction_matched and any(word in str(transaction.get('Title', '')).lower() for word in ['sent money', 'incoming fund', 'converted']):
+                            print(f"🚩 UNMATCHED TRANSFER-LIKE: {transaction.get('Title', 'N/A')[:50]}... (Category: {transaction.get('Category', 'Unknown')})")
                     
-                    print(f"✅ Transfer categorization applied")
+                    print(f"✅ Transfer categorization applied - {balance_corrections_applied} overrides successful")
                 else:
                     print(f"⚠️  No transfers detected - check your data patterns")
                 
