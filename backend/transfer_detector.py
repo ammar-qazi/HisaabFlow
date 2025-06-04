@@ -275,48 +275,35 @@ class TransferDetector:
         except Exception:
             return False
     
-    def apply_transfer_categorization(self, transformed_data: List[Dict], transfer_pairs: List[Dict]) -> List[Dict]:
-        """Apply Balance Correction category to detected transfers"""
+    def apply_transfer_categorization(self, csv_data_list: List[Dict], transfer_pairs: List[Dict]) -> List[Dict]:
+        """Apply Balance Correction category to detected transfers using proper transaction matching"""
         
-        # Create a mapping of transaction indices to transfer pairs
-        transfer_mapping = {}
+        # Create a comprehensive mapping of transfers by matching transaction details
+        transfer_matches = []
         for pair in transfer_pairs:
-            outgoing_idx = pair['outgoing']['_transaction_index']
-            incoming_idx = pair['incoming']['_transaction_index']
+            outgoing = pair['outgoing']
+            incoming = pair['incoming']
             
-            transfer_mapping[outgoing_idx] = {
+            transfer_matches.append({
+                'csv_index': outgoing['_csv_index'],
+                'amount': str(self._parse_amount(outgoing.get('Amount', '0'))),
+                'date': self._parse_date(outgoing.get('Date', '')).strftime('%Y-%m-%d'),
+                'description': str(outgoing.get('Description', '')),
                 'category': 'Balance Correction',
                 'note': f"Transfer out - Pair ID: {pair['pair_id']}",
                 'pair_id': pair['pair_id'],
                 'transfer_type': 'outgoing'
-            }
+            })
             
-            transfer_mapping[incoming_idx] = {
+            transfer_matches.append({
+                'csv_index': incoming['_csv_index'],
+                'amount': str(self._parse_amount(incoming.get('Amount', '0'))),
+                'date': self._parse_date(incoming.get('Date', '')).strftime('%Y-%m-%d'),
+                'description': str(incoming.get('Description', '')),
                 'category': 'Balance Correction',
                 'note': f"Transfer in - Pair ID: {pair['pair_id']}",
                 'pair_id': pair['pair_id'],
                 'transfer_type': 'incoming'
-            }
+            })
         
-        # Apply categorization to transformed data
-        enhanced_data = []
-        for idx, transaction in enumerate(transformed_data):
-            if idx in transfer_mapping:
-                transfer_info = transfer_mapping[idx]
-                enhanced_transaction = {
-                    **transaction,
-                    'Category': transfer_info['category'],
-                    'Note': transfer_info['note'],
-                    '_transfer_pair_id': transfer_info['pair_id'],
-                    '_transfer_type': transfer_info['transfer_type'],
-                    '_is_transfer': True
-                }
-            else:
-                enhanced_transaction = {
-                    **transaction,
-                    '_is_transfer': False
-                }
-            
-            enhanced_data.append(enhanced_transaction)
-        
-        return enhanced_data
+        return transfer_matches

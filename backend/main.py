@@ -475,10 +475,39 @@ async def transform_multiple_csvs(request: MultiCSVTransformRequest):
                 # Apply transfer categorization if transfers were detected
                 if transfer_analysis and transfer_analysis['transfers']:
                     print(f"🔄 Applying transfer categorization to {len(transfer_analysis['transfers'])} pairs...")
-                    all_transformed_data = transfer_detector.apply_transfer_categorization(
-                        all_transformed_data, 
+                    transfer_matches = transfer_detector.apply_transfer_categorization(
+                        request.csv_data_list, 
                         transfer_analysis['transfers']
                     )
+                    
+                    # Apply balance corrections to the transformed data by matching transaction details
+                    for i, transaction in enumerate(all_transformed_data):
+                        for match in transfer_matches:
+                            # Match by amount and date
+                            amount_match = abs(float(transaction.get('Amount', '0')) - float(match['amount'])) < 0.01
+                            date_match = transaction.get('Date', '').startswith(match['date'])
+                            
+                            if amount_match and date_match:
+                                # Additional check for description similarity to avoid false matches
+                                trans_desc = str(transaction.get('Title', '')).lower()
+                                match_desc = str(match['description']).lower()
+                                
+                                # Check if descriptions contain similar key words (avoid very short words)
+                                desc_words_trans = [word for word in trans_desc.split() if len(word) > 3]
+                                desc_words_match = [word for word in match_desc.split() if len(word) > 3]
+                                
+                                desc_match = (len(desc_words_trans) == 0 or len(desc_words_match) == 0 or 
+                                            any(word in trans_desc for word in desc_words_match) or 
+                                            any(word in match_desc for word in desc_words_trans))
+                                
+                                if desc_match:
+                                    all_transformed_data[i]['Category'] = match['category']
+                                    all_transformed_data[i]['Note'] = match['note']
+                                    all_transformed_data[i]['_transfer_pair_id'] = match['pair_id']
+                                    all_transformed_data[i]['_transfer_type'] = match['transfer_type']
+                                    all_transformed_data[i]['_is_transfer'] = True
+                                    break
+                    
                     print(f"✅ Transfer categorization applied")
                 
             except Exception as transfer_error:
