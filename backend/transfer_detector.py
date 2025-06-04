@@ -13,14 +13,17 @@ class TransferDetector:
         self.user_name = user_name
         self.date_tolerance_hours = date_tolerance_hours
         
-        # Transfer description patterns
+        # Transfer description patterns - Enhanced with cross-bank patterns
         self.transfer_patterns = [
             r"converted\s+\w+",  # "Converted USD", "Converted EUR"
-            rf"sent\s+to\s+{re.escape(user_name.lower())}",  # "Sent to Ammar Qazi"
+            rf"sent\s+(money\s+)?to\s+{re.escape(user_name.lower())}",  # "Sent money to Ammar Qazi", "Sent to Ammar Qazi"
             rf"transfer\s+to\s+{re.escape(user_name.lower())}",  # "Transfer to Ammar Qazi"
             rf"transfer\s+from\s+{re.escape(user_name.lower())}",  # "Transfer from Ammar Qazi"
+            rf"incoming\s+fund\s+transfer\s+from\s+{re.escape(user_name.lower())}",  # "Incoming fund transfer from Ammar Qazi"
             r"transfer\s+to\s+\w+",  # "Transfer to account"
             r"transfer\s+from\s+\w+",  # "Transfer from account"
+            r"incoming\s+fund\s+transfer",  # NayaPay pattern
+            r"fund\s+transfer\s+from",  # Bank Alfalah pattern
         ]
     
     def detect_transfers(self, csv_data_list: List[Dict]) -> Dict[str, Any]:
@@ -49,7 +52,8 @@ class TransferDetector:
                     '_csv_index': csv_idx,
                     '_transaction_index': trans_idx,
                     '_csv_name': csv_data.get('file_name', f'CSV_{csv_idx}'),
-                    '_template_config': csv_data.get('template_config', {})
+                    '_template_config': csv_data.get('template_config', {}),
+                    '_bank_type': self._detect_bank_type(csv_data.get('file_name', ''), transaction)
                 }
                 all_transactions.append(enhanced_transaction)
         
@@ -98,6 +102,22 @@ class TransferDetector:
         
         return candidates
     
+    def _detect_bank_type(self, file_name: str, transaction: Dict) -> str:
+        """Detect bank type from filename and transaction patterns"""
+        file_name_lower = file_name.lower()
+        description = str(transaction.get('Description', '')).lower()
+        
+        if 'wise' in file_name_lower or 'transferwise' in file_name_lower:
+            return 'wise'
+        elif 'nayapay' in file_name_lower:
+            return 'nayapay'
+        elif 'bank alfalah' in description or 'alfalah' in file_name_lower:
+            return 'bank_alfalah'
+        elif any(pattern in description for pattern in ['raast', 'ibft', 'p2p']):
+            return 'pakistani_bank'
+        else:
+            return 'unknown'
+    
     def _match_transfer_pairs(self, potential_transfers: List[Dict], all_transactions: List[Dict]) -> List[Dict]:
         """Match outgoing and incoming transfers by amount and date"""
         transfer_pairs = []
@@ -120,10 +140,6 @@ class TransferDetector:
                 if incoming['_transaction_index'] in matched_transactions:
                     continue
                     
-                # Don't match within same CSV unless it's an internal transfer
-                if incoming['_csv_index'] == outgoing['_csv_index']:
-                    continue
-                
                 incoming_amount = self._parse_amount(incoming.get('Amount', '0'))
                 incoming_date = self._parse_date(incoming.get('Date', ''))
                 
@@ -131,13 +147,22 @@ class TransferDetector:
                 if incoming_amount <= 0:
                     continue
                 
-                # Check amount matching (use Exchange To Amount if available)
+                # Enhanced cross-bank matching for Wise->NayaPay
+                cross_bank_match = self._is_cross_bank_transfer(outgoing, incoming)
+                
+                # Don't match within same CSV unless it's an internal transfer or cross-bank
+                if (incoming['_csv_index'] == outgoing['_csv_index'] and 
+                    not self._is_internal_conversion(outgoing, incoming) and 
+                    not cross_bank_match):
+                    continue
+                
+                # Check amount matching (use Exchange To Amount if available for cross-bank)
                 amount_match = False
                 if outgoing_exchange_to != 0:
-                    # Match using exchange amount
+                    # Match using exchange amount (for cross-bank transfers like Wise->NayaPay)
                     amount_match = abs(outgoing_exchange_to - incoming_amount) < 0.01
                 else:
-                    # Match using absolute amounts
+                    # Match using absolute amounts (for same-currency transfers)
                     amount_match = abs(abs(outgoing_amount) - incoming_amount) < 0.01
                 
                 # Check date proximity
@@ -160,6 +185,46 @@ class TransferDetector:
                     break
         
         return transfer_pairs
+    
+    def _is_cross_bank_transfer(self, outgoing: Dict, incoming: Dict) -> bool:
+        """Check if this is a cross-bank transfer (like Wise->NayaPay)"""
+        outgoing_desc = str(outgoing.get('Description', '')).lower()
+        incoming_desc = str(incoming.get('Description', '')).lower()
+        
+        # Wise->NayaPay pattern
+        if (outgoing.get('_bank_type') == 'wise' and 
+            incoming.get('_bank_type') in ['nayapay', 'bank_alfalah', 'pakistani_bank']):
+            
+            # Check for "sent money" + user name in outgoing
+            if ('sent money' in outgoing_desc and self.user_name.lower() in outgoing_desc):
+                # Check for "incoming fund transfer" + user name in incoming
+                if ('incoming fund transfer' in incoming_desc and self.user_name.lower() in incoming_desc):
+                    return True
+                elif ('fund transfer from' in incoming_desc and self.user_name.lower() in incoming_desc):
+                    return True
+        
+        return False
+    
+    def _is_internal_conversion(self, outgoing: Dict, incoming: Dict) -> bool:
+        """Check if this is an internal currency conversion (same bank, different currencies)"""
+        outgoing_desc = str(outgoing.get('Description', '')).lower()
+        incoming_desc = str(incoming.get('Description', '')).lower()
+        
+        # Both transactions should be from same bank type
+        if outgoing.get('_bank_type') != incoming.get('_bank_type'):
+            return False
+            
+        # Check for currency conversion patterns
+        if ('converted' in outgoing_desc and 'converted' in incoming_desc):
+            return True
+            
+        # Check for exchange patterns
+        if (outgoing.get('Exchange To Amount', '0') != '0' and 
+            'converted' in outgoing_desc and 
+            ('balance' in incoming_desc or 'converted' in incoming_desc)):
+            return True
+            
+        return False
     
     def _detect_conflicts(self, transfer_pairs: List[Dict]) -> List[Dict]:
         """Detect transactions that could match multiple partners"""
@@ -225,9 +290,13 @@ class TransferDetector:
         # Base confidence for amount and date match
         confidence += 0.4
         
+        # Higher confidence for cross-bank transfers (Wise->NayaPay)
+        if self._is_cross_bank_transfer(outgoing, incoming):
+            confidence += 0.4  # High confidence for cross-bank with name matching
+        
         # Bonus for description pattern match
         if outgoing.get('_transfer_pattern'):
-            confidence += 0.3
+            confidence += 0.2
         
         # Bonus for same-day transactions
         outgoing_date = self._parse_date(outgoing.get('Date', ''))
@@ -235,9 +304,14 @@ class TransferDetector:
         if outgoing_date.date() == incoming_date.date():
             confidence += 0.2
         
-        # Bonus for exact amount match
-        outgoing_amount = abs(self._parse_amount(outgoing.get('Amount', '0')))
+        # Bonus for Exchange To Amount matching (cross-bank transfers)
+        outgoing_exchange = self._parse_amount(outgoing.get('Exchange To Amount', '0'))
         incoming_amount = self._parse_amount(incoming.get('Amount', '0'))
+        if outgoing_exchange > 0 and abs(outgoing_exchange - incoming_amount) < 0.01:
+            confidence += 0.1
+        
+        # Bonus for exact amount match (same currency)
+        outgoing_amount = abs(self._parse_amount(outgoing.get('Amount', '0')))
         if abs(outgoing_amount - incoming_amount) < 0.01:
             confidence += 0.1
         
