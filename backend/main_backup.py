@@ -7,10 +7,153 @@ import pandas as pd
 import json
 import os
 import tempfile
+import math
+import numpy as np
 from csv_parser import CSVParser
 from enhanced_csv_parser import EnhancedCSVParser
 from robust_csv_parser import RobustCSVParser
 from transfer_detector import TransferDetector
+
+def sanitize_for_json(obj):
+    """
+    Comprehensively sanitize data to be JSON-serializable
+    Handles all possible NaN/infinity sources from pandas and numpy
+    """
+    if isinstance(obj, dict):
+        return {k: sanitize_for_json(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [sanitize_for_json(item) for item in obj]
+    elif isinstance(obj, tuple):
+        return [sanitize_for_json(item) for item in obj]
+    elif isinstance(obj, set):
+        return [sanitize_for_json(item) for item in obj]
+    elif isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+        return obj
+    elif isinstance(obj, (np.float32, np.float64)):
+        if np.isnan(obj) or np.isinf(obj):
+            return None
+        return float(obj)
+    elif isinstance(obj, (np.int32, np.int64)):
+        return int(obj)
+    elif pd.isna(obj):
+        return None
+    elif hasattr(obj, 'isnull') and obj.isnull():
+        return None
+    elif str(obj).lower() in ['nan', 'na', 'null', 'none', 'inf', '-inf']:
+        return None
+    elif obj is None:
+        return None
+    elif isinstance(obj, (pd.Timestamp, pd.DatetimeIndex)):
+        try:
+            return obj.strftime('%Y-%m-%d %H:%M:%S')
+        except:
+            return None
+    elif hasattr(obj, 'dtype') and 'datetime' in str(obj.dtype):
+        try:
+            return pd.to_datetime(obj).strftime('%Y-%m-%d %H:%M:%S')
+        except:
+            return None
+    else:
+        # Convert to string and check for problematic values
+        str_obj = str(obj)
+        if str_obj.lower() in ['nan', 'na', 'null', 'none', 'inf', '-inf']:
+            return None
+        return str_obj
+
+def safe_parse_with_range(parser, file_path, start_row, end_row, start_col, end_col, encoding):
+    """Safely parse CSV with comprehensive sanitization"""
+    try:
+        result = parser.parse_with_range(file_path, start_row, end_row, start_col, end_col, encoding)
+        
+        # Extra sanitization layer for parse results
+        if result.get('success') and result.get('data'):
+            # Sanitize each row of data
+            sanitized_data = []
+            for row in result['data']:
+                sanitized_row = {}
+                for key, value in row.items():
+                    sanitized_row[str(key)] = sanitize_for_json(value)
+                sanitized_data.append(sanitized_row)
+            
+            result['data'] = sanitized_data
+            result['headers'] = [str(h) for h in result.get('headers', [])]
+        
+        return sanitize_for_json(result)
+    except Exception as e:
+        return {
+            'success': False,
+            'error': str(e),
+            'data': [],
+            'headers': [],
+            'row_count': 0
+        }
+
+def safe_transform_to_cashew(parser, data, column_mapping, bank_name, categorization_rules, default_category_rules, account_mapping):
+    """Safely transform data with comprehensive sanitization"""
+    try:
+        # First sanitize input data
+        sanitized_input_data = sanitize_for_json(data)
+        
+        # Perform transformation
+        result = parser.transform_to_cashew(
+            sanitized_input_data,
+            column_mapping,
+            bank_name,
+            categorization_rules,
+            default_category_rules,
+            account_mapping
+        )
+        
+        # Sanitize the result
+        return sanitize_for_json(result)
+    except Exception as e:
+        print(f"Transform error: {e}")
+        return []
+
+def safe_detect_transfers(transfer_detector, csv_data_list):
+    """Safely detect transfers with comprehensive sanitization"""
+    try:
+        # Sanitize input first
+        sanitized_csv_data = sanitize_for_json(csv_data_list)
+        
+        # Perform detection
+        result = transfer_detector.detect_transfers(sanitized_csv_data)
+        
+        # Sanitize the result
+        return sanitize_for_json(result)
+    except Exception as e:
+        print(f"Transfer detection error: {e}")
+        return {
+            'transfers': [],
+            'potential_transfers': [],
+            'conflicts': [],
+            'flagged_transactions': [],
+            'summary': {
+                'total_transactions': 0,
+                'transfer_pairs_found': 0,
+                'potential_transfers': 0,
+                'conflicts': 0,
+                'flagged_for_review': 0
+            }
+        }
+
+def safe_apply_transfer_categorization(transfer_detector, transformed_data, transfers):
+    """Safely apply transfer categorization with comprehensive sanitization"""
+    try:
+        # Sanitize inputs
+        sanitized_data = sanitize_for_json(transformed_data)
+        sanitized_transfers = sanitize_for_json(transfers)
+        
+        # Apply categorization
+        result = transfer_detector.apply_transfer_categorization(sanitized_data, sanitized_transfers)
+        
+        # Sanitize the result
+        return sanitize_for_json(result)
+    except Exception as e:
+        print(f"Transfer categorization error: {e}")
+        return sanitize_for_json(transformed_data)  # Return original data if error
 
 app = FastAPI(title="Bank Statement Parser API", version="1.0.0")
 
@@ -127,7 +270,7 @@ async def preview_csv(file_id: str, encoding: str = "utf-8"):
             raise HTTPException(status_code=400, detail=result['error'])
         
         print(f"✅ Preview successful: {result.get('total_rows', 0)} rows")
-        return result
+        return sanitize_for_json(result)
     except Exception as e:
         print(f"❌ Preview exception: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -144,7 +287,7 @@ async def detect_data_range(file_id: str, encoding: str = "utf-8"):
     if not result['success']:
         raise HTTPException(status_code=400, detail=result['error'])
     
-    return result
+    return sanitize_for_json(result)
 
 @app.post("/parse-range/{file_id}")
 async def parse_range(file_id: str, request: ParseRangeRequest):
@@ -161,21 +304,17 @@ async def parse_range(file_id: str, request: ParseRangeRequest):
     
     try:
         # Try enhanced parser first, then robust parser as fallback
-        enhanced_result = enhanced_parser.parse_with_range(
-            file_path, 
-            request.start_row, 
-            request.end_row, 
-            request.start_col, 
-            request.end_col, 
+        enhanced_result = safe_parse_with_range(
+            enhanced_parser, file_path, 
+            request.start_row, request.end_row, 
+            request.start_col, request.end_col, 
             request.encoding
         )
         
-        robust_result = robust_parser.parse_with_range(
-            file_path, 
-            request.start_row, 
-            request.end_row, 
-            request.start_col, 
-            request.end_col, 
+        robust_result = safe_parse_with_range(
+            robust_parser, file_path,
+            request.start_row, request.end_row,
+            request.start_col, request.end_col,
             request.encoding
         )
         
@@ -197,7 +336,7 @@ async def parse_range(file_id: str, request: ParseRangeRequest):
             raise HTTPException(status_code=400, detail=f"Parsing failed: {error_detail}")
         
         print(f"✅ Parse successful using {parser_used} parser: {result.get('row_count', 0)} rows")
-        return result
+        return sanitize_for_json(result)
     except Exception as e:
         print(f"❌ Parse exception: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -208,7 +347,8 @@ async def transform_data(request: TransformRequest):
     try:
         # Use enhanced parser if categorization rules are provided
         if request.categorization_rules or request.default_category_rules:
-            result = enhanced_parser.transform_to_cashew(
+            result = safe_transform_to_cashew(
+                enhanced_parser,
                 request.data, 
                 request.column_mapping, 
                 request.bank_name,
@@ -223,11 +363,13 @@ async def transform_data(request: TransformRequest):
                 request.column_mapping, 
                 request.bank_name
             )
-        return {
+            result = sanitize_for_json(result)
+        
+        return sanitize_for_json({
             "success": True,
             "data": result,
             "row_count": len(result)
-        }
+        })
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -235,7 +377,8 @@ async def transform_data(request: TransformRequest):
 async def export_data(data: List[Dict[str, Any]], filename: str = "export.csv"):
     """Export transformed data as CSV"""
     try:
-        df = pd.DataFrame(data)
+        sanitized_data = sanitize_for_json(data)
+        df = pd.DataFrame(sanitized_data)
         temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".csv")
         df.to_csv(temp_file.name, index=False)
         
@@ -252,9 +395,10 @@ async def save_template(request: SaveTemplateRequest):
     """Save parsing template"""
     try:
         os.makedirs("../templates", exist_ok=True)
+        sanitized_config = sanitize_for_json(request.config)
         template_path = parser.save_template(
             request.template_name, 
-            request.config, 
+            sanitized_config, 
             "../templates"
         )
         return {
@@ -310,10 +454,10 @@ async def load_template(template_name: str):
                 print(f"❌ Both parsers failed: {e2}")
                 raise e2
         
-        return {
+        return sanitize_for_json({
             "success": True,
             "config": config
-        }
+        })
     except HTTPException:
         raise
     except Exception as e:
@@ -324,91 +468,87 @@ async def load_template(template_name: str):
 async def parse_multiple_csvs(request: MultiCSVParseRequest):
     """Parse multiple CSV files with individual configurations"""
     try:
-        print(f"🚀 Multi-CSV parse request received for {len(request.file_ids)} files")
-        print(f"📋 File IDs: {request.file_ids}")
-        
-        # Simple validation first
-        if not request.file_ids:
-            raise HTTPException(status_code=400, detail="No file IDs provided")
-        
-        if len(request.file_ids) != len(request.parse_configs):
-            raise HTTPException(status_code=400, detail="Number of file IDs must match number of parse configs")
-        
         results = []
         
-        # Test each file_id exists
-        for file_id in request.file_ids:
+        for i, file_id in enumerate(request.file_ids):
             if file_id not in uploaded_files:
                 raise HTTPException(status_code=404, detail=f"File {file_id} not found")
+            
+            file_path = uploaded_files[file_id]["temp_path"]
+            config = request.parse_configs[i] if i < len(request.parse_configs) else {}
+            
+            # Try robust parser first for better CSV handling, then enhanced parser
+            robust_result = safe_parse_with_range(
+                robust_parser, file_path,
+                config.get('start_row', 0),
+                config.get('end_row'),
+                config.get('start_col', 0),
+                config.get('end_col'),
+                config.get('encoding', 'utf-8')
+            )
+            
+            enhanced_result = safe_parse_with_range(
+                enhanced_parser, file_path,
+                config.get('start_row', 0),
+                config.get('end_row'),
+                config.get('start_col', 0),
+                config.get('end_col'),
+                config.get('encoding', 'utf-8')
+            )
+            
+            # Choose the better result (robust parser if it has more data)
+            parse_result = enhanced_result
+            parser_used = "enhanced"
+            
+            if (robust_result['success'] and 
+                robust_result.get('row_count', 0) > enhanced_result.get('row_count', 0)):
+                parse_result = robust_result
+                parser_used = "robust"
+            elif not enhanced_result['success'] and robust_result['success']:
+                parse_result = robust_result
+                parser_used = "robust (fallback)"
+            
+            print(f"📊 Used {parser_used} parser for {uploaded_files[file_id]['original_name']}: {parse_result.get('row_count', 0)} rows")
+            
+            if not parse_result['success']:
+                raise HTTPException(status_code=400, detail=f"Failed to parse {file_id}: {parse_result['error']}")
+            
+            results.append({
+                "file_id": file_id,
+                "file_name": uploaded_files[file_id]["original_name"],
+                "parse_result": parse_result,
+                "config": config
+            })
         
-        # Process each file
-        for i, file_id in enumerate(request.file_ids):
-            print(f"📁 Processing file {i+1}/{len(request.file_ids)}: {file_id}")
-            
-            file_info = uploaded_files[file_id]
-            file_path = file_info["temp_path"]
-            config = request.parse_configs[i]
-            
-            print(f"📄 File: {file_info['original_name']} at {file_path}")
-            print(f"🔧 Config: start_row={config.get('start_row', 0)}, encoding={config.get('encoding', 'utf-8')}")
-            
-            # Parse with enhanced parser
-            try:
-                parse_result = enhanced_parser.parse_with_range(
-                    file_path,
-                    config.get('start_row', 0),
-                    config.get('end_row'),
-                    config.get('start_col', 0),
-                    config.get('end_col'),
-                    config.get('encoding', 'utf-8')
-                )
-                
-                print(f"✅ Parse result: success={parse_result.get('success', False)}, rows={parse_result.get('row_count', 0)}")
-                
-                if not parse_result['success']:
-                    raise HTTPException(status_code=400, detail=f"Failed to parse {file_info['original_name']}: {parse_result.get('error', 'Unknown error')}")
-                
-                results.append({
-                    "file_id": file_id,
-                    "file_name": file_info["original_name"],
-                    "parse_result": parse_result,
-                    "config": config
-                })
-                
-            except Exception as parse_error:
-                print(f"❌ Parse error for {file_id}: {str(parse_error)}")
-                raise HTTPException(status_code=500, detail=f"Parse error for {file_info['original_name']}: {str(parse_error)}")
-        
-        print(f"🎉 Successfully parsed all {len(results)} files")
-        return {
+        return sanitize_for_json({
             "success": True,
             "parsed_csvs": results,
             "total_files": len(results)
-        }
+        })
         
-    except HTTPException:
-        raise
     except Exception as e:
-        print(f"💥 Unexpected error in multi-CSV parse: {str(e)}")
-        print(f"🔍 Error type: {type(e).__name__}")
-        import traceback
-        print(f"📚 Full traceback: {traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/multi-csv/transform")
 async def transform_multiple_csvs(request: MultiCSVTransformRequest):
     """Transform multiple CSVs with transfer detection"""
     try:
-        print(f"🚀 Multi-CSV transform request received for {len(request.csv_data_list)} files")
-        print(f"👤 User: {request.user_name}, Transfer detection: {request.enable_transfer_detection}")
+        # Initialize transfer detector
+        transfer_detector = TransferDetector(
+            user_name=request.user_name,
+            date_tolerance_hours=request.date_tolerance_hours
+        )
         
-        # Transform each CSV individually first
+        # Detect transfers if enabled
+        transfer_analysis = None
+        if request.enable_transfer_detection:
+            transfer_analysis = safe_detect_transfers(transfer_detector, request.csv_data_list)
+        
+        # Transform each CSV individually
         all_transformed_data = []
         transformation_results = []
         
         for csv_data in request.csv_data_list:
-            print(f"📁 Processing CSV: {csv_data.get('file_name', 'Unknown')}")
-            
             # Get template configuration
             template_config = csv_data.get('template_config', {})
             column_mapping = template_config.get('column_mapping', {})
@@ -417,81 +557,34 @@ async def transform_multiple_csvs(request: MultiCSVTransformRequest):
             default_category_rules = template_config.get('default_category_rules')
             account_mapping = template_config.get('account_mapping')
             
-            print(f"🏦 Bank: {bank_name}, Rules: {len(categorization_rules)}, Rows: {len(csv_data.get('data', []))}")
-            
             # Transform data
-            try:
-                transformed = enhanced_parser.transform_to_cashew(
-                    csv_data['data'],
-                    column_mapping,
-                    bank_name,
-                    categorization_rules,
-                    default_category_rules,
-                    account_mapping
-                )
-                
-                print(f"✅ Transformed {len(transformed)} transactions for {csv_data.get('file_name')}")
-                
-                transformation_results.append({
-                    "file_name": csv_data.get('file_name'),
-                    "transactions": len(transformed),
-                    "template_used": template_config.get('name', 'None')
-                })
-                
-                all_transformed_data.extend(transformed)
-                
-            except Exception as transform_error:
-                print(f"❌ Transform error for {csv_data.get('file_name')}: {str(transform_error)}")
-                raise HTTPException(status_code=500, detail=f"Transform error for {csv_data.get('file_name')}: {str(transform_error)}")
+            transformed = safe_transform_to_cashew(
+                enhanced_parser,
+                csv_data['data'],
+                column_mapping,
+                bank_name,
+                categorization_rules,
+                default_category_rules,
+                account_mapping
+            )
+            
+            transformation_results.append({
+                "file_name": csv_data.get('file_name'),
+                "transactions": len(transformed),
+                "template_used": template_config.get('name', 'None')
+            })
+            
+            all_transformed_data.extend(transformed)
         
-        print(f"🎉 All transformations complete. Total transactions: {len(all_transformed_data)}")
+        # Apply transfer categorization if transfers were detected
+        if transfer_analysis and transfer_analysis['transfers']:
+            all_transformed_data = safe_apply_transfer_categorization(
+                transfer_detector, 
+                all_transformed_data, 
+                transfer_analysis['transfers']
+            )
         
-        # Initialize transfer analysis with default values
-        transfer_analysis = {
-            'transfers': [],
-            'summary': {
-                'transfer_pairs_found': 0,
-                'potential_transfers': 0,
-                'conflicts': 0,
-                'flagged_for_review': 0
-            }
-        }
-        
-        # Try transfer detection if enabled
-        if request.enable_transfer_detection and len(request.csv_data_list) > 1:
-            try:
-                print(f"🔄 Starting transfer detection between {len(request.csv_data_list)} CSVs...")
-                
-                # Initialize transfer detector
-                transfer_detector = TransferDetector(
-                    user_name=request.user_name,
-                    date_tolerance_hours=request.date_tolerance_hours
-                )
-                
-                # Detect transfers
-                transfer_analysis = transfer_detector.detect_transfers(request.csv_data_list)
-                print(f"✅ Transfer detection complete: {transfer_analysis['summary']}")
-                
-                # Apply transfer categorization if transfers were detected
-                if transfer_analysis and transfer_analysis['transfers']:
-                    print(f"🔄 Applying transfer categorization to {len(transfer_analysis['transfers'])} pairs...")
-                    all_transformed_data = transfer_detector.apply_transfer_categorization(
-                        all_transformed_data, 
-                        transfer_analysis['transfers']
-                    )
-                    print(f"✅ Transfer categorization applied")
-                
-            except Exception as transfer_error:
-                print(f"⚠️ Transfer detection failed: {str(transfer_error)}")
-                print(f"📚 Transfer error traceback:")
-                import traceback
-                print(traceback.format_exc())
-                # Continue without transfer detection rather than failing
-                print(f"🔄 Continuing without transfer detection...")
-        else:
-            print(f"🚫 Transfer detection skipped (enabled: {request.enable_transfer_detection}, files: {len(request.csv_data_list)})")
-        
-        return {
+        return sanitize_for_json({
             "success": True,
             "transformed_data": all_transformed_data,
             "transfer_analysis": transfer_analysis,
@@ -502,15 +595,11 @@ async def transform_multiple_csvs(request: MultiCSVTransformRequest):
                 "balance_corrections_applied": len([t for t in all_transformed_data if t.get('Category') == 'Balance Correction'])
             },
             "file_results": transformation_results
-        }
+        })
         
-    except HTTPException:
-        raise
     except Exception as e:
-        print(f"💥 Unexpected transform error: {str(e)}")
-        import traceback
-        print(f"📚 Full traceback: {traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.delete("/cleanup/{file_id}")
 async def cleanup_file(file_id: str):
     """Remove uploaded file from temp storage"""

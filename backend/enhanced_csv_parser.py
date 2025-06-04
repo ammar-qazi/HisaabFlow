@@ -39,11 +39,22 @@ class EnhancedCSVParser:
             header_indicators = ['timestamp', 'date', 'amount', 'description', 'balance', 'type']
             data_start_row = None
             
+            # Special handling for NayaPay format
             for idx, row in df.iterrows():
                 row_text = ' '.join([str(cell).lower() for cell in row if pd.notna(cell)])
-                if any(indicator in row_text for indicator in header_indicators):
+                
+                # Check for specific NayaPay header pattern
+                if 'timestamp' in row_text and 'type' in row_text and 'description' in row_text and 'amount' in row_text:
                     data_start_row = idx
                     break
+                    
+                # Fallback to general indicators
+                elif any(indicator in row_text for indicator in header_indicators):
+                    # Skip "Opening Balance" and "Closing Balance" rows
+                    if 'opening balance' in row_text or 'closing balance' in row_text:
+                        continue
+                    if data_start_row is None:  # Only set if not already found
+                        data_start_row = idx
             
             return {
                 'success': True,

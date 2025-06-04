@@ -14,10 +14,10 @@
   "bank_name": "NayaPay",
   "description": "Enhanced NayaPay template with smart categorization rules",
   "created_date": "2025-06-02",
-  "version": "2.1",
+  "version": "2.7",
   "categorization_rules": [
     {
-      "rule_name": "Outgoing Fund Transfers (Raast Out)",
+      "rule_name": "Outgoing Fund Transfers (Raast Out) - Large Amounts",
       "priority": 1,
       "conditions": {
         "and": [
@@ -26,6 +26,11 @@
             "operator": "equals",
             "value": "Raast Out",
             "case_sensitive": false
+          },
+          {
+            "field": "AMOUNT",
+            "operator": "less_than",
+            "value": -5000
           }
         ]
       },
@@ -52,8 +57,98 @@
       }
     },
     {
-      "rule_name": "Incoming Fund Transfers (IBFT In)",
+      "rule_name": "Mobile Top-ups",
       "priority": 2,
+      "conditions": {
+        "or": [
+          {
+            "field": "DESCRIPTION",
+            "operator": "contains",
+            "value": "mobile topup",
+            "case_sensitive": false
+          },
+          {
+            "field": "DESCRIPTION",
+            "operator": "contains",
+            "value": "recharge",
+            "case_sensitive": false
+          },
+          {
+            "field": "TYPE",
+            "operator": "contains",
+            "value": "topup",
+            "case_sensitive": false
+          }
+        ]
+      },
+      "actions": {
+        "set_category": "Bills & Fees",
+        "set_title_template": "Mobile charge for {extract_name}",
+        "extract_name": {
+          "from_field": "DESCRIPTION",
+          "pattern": "Nickname:\\s*([^|\\n]+)",
+          "group": 1,
+          "default": "Unknown Contact"
+        }
+      }
+    },
+    {
+      "rule_name": "Ride Hailing Services - EasyPaisa",
+      "priority": 3,
+      "conditions": {
+        "and": [
+          {
+            "field": "TYPE",
+            "operator": "equals",
+            "value": "Raast Out",
+            "case_sensitive": false
+          },
+          {
+            "field": "AMOUNT",
+            "operator": "range",
+            "min": -2000,
+            "max": -100
+          },
+          {
+            "field": "DESCRIPTION",
+            "operator": "contains",
+            "value": "easypaisa",
+            "case_sensitive": false
+          }
+        ]
+      },
+      "actions": {
+        "set_category": "Travel",
+        "set_title": "Ride Hailing App"
+      }
+    },
+    {
+      "rule_name": "Ride Hailing Services - Small Transfers",
+      "priority": 4,
+      "conditions": {
+        "and": [
+          {
+            "field": "TYPE",
+            "operator": "equals",
+            "value": "Raast Out",
+            "case_sensitive": false
+          },
+          {
+            "field": "AMOUNT",
+            "operator": "range",
+            "min": -1500,
+            "max": -100
+          }
+        ]
+      },
+      "actions": {
+        "set_category": "Travel",
+        "set_title": "Ride Hailing App"
+      }
+    },
+    {
+      "rule_name": "Incoming Fund Transfers (IBFT In)",
+      "priority": 5,
       "conditions": {
         "and": [
           {
@@ -88,7 +183,7 @@
     },
     {
       "rule_name": "Peer to Peer Transfers",
-      "priority": 3,
+      "priority": 6,
       "conditions": {
         "and": [
           {
@@ -122,8 +217,43 @@
       }
     },
     {
+      "rule_name": "Remaining Raast Out Transfers",
+      "priority": 7,
+      "conditions": {
+        "and": [
+          {
+            "field": "TYPE",
+            "operator": "equals",
+            "value": "Raast Out",
+            "case_sensitive": false
+          }
+        ]
+      },
+      "actions": {
+        "set_category": "Transfer",
+        "clean_description": {
+          "from_field": "DESCRIPTION",
+          "rules": [
+            {
+              "pattern": "Outgoing fund transfer to",
+              "replacement": "Transfer to"
+            },
+            {
+              "pattern": "\\|Transaction ID [^\\n]*",
+              "replacement": ""
+            },
+            {
+              "pattern": "Transaction ID [^\\n]*",
+              "replacement": ""
+            }
+          ],
+          "default": "Transfer"
+        }
+      }
+    },
+    {
       "rule_name": "Surraiya Riaz Transactions",
-      "priority": 4,
+      "priority": 8,
       "conditions": {
         "and": [
           {
@@ -139,68 +269,8 @@
       }
     },
     {
-      "rule_name": "Ride Hailing Services",
-      "priority": 5,
-      "conditions": {
-        "and": [
-          {
-            "field": "TYPE",
-            "operator": "contains",
-            "value": "Raast Out",
-            "case_sensitive": false
-          },
-          {
-            "field": "AMOUNT",
-            "operator": "range",
-            "min": -2000,
-            "max": 0
-          }
-        ]
-      },
-      "actions": {
-        "set_category": "Travel",
-        "set_title": "Ride Hailing App"
-      }
-    },
-    {
-      "rule_name": "Mobile Top-ups",
-      "priority": 6,
-      "conditions": {
-        "or": [
-          {
-            "field": "DESCRIPTION",
-            "operator": "contains",
-            "value": "mobile topup",
-            "case_sensitive": false
-          },
-          {
-            "field": "DESCRIPTION",
-            "operator": "contains",
-            "value": "recharge",
-            "case_sensitive": false
-          },
-          {
-            "field": "TYPE",
-            "operator": "contains",
-            "value": "topup",
-            "case_sensitive": false
-          }
-        ]
-      },
-      "actions": {
-        "set_category": "Bills & Fees",
-        "set_title_template": "Mobile charge for {extract_name}",
-        "extract_name": {
-          "from_field": "DESCRIPTION",
-          "pattern": "Nickname:\\\\s*([^\\\\n]+)",
-          "group": 1,
-          "default": "Unknown Contact"
-        }
-      }
-    },
-    {
       "rule_name": "ATM Withdrawals",
-      "priority": 7,
+      "priority": 9,
       "conditions": {
         "and": [
           {
@@ -223,7 +293,7 @@
     },
     {
       "rule_name": "Bank Transfers Out",
-      "priority": 8,
+      "priority": 10,
       "conditions": {
         "and": [
           {
@@ -241,7 +311,7 @@
     },
     {
       "rule_name": "Bank Transfers In",
-      "priority": 9,
+      "priority": 11,
       "conditions": {
         "and": [
           {
@@ -259,7 +329,7 @@
     },
     {
       "rule_name": "Salary Income",
-      "priority": 10,
+      "priority": 12,
       "conditions": {
         "and": [
           {
@@ -282,7 +352,7 @@
     },
     {
       "rule_name": "Online Shopping",
-      "priority": 11,
+      "priority": 13,
       "conditions": {
         "or": [
           {
@@ -312,7 +382,7 @@
     },
     {
       "rule_name": "Grocery Stores",
-      "priority": 12,
+      "priority": 14,
       "conditions": {
         "or": [
           {
