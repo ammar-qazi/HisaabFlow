@@ -10,7 +10,7 @@ import tempfile
 from csv_parser import CSVParser
 from enhanced_csv_parser import EnhancedCSVParser
 from robust_csv_parser import RobustCSVParser
-from transfer_detector import TransferDetector
+from transfer_detector_enhanced import EnhancedTransferDetector as TransferDetector
 
 app = FastAPI(title="Bank Statement Parser API", version="1.0.0")
 
