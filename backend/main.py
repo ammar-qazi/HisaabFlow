@@ -10,9 +10,10 @@ import tempfile
 from csv_parser import CSVParser
 from enhanced_csv_parser import EnhancedCSVParser
 from robust_csv_parser import RobustCSVParser
+from data_cleaner import DataCleaner
 from transfer_detector import TransferDetector
 
-app = FastAPI(title="Bank Statement Parser API", version="1.0.0")
+app = FastAPI(title="Bank Statement Parser API", version="2.0.0")
 
 # Enable CORS for frontend communication - MUST be first middleware
 app.add_middleware(
@@ -31,10 +32,11 @@ async def log_requests(request: Request, call_next):
     print(f"📤 Response: {response.status_code}")
     return response
 
-# Initialize parsers
+# Initialize parsers and cleaner
 parser = CSVParser()
 enhanced_parser = EnhancedCSVParser()
 robust_parser = RobustCSVParser()
+data_cleaner = DataCleaner()
 
 # Pydantic models for request/response
 class PreviewRequest(BaseModel):
@@ -47,6 +49,7 @@ class ParseRangeRequest(BaseModel):
     start_col: int = 0
     end_col: Optional[int] = None
     encoding: str = "utf-8"
+    enable_cleaning: bool = True  # NEW: Enable data cleaning step
 
 class TransformRequest(BaseModel):
     data: List[Dict[str, Any]]
@@ -61,12 +64,14 @@ class MultiCSVParseRequest(BaseModel):
     parse_configs: List[Dict[str, Any]]  # Individual parse config for each CSV
     user_name: str = "Ammar Qazi"  # For transfer detection
     date_tolerance_hours: int = 24
+    enable_cleaning: bool = True  # NEW: Enable data cleaning step
 
 class MultiCSVTransformRequest(BaseModel):
     csv_data_list: List[Dict[str, Any]]
     user_name: str = "Ammar Qazi"
     enable_transfer_detection: bool = True
     date_tolerance_hours: int = 24
+    bank_rules_settings: Optional[Dict[str, bool]] = None
 
 class SaveTemplateRequest(BaseModel):
     template_name: str
@@ -77,7 +82,7 @@ uploaded_files = {}
 
 @app.get("/")
 async def root():
-    return {"message": "Bank Statement Parser API", "version": "1.0.0"}
+    return {"message": "Bank Statement Parser API with Data Cleaning", "version": "2.0.0"}
 
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
@@ -148,9 +153,10 @@ async def detect_data_range(file_id: str, encoding: str = "utf-8"):
 
 @app.post("/parse-range/{file_id}")
 async def parse_range(file_id: str, request: ParseRangeRequest):
-    """Parse CSV with specified range"""
+    """Parse CSV with specified range - NOW WITH DATA CLEANING"""
     print(f"🕵️‍♂️ Parse range request for file_id: {file_id}")
     print(f"🔢 Parameters: start_row={request.start_row}, end_row={request.end_row}, start_col={request.start_col}, end_col={request.end_col}")
+    print(f"🧹 Data cleaning enabled: {request.enable_cleaning}")
     
     if file_id not in uploaded_files:
         print(f"❌ File {file_id} not found in uploaded_files: {list(uploaded_files.keys())}")
@@ -160,6 +166,9 @@ async def parse_range(file_id: str, request: ParseRangeRequest):
     print(f"📁 Processing file: {file_path}")
     
     try:
+        # STEP 1: DATA PARSING
+        print(f"\n🚀 STEP 1: DATA PARSING")
+        
         # Try enhanced parser first, then robust parser as fallback
         enhanced_result = enhanced_parser.parse_with_range(
             file_path, 
@@ -180,24 +189,57 @@ async def parse_range(file_id: str, request: ParseRangeRequest):
         )
         
         # Choose the better result (robust parser if it has more data)
-        result = enhanced_result
+        parse_result = enhanced_result
         parser_used = "enhanced"
         
         if (robust_result['success'] and 
             robust_result.get('row_count', 0) > enhanced_result.get('row_count', 0)):
-            result = robust_result
+            parse_result = robust_result
             parser_used = "robust"
         elif not enhanced_result['success'] and robust_result['success']:
-            result = robust_result
+            parse_result = robust_result
             parser_used = "robust (fallback)"
         
-        if not result['success']:
-            print(f"❌ Both parsers failed: {result.get('error', 'Unknown error')}")
-            error_detail = result.get('error', 'Unknown parsing error')
+        if not parse_result['success']:
+            print(f"❌ Both parsers failed: {parse_result.get('error', 'Unknown error')}")
+            error_detail = parse_result.get('error', 'Unknown parsing error')
             raise HTTPException(status_code=400, detail=f"Parsing failed: {error_detail}")
         
-        print(f"✅ Parse successful using {parser_used} parser: {result.get('row_count', 0)} rows")
-        return result
+        print(f"✅ Parse successful using {parser_used} parser: {parse_result.get('row_count', 0)} rows")
+        
+        # STEP 2: DATA CLEANING (NEW)
+        final_result = parse_result
+        if request.enable_cleaning:
+            print(f"\n🚀 STEP 2: DATA CLEANING")
+            
+            cleaning_result = data_cleaner.clean_parsed_data(parse_result)
+            
+            if cleaning_result['success']:
+                # Replace parsed data with cleaned data
+                final_result = {
+                    'success': True,
+                    'headers': [col for col in cleaning_result['data'][0].keys()] if cleaning_result['data'] else [],
+                    'data': cleaning_result['data'],
+                    'row_count': cleaning_result['row_count'],
+                    'parser_used': parser_used,
+                    'cleaning_applied': True,
+                    'cleaning_summary': cleaning_result['cleaning_summary'],
+                    'updated_column_mapping': cleaning_result.get('updated_column_mapping', {}),  # NEW: Include updated mapping
+                    'original_headers': parse_result.get('headers', [])  # NEW: Keep original headers for reference
+                }
+                print(f"✅ Data cleaning successful: {cleaning_result['row_count']} clean rows")
+            else:
+                print(f"⚠️  Data cleaning failed: {cleaning_result.get('error', 'Unknown error')}")
+                print(f"🔄 Continuing with uncleaned data...")
+                final_result['cleaning_applied'] = False
+                final_result['cleaning_error'] = cleaning_result.get('error', 'Unknown error')
+        else:
+            print(f"🚫 Data cleaning skipped")
+            final_result['cleaning_applied'] = False
+        
+        print(f"🎉 Final result: {final_result.get('row_count', 0)} rows ready for transformation")
+        return final_result
+        
     except Exception as e:
         print(f"❌ Parse exception: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -322,10 +364,11 @@ async def load_template(template_name: str):
 
 @app.post("/multi-csv/parse")
 async def parse_multiple_csvs(request: MultiCSVParseRequest):
-    """Parse multiple CSV files with individual configurations"""
+    """Parse multiple CSV files with individual configurations - NOW WITH DATA CLEANING"""
     try:
         print(f"🚀 Multi-CSV parse request received for {len(request.file_ids)} files")
         print(f"📋 File IDs: {request.file_ids}")
+        print(f"🧹 Data cleaning enabled: {request.enable_cleaning}")
         
         # Simple validation first
         if not request.file_ids:
@@ -352,7 +395,7 @@ async def parse_multiple_csvs(request: MultiCSVParseRequest):
             print(f"📄 File: {file_info['original_name']} at {file_path}")
             print(f"🔧 Config: start_row={config.get('start_row', 0)}, encoding={config.get('encoding', 'utf-8')}")
             
-            # Parse with enhanced parser
+            # STEP 1: Parse with enhanced parser
             try:
                 parse_result = enhanced_parser.parse_with_range(
                     file_path,
@@ -368,10 +411,39 @@ async def parse_multiple_csvs(request: MultiCSVParseRequest):
                 if not parse_result['success']:
                     raise HTTPException(status_code=400, detail=f"Failed to parse {file_info['original_name']}: {parse_result.get('error', 'Unknown error')}")
                 
+                # STEP 2: Data cleaning (NEW)
+                final_result = parse_result
+                if request.enable_cleaning:
+                    print(f"🧹 Applying data cleaning to {file_info['original_name']}...")
+                    
+                    # Get template config for cleaning hints
+                    template_config = config.get('template_config', {})
+                    
+                    cleaning_result = data_cleaner.clean_parsed_data(parse_result, template_config)
+                    
+                    if cleaning_result['success']:
+                        final_result = {
+                            'success': True,
+                            'headers': [col for col in cleaning_result['data'][0].keys()] if cleaning_result['data'] else [],
+                            'data': cleaning_result['data'],
+                            'row_count': cleaning_result['row_count'],
+                            'cleaning_applied': True,
+                            'cleaning_summary': cleaning_result['cleaning_summary'],
+                            'updated_column_mapping': cleaning_result.get('updated_column_mapping', {}),  # NEW: Include updated mapping
+                            'original_headers': parse_result.get('headers', [])  # NEW: Keep original headers for reference
+                        }
+                        print(f"✅ Data cleaning successful: {cleaning_result['row_count']} clean rows")
+                    else:
+                        print(f"⚠️  Data cleaning failed for {file_info['original_name']}: {cleaning_result.get('error', 'Unknown error')}")
+                        final_result['cleaning_applied'] = False
+                        final_result['cleaning_error'] = cleaning_result.get('error', 'Unknown error')
+                else:
+                    final_result['cleaning_applied'] = False
+                
                 results.append({
                     "file_id": file_id,
                     "file_name": file_info["original_name"],
-                    "parse_result": parse_result,
+                    "parse_result": final_result,
                     "config": config
                 })
                 
@@ -397,10 +469,16 @@ async def parse_multiple_csvs(request: MultiCSVParseRequest):
 
 @app.post("/multi-csv/transform")
 async def transform_multiple_csvs(request: MultiCSVTransformRequest):
-    """Transform multiple CSVs with transfer detection"""
+    """Transform multiple CSVs with transfer detection - IMPROVED WITH CLEANED DATA"""
     try:
         print(f"🚀 Multi-CSV transform request received for {len(request.csv_data_list)} files")
         print(f"👤 User: {request.user_name}, Transfer detection: {request.enable_transfer_detection}")
+        
+        # Log bank rules settings
+        if request.bank_rules_settings:
+            print(f"⚙️  Bank rules settings: {request.bank_rules_settings}")
+        else:
+            print(f"⚙️  Bank rules settings: Using defaults (all enabled)")
         
         # Transform each CSV individually first
         all_transformed_data = []
@@ -419,6 +497,26 @@ async def transform_multiple_csvs(request: MultiCSVTransformRequest):
             
             print(f"🏦 Bank: {bank_name}, Rules: {len(categorization_rules)}, Rows: {len(csv_data.get('data', []))}")
             
+            # Check if data is already cleaned (has numeric amounts)
+            sample_data = csv_data.get('data', [])
+            if sample_data:
+                sample_amount = None
+                for row in sample_data[:3]:  # Check first 3 rows
+                    for key, value in row.items():
+                        if 'amount' in key.lower() and value is not None:
+                            sample_amount = value
+                            break
+                    if sample_amount is not None:
+                        break
+                
+                print(f"💰 Sample amount: {sample_amount} (type: {type(sample_amount)})")
+                
+                # If amounts are already numeric (cleaned), we can skip some processing
+                if isinstance(sample_amount, (int, float)):
+                    print(f"✅ Data appears to be already cleaned (numeric amounts)")
+                else:
+                    print(f"⚠️  Data appears to need cleaning (string amounts)")
+            
             # Transform data
             try:
                 transformed = enhanced_parser.transform_to_cashew(
@@ -427,7 +525,8 @@ async def transform_multiple_csvs(request: MultiCSVTransformRequest):
                     bank_name,
                     categorization_rules,
                     default_category_rules,
-                    account_mapping
+                    account_mapping,
+                    request.bank_rules_settings
                 )
                 
                 print(f"✅ Transformed {len(transformed)} transactions for {csv_data.get('file_name')}")
@@ -457,23 +556,17 @@ async def transform_multiple_csvs(request: MultiCSVTransformRequest):
             }
         }
         
-        # FIXED: Try transfer detection if enabled
+        # Try transfer detection if enabled
         if request.enable_transfer_detection and len(request.csv_data_list) > 1:
             try:
                 print(f"🔄 Starting transfer detection between {len(request.csv_data_list)} CSVs...")
+                print(f"💡 Note: Using cleaned data with numeric amounts should improve transfer detection accuracy!")
                 
                 # Initialize transfer detector
                 transfer_detector = TransferDetector(
                     user_name=request.user_name,
                     date_tolerance_hours=request.date_tolerance_hours
                 )
-                
-                # DEBUG: Print sample data for debugging
-                for idx, csv_data in enumerate(request.csv_data_list):
-                    print(f"   📊 CSV {idx+1} ({csv_data.get('file_name', 'Unknown')}):") 
-                    sample_transactions = csv_data.get('data', [])[:2]  # First 2 transactions
-                    for trans in sample_transactions:
-                        print(f"     - Amount: {trans.get('Amount', 'N/A')}, Desc: {trans.get('Description', 'N/A')[:50]}...")
                 
                 # Detect transfers
                 transfer_analysis = transfer_detector.detect_transfers(request.csv_data_list)
@@ -483,114 +576,42 @@ async def transform_multiple_csvs(request: MultiCSVTransformRequest):
                 if transfer_analysis and transfer_analysis['transfers']:
                     print(f"🔄 Applying transfer categorization to {len(transfer_analysis['transfers'])} pairs...")
                     
-                    # DEBUG: Show what transfers were detected
-                    print(f"📋 DETECTED TRANSFERS:")
-                    for i, pair in enumerate(transfer_analysis['transfers'], 1):
-                        print(f"   {i}. OUT: {pair['outgoing']['Description']} ({pair['outgoing']['Amount']})")
-                        print(f"      IN:  {pair['incoming']['Description']} ({pair['incoming']['Amount']})")
-                        print(f"      Confidence: {pair['confidence']:.2f}")
-                    
                     transfer_matches = transfer_detector.apply_transfer_categorization(
                         request.csv_data_list, 
                         transfer_analysis['transfers']
                     )
                     
-                    print(f"📝 TRANSFER MATCHES CREATED: {len(transfer_matches)}")
-                    for i, match in enumerate(transfer_matches):
-                        print(f"   {i+1}. Amount: {match['amount']}, Date: {match['date']}")
-                        print(f"      Desc: {match['description'][:50]}...")
-                        print(f"      Category: {match['category']}, Type: {match['transfer_type']}")
+                    print(f"📝 Created {len(transfer_matches)} transfer matches for balance correction")
                     
-                    # FIXED: Apply balance corrections with enhanced matching
+                    # Apply balance corrections with better matching due to cleaned data
                     balance_corrections_applied = 0
                     
-                    print(f"🔍 TRYING TO MATCH {len(transfer_matches)} transfer matches with {len(all_transformed_data)} transactions...")
-                    
                     for i, transaction in enumerate(all_transformed_data):
-                        transaction_matched = False
-                        for j, match in enumerate(transfer_matches):
-                            # Enhanced matching logic
+                        for match in transfer_matches:
+                            # Improved matching with cleaned numeric amounts
                             trans_amount = float(transaction.get('Amount', '0'))
                             match_amount = float(match['amount'])
                             amount_match = abs(trans_amount - match_amount) < 0.01
                             date_match = transaction.get('Date', '').startswith(match['date'])
                             
                             if amount_match and date_match:
-                                # Enhanced matching for transfer detection override
-                                trans_desc = str(transaction.get('Title', '')).lower()
-                                match_desc = str(match['description']).lower()
-                                
-                                print(f"🔎 POTENTIAL MATCH {j+1}:")
-                                print(f"   Transaction: {transaction.get('Title', 'N/A')[:50]}... (Amount: {trans_amount})")
-                                print(f"   Match: {match['description'][:50]}... (Amount: {match_amount})")
-                                print(f"   Amount match: {amount_match}, Date match: {date_match}")
-                                
-                                # Simple but effective matching for transfers
-                                desc_match = False
-                                
-                                # Direct key phrase matching (most reliable)
-                                if 'sent money' in match_desc and 'sent money' in trans_desc:
-                                    desc_match = True
-                                    print(f"   ✅ PHRASE MATCH: 'sent money'")
-                                elif 'incoming fund transfer' in match_desc and 'incoming fund transfer' in trans_desc:
-                                    desc_match = True
-                                    print(f"   ✅ PHRASE MATCH: 'incoming fund transfer'")
-                                elif 'converted' in match_desc and 'converted' in trans_desc:
-                                    desc_match = True
-                                    print(f"   ✅ PHRASE MATCH: 'converted'")
-                                else:
-                                    # Fallback: check if at least 2 significant words match
-                                    desc_words_trans = [word for word in trans_desc.split() if len(word) > 3]
-                                    desc_words_match = [word for word in match_desc.split() if len(word) > 3]
-                                    
-                                    print(f"   Trans words: {desc_words_trans[:5]}...")
-                                    print(f"   Match words: {desc_words_match[:5]}...")
-                                    
-                                    # More lenient matching for transfer override
-                                    desc_match = (len(desc_words_trans) == 0 or len(desc_words_match) == 0 or 
-                                                any(word in trans_desc for word in desc_words_match) or 
-                                                any(word in match_desc for word in desc_words_trans))
-                                    
-                                    if desc_match:
-                                        matching_words = [word for word in desc_words_match if word in trans_desc]
-                                        print(f"   ✅ WORD MATCH: {matching_words}")
-                                    else:
-                                        print(f"   ❌ NO WORD MATCH")
-                                
-                                if desc_match:
-                                    print(f"🎯 OVERRIDE SUCCESS: '{transaction.get('Category', 'Unknown')}' → 'Balance Correction'")
-                                    all_transformed_data[i]['Category'] = match['category']
-                                    all_transformed_data[i]['Note'] = match['note']
-                                    all_transformed_data[i]['_transfer_pair_id'] = match['pair_id']
-                                    all_transformed_data[i]['_transfer_type'] = match['transfer_type']
-                                    all_transformed_data[i]['_is_transfer'] = True
-                                    balance_corrections_applied += 1
-                                    transaction_matched = True
-                                    break
-                                else:
-                                    print(f"⚠️  NO MATCH: Description doesn't match")
-                            else:
-                                if not amount_match:
-                                    print(f"⚠️  SKIP: Amount mismatch ({trans_amount} vs {match_amount})")
-                                if not date_match:
-                                    print(f"⚠️  SKIP: Date mismatch ({transaction.get('Date', 'N/A')} vs {match['date']})")
-                        
-                        if not transaction_matched and any(word in str(transaction.get('Title', '')).lower() for word in ['sent money', 'incoming fund', 'converted']):
-                            print(f"🚩 UNMATCHED TRANSFER-LIKE: {transaction.get('Title', 'N/A')[:50]}... (Category: {transaction.get('Category', 'Unknown')})")
+                                all_transformed_data[i]['Category'] = match['category']
+                                all_transformed_data[i]['Note'] = match['note']
+                                all_transformed_data[i]['_transfer_pair_id'] = match['pair_id']
+                                all_transformed_data[i]['_transfer_type'] = match['transfer_type']
+                                all_transformed_data[i]['_is_transfer'] = True
+                                balance_corrections_applied += 1
+                                break
                     
-                    print(f"✅ Transfer categorization applied - {balance_corrections_applied} overrides successful")
+                    print(f"✅ Transfer categorization applied - {balance_corrections_applied} balance corrections")
                 else:
-                    print(f"⚠️  No transfers detected - check your data patterns")
+                    print(f"⚠️  No transfers detected")
                 
             except Exception as transfer_error:
                 print(f"⚠️ Transfer detection failed: {str(transfer_error)}")
-                print(f"📚 Transfer error traceback:")
-                import traceback
-                print(traceback.format_exc())
-                # Continue without transfer detection rather than failing
                 print(f"🔄 Continuing without transfer detection...")
         else:
-            print(f"🚫 Transfer detection skipped (enabled: {request.enable_transfer_detection}, files: {len(request.csv_data_list)})")
+            print(f"🚫 Transfer detection skipped")
         
         return {
             "success": True,
@@ -612,6 +633,7 @@ async def transform_multiple_csvs(request: MultiCSVTransformRequest):
         import traceback
         print(f"📚 Full traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
 @app.delete("/cleanup/{file_id}")
 async def cleanup_file(file_id: str):
     """Remove uploaded file from temp storage"""
@@ -625,9 +647,12 @@ async def cleanup_file(file_id: str):
 
 if __name__ == "__main__":
     import uvicorn
-    print("\n🌟 Starting FastAPI server...")
+    print("\n🌟 Starting Enhanced FastAPI server with Data Cleaning...")
     print("   📡 Backend will be available at: http://127.0.0.1:8000")
     print("   📋 API docs available at: http://127.0.0.1:8000/docs")
+    print("   🧹 NEW: Data cleaning pipeline integrated")
+    print("   💱 NEW: Automatic currency column addition")
+    print("   📊 NEW: Numeric amount standardization")
     print("   ⏹️  Press Ctrl+C to stop")
     print("")
     

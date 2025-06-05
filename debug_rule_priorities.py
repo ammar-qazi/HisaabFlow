@@ -2,145 +2,55 @@
 
 import sys
 import os
-import json
+sys.path.append('transformation')
 
-# Add the backend directory to the path
-sys.path.append('/home/ammar/claude_projects/bank_statement_parser/backend')
+from universal_transformer import UniversalTransformer
 
-from enhanced_csv_parser import EnhancedCSVParser
-
-def debug_rule_application():
-    """Debug the rule application process step by step"""
+def debug_rule_priorities():
+    """Debug why rule priorities aren't working correctly"""
+    print("🔍 Debugging Rule Priorities")
     
-    print("🔍 DEBUGGING RULE APPLICATION PROCESS")
-    print("=" * 50)
+    transformer = UniversalTransformer()
     
-    # Initialize parser
-    parser = EnhancedCSVParser()
-    
-    # Load the NayaPay Enhanced Template
-    template_path = "/home/ammar/claude_projects/bank_statement_parser/templates/NayaPay_Enhanced_Template.json"
-    with open(template_path, 'r') as f:
-        template = json.load(f)
-    
-    # Test with a small ride-hailing transaction
-    test_row_original = {
-        'TIMESTAMP': '15 Mar 2025 02:30 PM',
-        'TYPE': 'Raast Out',
-        'DESCRIPTION': 'Outgoing fund transfer to Careem\nCareem-1234|Transaction ID abc123',
-        'AMOUNT': '-400',
-        'BALANCE': '20,622.40'
-    }
-    
-    # Create cashew row as it would be initially
-    cashew_row = {
-        'Date': parser._parse_date(test_row_original['TIMESTAMP']),
-        'Amount': parser._parse_amount(test_row_original['AMOUNT']),
-        'Category': '',
-        'Title': test_row_original['DESCRIPTION'],
-        'Note': test_row_original['TYPE'],
-        'Account': 'NayaPay'
-    }
-    
-    print("🚗 Testing Ride Hailing Transaction:")
-    print(f"   Original: {test_row_original}")
-    print(f"   Initial Cashew Row: {cashew_row}")
-    print()
-    
-    # Get categorization rules sorted by priority
-    rules = template.get('categorization_rules', [])
-    sorted_rules = sorted(rules, key=lambda x: x.get('priority', 999))
-    
-    print("📋 Checking Rules by Priority:")
-    print("-" * 40)
-    
-    for i, rule in enumerate(sorted_rules):
-        rule_name = rule.get('rule_name', f'Rule {i}')
-        priority = rule.get('priority', 999)
-        conditions = rule.get('conditions', {})
-        actions = rule.get('actions', {})
+    # Check what rules are loaded and in what order
+    bank_key = "nayapay"
+    if bank_key in transformer.bank_overrides:
+        bank_data = transformer.bank_overrides[bank_key]
+        overrides = bank_data.get('overrides', bank_data)
         
-        print(f"Rule {priority}: {rule_name}")
-        
-        # Check if conditions are met
-        condition_met = parser._check_rule_conditions(test_row_original, conditions)
-        print(f"   Conditions met: {condition_met}")
-        
-        if condition_met:
-            print(f"   Actions: {actions}")
-            print("   ✅ RULE WOULD BE APPLIED")
-            
-            # Apply the actions to see what happens
-            if 'set_category' in actions:
-                cashew_row['Category'] = actions['set_category']
-                print(f"      Category set to: {actions['set_category']}")
-            
-            if 'set_title' in actions:
-                cashew_row['Title'] = actions['set_title']
-                print(f"      Title set to: {actions['set_title']}")
-            
-            # Check if we should continue processing
-            if not actions.get('continue_processing', False):
-                print("   🛑 Stopping rule processing (continue_processing not set)")
-                break
-            else:
-                print("   ➡️ Continuing to next rule")
-        else:
-            print("   ❌ Conditions not met")
-        print()
+        print(f"\\n📋 Bank override structure:")
+        for category_name, rules_list in overrides.items():
+            if isinstance(rules_list, list):
+                print(f"   {category_name}: {len(rules_list)} rules")
+                for rule in rules_list:
+                    print(f"      - {rule.get('rule_name', 'Unnamed')} (priority: {rule.get('priority', 'None')})")
     
-    print("🔍 FINAL CATEGORIZATION CALL:")
-    print("-" * 30)
+    # Get the actual combined rules that would be used
+    combined_rules = transformer._get_bank_override_rules(bank_key)
     
-    # Now call the actual categorization method
-    final_result = parser._apply_categorization_rules(
-        {
-            'Date': parser._parse_date(test_row_original['TIMESTAMP']),
-            'Amount': parser._parse_amount(test_row_original['AMOUNT']),
-            'Category': '',
-            'Title': test_row_original['DESCRIPTION'],
-            'Note': test_row_original['TYPE'],
-            'Account': 'NayaPay'
-        },
-        test_row_original,
-        template.get('categorization_rules', []),
-        template.get('default_category_rules')
-    )
+    print(f"\\n🔗 Combined rules in processing order:")
+    for i, rule in enumerate(combined_rules[:10]):  # Show first 10
+        rule_name = rule.get('rule_name', f'Rule_{i}')
+        priority = rule.get('priority', 'None')
+        print(f"   {i+1:2}. {rule_name} (priority: {priority})")
     
-    print(f"Final Result: {final_result}")
+    print(f"\\n🧪 Test single transaction:")
+    # Test with one ride-hailing transaction
+    test_data = [{
+        'Date': '2025-02-07', 
+        'Amount': -500.0,
+        'Title': 'Outgoing fund transfer to Muhammad Ali - ride driver',
+        'Note': 'Raast Out'
+    }]
     
-    # Test Surraiya Riaz rule
-    print("\n" + "=" * 50)
-    print("🔍 TESTING SURRAIYA RIAZ RULE")
-    print("=" * 50)
+    column_mapping = {'Date': 'Date', 'Amount': 'Amount', 'Title': 'Title', 'Note': 'Note'}
     
-    surraiya_row = {
-        'TIMESTAMP': '05 Mar 2025 11:54 PM',
-        'TYPE': 'Raast Out',
-        'DESCRIPTION': 'Outgoing fund transfer to Surraiya Riaz (Asaan Ac)\nMeezan Bank-2660|Transaction ID 67c89de7380c9e24a2e7e92b',
-        'AMOUNT': '-5,000',
-        'BALANCE': '16,022.40'
-    }
+    # This should trigger the ride-hailing rule (priority 2) not the default rule (priority 5)
+    result = transformer.transform_to_cashew(test_data, column_mapping, "NayaPay")
     
-    print(f"Test row: {surraiya_row}")
-    
-    # Find the Surraiya rule
-    surraiya_rule = None
-    for rule in rules:
-        if rule['rule_name'] == 'Surraiya Riaz Transactions':
-            surraiya_rule = rule
-            break
-    
-    if surraiya_rule:
-        print(f"Surraiya Rule: {surraiya_rule}")
-        condition_met = parser._check_rule_conditions(surraiya_row, surraiya_rule['conditions'])
-        print(f"Condition met: {condition_met}")
-        
-        # Test the condition manually
-        description_text = surraiya_row['DESCRIPTION'].lower()
-        contains_surraiya = 'surraiya riaz' in description_text
-        print(f"Manual check - Description contains 'surraiya riaz': {contains_surraiya}")
-        print(f"Description text: '{description_text}'")
+    print(f"\\n📊 Result:")
+    print(f"   Category: {result[0]['Category']} (should be Travel)")
+    print(f"   Title: {result[0]['Title']} (should contain 'Ride payment')")
 
 if __name__ == "__main__":
-    debug_rule_application()
+    debug_rule_priorities()

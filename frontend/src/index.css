@@ -345,6 +345,121 @@ body {
   background: #f8f9fa;
 }
 
+/* Settings sections */
+.settings-section {
+  margin-bottom: 30px;
+  padding: 25px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  border: 1px solid #e9ecef;
+}
+
+.settings-section h3 {
+  margin: 0 0 10px 0;
+  color: #495057;
+  font-size: 1.2rem;
+}
+
+.settings-description {
+  color: #6c757d;
+  margin: 0 0 20px 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.setting-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.setting-item label {
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.setting-item input[type="text"],
+.setting-item input[type="number"] {
+  padding: 10px;
+  border: 2px solid #e9ecef;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+}
+
+.setting-item input[type="text"]:focus,
+.setting-item input[type="number"]:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.setting-item input[type="checkbox"] {
+  margin-right: 8px;
+  transform: scale(1.2);
+}
+
+/* Bank rules grid */
+.bank-rules-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 15px;
+}
+
+.bank-rule-item {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  border: 2px solid #e9ecef;
+  transition: all 0.3s ease;
+}
+
+.bank-rule-item:hover {
+  border-color: #667eea;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+}
+
+.bank-rule-item label {
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  gap: 8px;
+}
+
+.bank-rule-item input[type="checkbox"] {
+  margin-right: 10px;
+  transform: scale(1.3);
+}
+
+.bank-rule-item .bank-logo {
+  font-size: 1.5rem;
+  margin-right: 10px;
+}
+
+.bank-rule-item small {
+  color: #6c757d;
+  font-size: 0.85rem;
+  margin-top: 5px;
+  line-height: 1.4;
+}
+
+/* Bank rule header with checkbox and logo */
+.bank-rule-item label > span:first-child {
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  color: #495057;
+  font-size: 1.1rem;
+}
+
 @media (max-width: 768px) {
   .main-content {
     padding: 20px;
@@ -365,5 +480,17 @@ body {
   .template-controls {
     flex-direction: column;
     align-items: stretch;
+  }
+  
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .bank-rules-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .bank-rule-item {
+    padding: 15px;
   }
 }

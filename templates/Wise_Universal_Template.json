@@ -1,0 +1,40 @@
+{
+  "name": "Wise Universal Template",
+  "bank_name": "Transferwise",
+  "description": "Template for Wise CSV statements using Universal Transformer",
+  "csv_config": {
+    "has_header": true,
+    "skip_rows": 0,
+    "date_format": "%Y-%m-%d",
+    "encoding": "utf-8"
+  },
+  "column_mapping": {
+    "Date": "Date",
+    "Amount": "Amount",
+    "Title": "Description",
+    "Note": "Payment Reference",
+    "Account": "Currency"
+  },
+  "account_mapping": {
+    "HUF": "Hungarian",
+    "USD": "TransferWise",
+    "EUR": "EURO Wise"
+  },
+  "data_cleaning_config": {
+    "enable_currency_addition": false,
+    "multi_currency": true,
+    "numeric_amount_conversion": true,
+    "date_standardization": true,
+    "remove_invalid_rows": true
+  },
+  "date_formats": [
+    "%Y-%m-%d"
+  ],
+  "amount_parsing": {
+    "format": "Numeric values, already clean in Wise exports",
+    "examples": [-3000.00, 8500.00, 50000.00]
+  },
+  "description": "Clean template for Wise - uses Universal Transformer for all categorization",
+  "version": "2.0",
+  "created_date": "2025-06-05"
+}

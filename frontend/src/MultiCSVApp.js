@@ -17,6 +17,7 @@ const detectBankFromFilename = (filename) => {
     return {
       bankType: 'NayaPay',
       suggestedTemplate: 'NayaPay_Enhanced_Template',
+      cleanedTemplate: 'NayaPay_Cleaned_Template', // NEW: for when data cleaning is applied
       defaultStartRow: 13,
       defaultEncoding: 'utf-8'
     };
@@ -24,8 +25,8 @@ const detectBankFromFilename = (filename) => {
   
   if (lowerFilename.includes('transferwise') || lowerFilename.includes('wise')) {
     return {
-      bankType: 'TransferWise',
-      suggestedTemplate: 'Transferwise_Hungarian_Template', 
+      bankType: 'Transferwise',
+      suggestedTemplate: 'Wise_Universal_Template', 
       defaultStartRow: 0,
       defaultEncoding: 'utf-8'
     };
@@ -50,6 +51,13 @@ function MultiCSVApp() {
   const [userName, setUserName] = useState('Ammar Qazi');
   const [dateTolerance, setDateTolerance] = useState(24);
   const [enableTransferDetection, setEnableTransferDetection] = useState(true);
+  
+  // Bank-specific rules settings
+  const [bankRulesSettings, setBankRulesSettings] = useState({
+    enableNayaPayRules: true,
+    enableTransferwiseRules: true,
+    enableUniversalRules: true
+  });
   
   // Processing state
   const [loading, setLoading] = useState(false);
@@ -268,13 +276,30 @@ function MultiCSVApp() {
               success: parseResult.success || false,
               headers: parseResult.headers || [],
               data: parseResult.data || [],
-              row_count: parseResult.row_count || 0
+              row_count: parseResult.row_count || 0,
+              cleaning_applied: parseResult.cleaning_applied || false
             };
             
-            return {
+            // AUTO-SWITCH TO CLEANED TEMPLATE if data cleaning was applied
+            let updatedFile = {
               ...file,
               parsedData: safeParseResult
             };
+            
+            // Check if we should switch to cleaned template
+            if (parseResult.cleaning_applied && file.bankDetection?.cleanedTemplate) {
+              const cleanedTemplateName = file.bankDetection.cleanedTemplate;
+              console.log(`🧽 Data cleaning detected for ${file.fileName}, switching to ${cleanedTemplateName}`);
+              
+              // Auto-apply cleaned template
+              setTimeout(() => {
+                applyTemplate(index, cleanedTemplateName);
+              }, 1000 + index * 500); // Stagger the applications
+              
+              updatedFile.selectedTemplate = cleanedTemplateName;
+            }
+            
+            return updatedFile;
           }
           return file;
         });
@@ -382,7 +407,8 @@ function MultiCSVApp() {
         csv_data_list: csvDataList,
         user_name: userName,
         enable_transfer_detection: enableTransferDetection,
-        date_tolerance_hours: dateTolerance
+        date_tolerance_hours: dateTolerance,
+        bank_rules_settings: bankRulesSettings
       });
       
       setTransformedData(response.data.transformed_data);
@@ -542,6 +568,64 @@ function MultiCSVApp() {
                     onChange={(e) => setEnableTransferDetection(e.target.checked)}
                   />
                   Enable Transfer Detection
+                </label>
+              </div>
+            </div>
+          </div>
+          
+          {/* Bank-Specific Rules Settings */}
+          <div className="settings-section">
+            <h3>🏦 Bank-Specific Rules</h3>
+            <p className="settings-description">
+              Choose which bank-specific rules to apply during transformation. 
+              This helps avoid conflicts and gives you control over categorization.
+            </p>
+            <div className="bank-rules-grid">
+              <div className="bank-rule-item">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={bankRulesSettings.enableNayaPayRules}
+                    onChange={(e) => setBankRulesSettings(prev => ({ 
+                      ...prev, 
+                      enableNayaPayRules: e.target.checked 
+                    }))}
+                  />
+                  <span className="bank-logo">🇵🇰</span>
+                  NayaPay Rules
+                  <small>Ride-hailing detection, mobile recharges, Pakistani context</small>
+                </label>
+              </div>
+              
+              <div className="bank-rule-item">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={bankRulesSettings.enableTransferwiseRules}
+                    onChange={(e) => setBankRulesSettings(prev => ({ 
+                      ...prev, 
+                      enableTransferwiseRules: e.target.checked 
+                    }))}
+                  />
+                  <span className="bank-logo">🌍</span>
+                  Transferwise Rules
+                  <small>Card transaction cleaning, Hungarian merchants, EU context</small>
+                </label>
+              </div>
+              
+              <div className="bank-rule-item">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={bankRulesSettings.enableUniversalRules}
+                    onChange={(e) => setBankRulesSettings(prev => ({ 
+                      ...prev, 
+                      enableUniversalRules: e.target.checked 
+                    }))}
+                  />
+                  <span className="bank-logo">🌐</span>
+                  Universal Rules
+                  <small>Cross-bank categorization (groceries, travel, dining, etc.)</small>
                 </label>
               </div>
             </div>

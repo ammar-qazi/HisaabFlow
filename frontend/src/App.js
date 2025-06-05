@@ -175,10 +175,11 @@ function App() {
       console.log('Parse response:', response.data);
       
       setParsedData(response.data);
-      setSuccess(`Parsed ${response.data.row_count} rows successfully`);
+      setSuccess(`Parsed ${response.data.row_count} rows successfully${response.data.cleaning_applied ? ' with data cleaning' : ''}`);
       setCurrentStep(3);
       
       // Auto-populate column mapping based on headers
+      // Use cleaned headers if cleaning was applied, otherwise use original headers
       const headers = response.data.headers;
       const newMapping = { ...columnMapping };
       
@@ -196,6 +197,19 @@ function App() {
       });
       
       setColumnMapping(newMapping);
+      
+      // If data cleaning was applied and a cleaned template is available, auto-apply it
+      if (response.data.cleaning_applied && selectedTemplate) {
+        const cleanedTemplateName = selectedTemplate.replace('_Enhanced_Template', '_Cleaned_Template');
+        if (templates.includes(cleanedTemplateName)) {
+          console.log(`Auto-applying cleaned template: ${cleanedTemplateName}`);
+          // Auto-apply the cleaned template since the data structure changed
+          setTimeout(() => {
+            applyTemplate(cleanedTemplateName);
+          }, 500);
+          setSuccess(`Parsed ${response.data.row_count} rows with data cleaning. Auto-applying '${cleanedTemplateName}' template.`);
+        }
+      }
       
     } catch (err) {
       console.error('Parse error full details:', err);
@@ -333,11 +347,12 @@ function App() {
     }
   };
 
-  const applyTemplate = async () => {
-    if (!selectedTemplate || !fileId) return;
+  const applyTemplate = async (templateNameOverride = null) => {
+    const templateToApply = templateNameOverride || selectedTemplate;
+    if (!templateToApply || !fileId) return;
     
     try {
-      const response = await axios.get(`${API_BASE}/template/${selectedTemplate}`);
+      const response = await axios.get(`${API_BASE}/template/${templateToApply}`);
       const config = response.data.config;
       
       setStartRow(config.start_row);
@@ -346,7 +361,12 @@ function App() {
       setEndCol(config.end_col || '');
       setColumnMapping(config.column_mapping);
       
-      setSuccess(`Template "${selectedTemplate}" applied successfully`);
+      // Update selected template if we used an override
+      if (templateNameOverride) {
+        setSelectedTemplate(templateNameOverride);
+      }
+      
+      setSuccess(`Template "${templateToApply}" applied successfully`);
       
     } catch (err) {
       setError(`Apply template failed: ${err.response?.data?.detail || err.message}`);

@@ -3,18 +3,63 @@ import json
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 import re
+import csv
+import os
+import sys
+
+# Add transformation directory to path
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'transformation'))
+
+try:
+    from universal_transformer import UniversalTransformer
+    UNIVERSAL_TRANSFORMER_AVAILABLE = True
+    print("✅ Universal Transformer imported successfully in enhanced_csv_parser")
+except ImportError as e:
+    print(f"❌ Universal Transformer import failed: {e}")
+    UNIVERSAL_TRANSFORMER_AVAILABLE = False
 
 class EnhancedCSVParser:
     def __init__(self):
         self.target_columns = ['Date', 'Amount', 'Category', 'Title', 'Note', 'Account']
+        
+        # Initialize Universal Transformer
+        if UNIVERSAL_TRANSFORMER_AVAILABLE:
+            try:
+                self.universal_transformer = UniversalTransformer()
+                print("✅ Universal Transformer initialized in enhanced_csv_parser")
+            except Exception as e:
+                print(f"❌ Universal Transformer initialization failed: {e}")
+                self.universal_transformer = None
+        else:
+            print("⚠️  Universal Transformer not available, using legacy transformation")
+            self.universal_transformer = None
     
     def preview_csv(self, file_path: str, encoding: str = 'utf-8') -> Dict:
-        """Preview CSV file and return basic info"""
+        """Preview CSV file and return basic info using robust CSV reading"""
         try:
-            # Read first 20 rows to identify structure
-            df_preview = pd.read_csv(file_path, encoding=encoding, nrows=20, header=None)
+            # Use manual CSV reading for inconsistent structures
+            lines = []
+            with open(file_path, 'r', encoding=encoding, newline='') as f:
+                reader = csv.reader(f)
+                for i, row in enumerate(reader):
+                    lines.append(row)
+                    if i >= 19:  # Only preview first 20 rows
+                        break
             
-            # Replace NaN values with empty strings for JSON serialization
+            if not lines:
+                raise ValueError("No data found in file")
+            
+            # Find the maximum number of columns for preview
+            max_cols = max(len(line) for line in lines) if lines else 0
+            
+            # Pad all rows to have the same number of columns for preview
+            padded_lines = []
+            for line in lines:
+                padded_line = line + [''] * (max_cols - len(line))
+                padded_lines.append(padded_line[:max_cols])
+            
+            # Convert to DataFrame for preview
+            df_preview = pd.DataFrame(padded_lines)
             df_preview = df_preview.fillna('')
             
             return {
@@ -31,37 +76,66 @@ class EnhancedCSVParser:
             }
     
     def detect_data_range(self, file_path: str, encoding: str = 'utf-8') -> Dict:
-        """Auto-detect where the actual data starts"""
+        """Auto-detect where the actual transaction data starts with improved NayaPay detection"""
         try:
-            df = pd.read_csv(file_path, encoding=encoding, header=None)
+            # Use manual CSV reading to handle inconsistent column counts
+            lines = []
+            with open(file_path, 'r', encoding=encoding, newline='') as f:
+                reader = csv.reader(f)
+                for row in reader:
+                    lines.append(row)
             
-            # Look for rows that might contain headers
-            header_indicators = ['timestamp', 'date', 'amount', 'description', 'balance', 'type']
+            if not lines:
+                raise ValueError("No data found in file")
+            
+            print(f"🔍 Detecting data range in file with {len(lines)} lines")
+            
+            # Look for rows that contain transaction headers
             data_start_row = None
             
-            # Special handling for NayaPay format
-            for idx, row in df.iterrows():
-                row_text = ' '.join([str(cell).lower() for cell in row if pd.notna(cell)])
+            for idx, row in enumerate(lines):
+                # Convert row to lowercase string for searching
+                row_text = ' '.join([str(cell).lower() for cell in row if cell])
                 
-                # Check for specific NayaPay header pattern
-                if 'timestamp' in row_text and 'type' in row_text and 'description' in row_text and 'amount' in row_text:
-                    data_start_row = idx
-                    break
+                print(f"   Row {idx:2}: {len(row)} cols -> {row_text[:80]}..." if len(row_text) > 80 else f"   Row {idx:2}: {len(row)} cols -> {row_text}")
+                
+                # Enhanced NayaPay detection: look for the specific transaction header pattern
+                # Must have exactly these 5 columns: TIMESTAMP, TYPE, DESCRIPTION, AMOUNT, BALANCE
+                if (len(row) == 5 and 
+                    any('timestamp' in str(cell).lower() for cell in row) and
+                    any('type' in str(cell).lower() for cell in row) and
+                    any('description' in str(cell).lower() for cell in row) and
+                    any('amount' in str(cell).lower() for cell in row) and
+                    any('balance' in str(cell).lower() for cell in row)):
                     
-                # Fallback to general indicators
-                elif any(indicator in row_text for indicator in header_indicators):
-                    # Skip "Opening Balance" and "Closing Balance" rows
-                    if 'opening balance' in row_text or 'closing balance' in row_text:
-                        continue
-                    if data_start_row is None:  # Only set if not already found
-                        data_start_row = idx
+                    data_start_row = idx
+                    print(f"   ✅ Found NayaPay transaction headers at row {idx}: {row}")
+                    break
+                
+                # Skip problematic rows we know about
+                if ('opening balance' in row_text and 'closing balance' in row_text):
+                    print(f"   ⚠️  Skipping balance summary row {idx}")
+                    continue
+            
+            if data_start_row is None:
+                # Fallback: look for any row with transaction-like headers
+                for idx, row in enumerate(lines):
+                    row_text = ' '.join([str(cell).lower() for cell in row if cell])
+                    if any(indicator in row_text for indicator in ['timestamp', 'date', 'amount', 'description']):
+                        if not ('opening balance' in row_text or 'closing balance' in row_text):
+                            data_start_row = idx
+                            print(f"   🔄 Fallback: Found headers at row {idx}")
+                            break
+            
+            print(f"   🎯 Final detection result: row {data_start_row}")
             
             return {
                 'success': True,
                 'suggested_header_row': data_start_row,
-                'total_rows': len(df)
+                'total_rows': len(lines)
             }
         except Exception as e:
+            print(f"   ❌ Detection error: {str(e)}")
             return {
                 'success': False,
                 'error': str(e)
@@ -70,63 +144,68 @@ class EnhancedCSVParser:
     def parse_with_range(self, file_path: str, start_row: int, end_row: Optional[int] = None, 
                         start_col: int = 0, end_col: Optional[int] = None, 
                         encoding: str = 'utf-8') -> Dict:
-        """Parse CSV with specified range"""
+        """Parse CSV with specified range using manual CSV reading for NayaPay compatibility"""
         try:
-            # Read the full file with robust parsing
-            df_full = None
-            try:
-                df_full = pd.read_csv(
-                    file_path, 
-                    encoding=encoding, 
-                    header=None,
-                    on_bad_lines='skip',
-                    engine='python'
-                )
-            except Exception:
-                # Fallback to manual parsing
-                with open(file_path, 'r', encoding=encoding) as f:
-                    lines = []
-                    for line in f:
-                        parts = line.strip().split(',')
-                        lines.append(parts)
-                
-                max_cols = max(len(line) for line in lines) if lines else 0
-                padded_lines = []
-                for line in lines:
-                    padded_line = line + [''] * (max_cols - len(line))
-                    padded_lines.append(padded_line[:max_cols])
-                
-                df_full = pd.DataFrame(padded_lines)
+            print(f"🔍 Parsing CSV: {file_path}")
+            print(f"   📊 Range: start_row={start_row}, end_row={end_row}, start_col={start_col}, end_col={end_col}")
+            
+            # Use manual CSV reading to handle inconsistent column counts
+            lines = []
+            with open(file_path, 'r', encoding=encoding, newline='') as f:
+                reader = csv.reader(f, quotechar='"', skipinitialspace=True)
+                for line_num, row in enumerate(reader):
+                    lines.append(row)
+            
+            if not lines:
+                raise ValueError("No data could be parsed from file")
+            
+            print(f"   ✅ Successfully read CSV manually: {len(lines)} lines")
             
             # Extract the specified range
             if end_row is None:
-                end_row = len(df_full)
+                end_row = len(lines)
             if end_col is None:
-                end_col = len(df_full.columns)
+                end_col = 5  # Default to 5 for NayaPay
             
-            # Extract data range
-            df_range = df_full.iloc[start_row:end_row, start_col:end_col].copy()
+            print(f"   🔄 Extracting range: rows {start_row}:{end_row}, cols {start_col}:{end_col}")
             
-            # Use first row as headers if it looks like headers
-            if len(df_range) > 0:
-                headers = df_range.iloc[0].tolist()
-                df_range.columns = headers
-                df_range = df_range.iloc[1:].reset_index(drop=True)
+            # Extract header row
+            if start_row >= len(lines):
+                raise ValueError(f"Start row {start_row} is beyond file length {len(lines)}")
             
-            # Replace NaN values with empty strings for JSON serialization
-            df_range = df_range.fillna('')
+            headers = lines[start_row][start_col:end_col]
+            print(f"   📋 Headers extracted: {headers}")
             
-            # Ensure all values are JSON serializable
-            for col in df_range.columns:
-                df_range[col] = df_range[col].astype(str).replace('nan', '')
+            # Extract data rows (starting from the row after headers)
+            data_rows = []
+            for i in range(start_row + 1, min(end_row, len(lines))):
+                if i < len(lines) and len(lines[i]) >= end_col:
+                    row_data = lines[i][start_col:end_col]
+                    # Only include rows with meaningful data
+                    if any(cell.strip() for cell in row_data):
+                        row_dict = dict(zip(headers, row_data))
+                        data_rows.append(row_dict)
+            
+            print(f"   📊 Data rows extracted: {len(data_rows)}")
+            
+            # Debug: Show first few rows of parsed data
+            print(f"   📋 First 3 parsed rows:")
+            for i, row in enumerate(data_rows[:3]):
+                timestamp = row.get('TIMESTAMP', 'N/A')
+                amount = row.get('AMOUNT', 'N/A')
+                trans_type = row.get('TYPE', 'N/A')
+                print(f"      Row {i}: {timestamp} | {amount} | {trans_type}")
             
             return {
                 'success': True,
-                'headers': df_range.columns.tolist(),
-                'data': df_range.to_dict('records'),
-                'row_count': len(df_range)
+                'headers': headers,
+                'data': data_rows,
+                'row_count': len(data_rows)
             }
         except Exception as e:
+            print(f"   ❌ Parse error: {str(e)}")
+            import traceback
+            print(f"   📚 Traceback: {traceback.format_exc()}")
             return {
                 'success': False,
                 'error': str(e)
@@ -134,11 +213,26 @@ class EnhancedCSVParser:
     
     def transform_to_cashew(self, data: List[Dict], column_mapping: Dict[str, str], 
                            bank_name: str = "", categorization_rules: List[Dict] = None,
-                           default_category_rules: Dict = None, account_mapping: Dict = None) -> List[Dict]:
+                           default_category_rules: Dict = None, account_mapping: Dict = None,
+                           bank_rules_settings: Dict[str, bool] = None) -> List[Dict]:
         """Transform parsed data to Cashew format with smart categorization"""
+        
+        # Use Universal Transformer if available
+        if self.universal_transformer:
+            print(f"\n🌟 USING UNIVERSAL TRANSFORMER")
+            return self.universal_transformer.transform_to_cashew(
+                data, column_mapping, bank_name, account_mapping, bank_rules_settings
+            )
+        
+        # Fallback to legacy transformation
+        print(f"\n🔄 USING LEGACY TRANSFORMATION")
         cashew_data = []
         
-        for row in data:
+        print(f"   🏦 Bank: {bank_name}")
+        print(f"   📋 Input rows: {len(data)}")
+        print(f"   🗺️ Column mapping: {column_mapping}")
+        
+        for idx, row in enumerate(data):
             cashew_row = {
                 'Date': '',
                 'Amount': '',
@@ -156,7 +250,13 @@ class EnhancedCSVParser:
                         cashew_row[cashew_col] = self._parse_date(str(row[source_col]))
                     elif cashew_col == 'Amount':
                         # Clean and format amount
-                        cashew_row[cashew_col] = self._parse_amount(str(row[source_col]))
+                        original_amount = str(row[source_col])
+                        parsed_amount = self._parse_amount(original_amount)
+                        cashew_row[cashew_col] = parsed_amount
+                        
+                        # Debug amount parsing for first few rows
+                        if idx < 3:
+                            print(f"   💰 Row {idx} Amount: '{original_amount}' → '{parsed_amount}'")
                     elif cashew_col == 'Account' and account_mapping:
                         # Use currency-based account mapping
                         currency = str(row[source_col])
@@ -164,14 +264,22 @@ class EnhancedCSVParser:
                     else:
                         cashew_row[cashew_col] = str(row[source_col])
             
+            # Debug first few rows
+            if idx < 3:
+                print(f"   📋 Row {idx}: Date='{cashew_row['Date']}', Amount='{cashew_row['Amount']}', Title='{cashew_row['Title'][:50]}...'")
+            
             # Only process rows with valid amount
-            if cashew_row['Amount']:
+            if cashew_row['Amount'] and cashew_row['Amount'] != '0':
                 # Apply categorization rules
                 cashew_row = self._apply_categorization_rules(
                     cashew_row, row, categorization_rules, default_category_rules
                 )
                 cashew_data.append(cashew_row)
+            else:
+                if idx < 5:  # Log first few skipped rows
+                    print(f"   ⚠️  Skipping row {idx}: Invalid/zero amount '{cashew_row['Amount']}'")
         
+        print(f"   ✅ Transformation complete: {len(cashew_data)} valid rows")
         return cashew_data
     
     def _apply_categorization_rules(self, cashew_row: Dict, original_row: Dict, 
@@ -208,31 +316,8 @@ class EnhancedCSVParser:
                 elif 'clean_description' in actions:
                     # Clean and shorten the description using regex pattern
                     clean_config = actions['clean_description']
-                    description_field = None
-                    
-                    # Find description field in the row
-                    for key in original_row:
-                        if 'description' in key.lower():
-                            description_field = key
-                            break
-                    
-                    if description_field and 'pattern' in clean_config:
-                        import re
-                        original_desc = str(original_row[description_field])
-                        pattern = clean_config['pattern']
-                        replacement = clean_config['replacement']
-                        
-                        # Apply regex replacement
-                        cleaned_desc = re.sub(pattern, replacement, original_desc)
-                        cashew_row['Title'] = cleaned_desc
-                    else:
-                        # Fallback to original description
-                        cashew_row['Title'] = str(original_row.get(description_field, ''))
-                    
-                    # If clean_description doesn't set title, try original logic
-                    if not cashew_row['Title']:
-                        cleaned_desc = self._clean_description(original_row, actions['clean_description'])
-                        cashew_row['Title'] = cleaned_desc
+                    cleaned_desc = self._clean_description(original_row, clean_config)
+                    cashew_row['Title'] = cleaned_desc
                 elif not actions.get('keep_original_title', False):
                     # Keep original title if not specified otherwise
                     pass
@@ -251,56 +336,6 @@ class EnhancedCSVParser:
     def _check_rule_conditions(self, row: Dict, conditions: Dict) -> bool:
         """Check if a row matches the given conditions"""
         if not conditions:
-            return False
-        
-        # Handle new-style conditions with simple field checks
-        if 'description_contains' in conditions:
-            description_field = None
-            # Find description field in the row
-            for key in row:
-                if 'description' in key.lower():
-                    description_field = key
-                    break
-            
-            if description_field:
-                description_text = str(row[description_field]).lower()
-                for search_term in conditions['description_contains']:
-                    if search_term.lower() in description_text:
-                        # Check if there are additional conditions to verify
-                        if 'amount_exact' in conditions:
-                            amount_field = None
-                            for key in row:
-                                if 'amount' in key.lower():
-                                    amount_field = key
-                                    break
-                            if amount_field:
-                                try:
-                                    amount = float(self._parse_amount(str(row[amount_field])))
-                                    if amount == conditions['amount_exact']:
-                                        return True
-                                except (ValueError, TypeError):
-                                    pass
-                            return False
-                        else:
-                            return True
-            return False
-        
-        if 'amount_range' in conditions:
-            amount_field = None
-            # Find amount field in the row
-            for key in row:
-                if 'amount' in key.lower():
-                    amount_field = key
-                    break
-            
-            if amount_field:
-                try:
-                    amount = float(self._parse_amount(str(row[amount_field])))
-                    min_val = conditions['amount_range'].get('min', float('-inf'))
-                    max_val = conditions['amount_range'].get('max', float('inf'))
-                    return min_val <= amount <= max_val
-                except (ValueError, TypeError):
-                    pass
             return False
         
         # Handle old-style conditions
@@ -431,51 +466,74 @@ class EnhancedCSVParser:
     
     def _parse_date(self, date_str: str) -> str:
         """Parse various date formats and return ISO format"""
-        date_str = date_str.strip()
+        if not date_str or str(date_str).strip() == '' or str(date_str).lower() == 'nan':
+            return ''
+            
+        date_str = str(date_str).strip()
         
         # Common date patterns
-        patterns = [
-            r'(\d{2}) (\w{3}) (\d{4}) (\d{1,2}):(\d{2}) (AM|PM)',  # "02 Feb 2025 11:17 PM"
-            r'(\d{4}-\d{2}-\d{2})',  # "2025-02-02"
-            r'(\d{2}/\d{2}/\d{4})',  # "02/02/2025"
-            r'(\d{2}-\d{2}-\d{4})',  # "02-02-2025"
-        ]
-        
         try:
             # Pattern for "02 Feb 2025 11:17 PM"
             if re.match(r'\d{2} \w{3} \d{4} \d{1,2}:\d{2} (AM|PM)', date_str):
                 dt = datetime.strptime(date_str, '%d %b %Y %I:%M %p')
-                return dt.strftime('%Y-%m-%d %H:%M:%S')
+                return dt.strftime('%Y-%m-%d')
+            
+            # Pattern for "05 Feb 2025 09:17 AM" (zero-padded hour)
+            if re.match(r'\d{2} \w{3} \d{4} \d{2}:\d{2} (AM|PM)', date_str):
+                dt = datetime.strptime(date_str, '%d %b %Y %I:%M %p')
+                return dt.strftime('%Y-%m-%d')
             
             # Try other common formats
-            for fmt in ['%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y', '%d-%m-%Y']:
+            for fmt in ['%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y', '%d-%m-%Y', '%d-%m-%Y %H:%M:%S']:
                 try:
                     dt = datetime.strptime(date_str, fmt)
-                    return dt.strftime('%Y-%m-%d %H:%M:%S')
+                    return dt.strftime('%Y-%m-%d')
                 except ValueError:
                     continue
             
             return date_str  # Return original if can't parse
-        except Exception:
+        except Exception as e:
+            print(f"⚠️  Date parsing error for '{date_str}': {e}")
             return date_str
     
     def _parse_amount(self, amount_str: str) -> str:
         """Parse amount string and return clean number"""
         try:
-            # Remove currency symbols, commas, spaces - keep only digits, decimal points, and minus signs
-            cleaned = re.sub(r'[^0-9.\-]', '', amount_str)
+            # Handle empty or null values
+            if not amount_str or str(amount_str).strip() == '' or str(amount_str).lower() == 'nan':
+                return '0'
             
-            # Handle negative signs and parentheses
-            if amount_str.startswith('-') or amount_str.startswith('(') or amount_str.endswith(')'):
-                if not cleaned.startswith('-'):
-                    cleaned = '-' + cleaned.lstrip('-')
+            amount_str = str(amount_str).strip()
+            
+            # Remove quotes first
+            amount_str = amount_str.strip('"').strip("'")
+            
+            # Remove currency symbols, commas, spaces - keep only digits, decimal points, and minus/plus signs
+            cleaned = re.sub(r'[^0-9.\-+]', '', amount_str)
+            
+            # Handle negative signs and parentheses from original string
+            is_negative = False
+            if (amount_str.startswith('-') or amount_str.startswith('(') or 
+                amount_str.endswith(')') or '(' in amount_str):
+                is_negative = True
             elif amount_str.startswith('+'):
-                cleaned = cleaned.lstrip('-')
+                is_negative = False
+            
+            # Clean up the number
+            cleaned = cleaned.lstrip('+-')
+            
+            # Apply negative if needed
+            if is_negative and not cleaned.startswith('-'):
+                cleaned = '-' + cleaned
             
             # Convert to float and back to string to standardize
-            return str(float(cleaned))
-        except Exception:
-            return amount_str
+            if cleaned:
+                return str(float(cleaned))
+            else:
+                return '0'
+        except Exception as e:
+            print(f"⚠️  Amount parsing error for '{amount_str}': {e}")
+            return '0'
     
     def save_template(self, template_name: str, config: Dict, template_dir: str = "templates"):
         """Save parsing template for reuse"""
@@ -489,59 +547,3 @@ class EnhancedCSVParser:
         template_path = f"{template_dir}/{template_name}.json"
         with open(template_path, 'r') as f:
             return json.load(f)
-
-
-# Example usage and testing
-if __name__ == "__main__":
-    parser = EnhancedCSVParser()
-    
-    # Load enhanced template
-    template = {
-        "start_row": 13,
-        "end_row": None,
-        "start_col": 0,
-        "end_col": 5,
-        "column_mapping": {
-            "Date": "TIMESTAMP",
-            "Amount": "AMOUNT",
-            "Category": "",
-            "Title": "DESCRIPTION", 
-            "Note": "TYPE",
-            "Account": ""
-        },
-        "bank_name": "NayaPay",
-        "categorization_rules": [
-            {
-                "rule_name": "Ride Hailing Services",
-                "priority": 1,
-                "conditions": {
-                    "and": [
-                        {
-                            "field": "TYPE",
-                            "operator": "contains",
-                            "value": "Raast Out",
-                            "case_sensitive": False
-                        },
-                        {
-                            "field": "AMOUNT",
-                            "operator": "range",
-                            "min": -2000,
-                            "max": 0
-                        }
-                    ]
-                },
-                "actions": {
-                    "set_category": "Travel",
-                    "set_title": "Ride Hailing App"
-                }
-            }
-        ],
-        "default_category_rules": {
-            "positive_amount": "Income",
-            "negative_amount": "Expense", 
-            "zero_amount": "Transfer"
-        }
-    }
-    
-    print("Enhanced CSV Parser with Categorization Rules")
-    print("Template-based smart categorization system ready!")

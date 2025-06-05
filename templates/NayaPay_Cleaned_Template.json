@@ -4,17 +4,32 @@
   "start_col": 0,
   "end_col": 5,
   "column_mapping": {
-    "Date": "TIMESTAMP",
-    "Amount": "AMOUNT",
+    "Date": "Date",
+    "Amount": "Amount",
     "Category": "",
-    "Title": "DESCRIPTION", 
-    "Note": "TYPE",
+    "Title": "Title", 
+    "Note": "Note",
     "Account": ""
   },
   "bank_name": "NayaPay",
-  "description": "Enhanced NayaPay template with smart categorization rules",
-  "created_date": "2025-06-02",
-  "version": "2.7",
+  "default_currency": "PKR",
+  "description": "NayaPay template for CLEANED data - works with data cleaning pipeline",
+  "created_date": "2025-06-05",
+  "version": "4.1",
+  "is_cleaned_template": true,
+  "structure_notes": {
+    "file_structure": "This template works with CLEANED data from the data cleaning pipeline",
+    "cleaned_headers": "Date, Amount, Title, Note, Balance, Currency (after cleaning)",
+    "original_headers": "TIMESTAMP, TYPE, DESCRIPTION, AMOUNT, BALANCE (before cleaning)",
+    "data_cleaning": "Template designed for use after automatic data cleaning"
+  },
+  "data_cleaning_config": {
+    "enable_currency_addition": true,
+    "default_currency": "PKR",
+    "numeric_amount_conversion": true,
+    "date_standardization": true,
+    "remove_invalid_rows": true
+  },
   "categorization_rules": [
     {
       "rule_name": "Outgoing Fund Transfers (Raast Out) - Large Amounts",
@@ -22,13 +37,13 @@
       "conditions": {
         "and": [
           {
-            "field": "TYPE",
+            "field": "Note",
             "operator": "equals",
             "value": "Raast Out",
             "case_sensitive": false
           },
           {
-            "field": "AMOUNT",
+            "field": "Amount",
             "operator": "less_than",
             "value": -5000
           }
@@ -37,7 +52,7 @@
       "actions": {
         "set_category": "Transfer",
         "clean_description": {
-          "from_field": "DESCRIPTION",
+          "from_field": "Title",
           "rules": [
             {
               "pattern": "Outgoing fund transfer to",
@@ -62,19 +77,19 @@
       "conditions": {
         "or": [
           {
-            "field": "DESCRIPTION",
+            "field": "Title",
             "operator": "contains",
             "value": "mobile topup",
             "case_sensitive": false
           },
           {
-            "field": "DESCRIPTION",
+            "field": "Title",
             "operator": "contains",
             "value": "recharge",
             "case_sensitive": false
           },
           {
-            "field": "TYPE",
+            "field": "Note",
             "operator": "contains",
             "value": "topup",
             "case_sensitive": false
@@ -85,7 +100,7 @@
         "set_category": "Bills & Fees",
         "set_title_template": "Mobile charge for {extract_name}",
         "extract_name": {
-          "from_field": "DESCRIPTION",
+          "from_field": "Title",
           "pattern": "Nickname:\\s*([^|\\n]+)",
           "group": 1,
           "default": "Unknown Contact"
@@ -98,19 +113,19 @@
       "conditions": {
         "and": [
           {
-            "field": "TYPE",
+            "field": "Note",
             "operator": "equals",
             "value": "Raast Out",
             "case_sensitive": false
           },
           {
-            "field": "AMOUNT",
+            "field": "Amount",
             "operator": "range",
             "min": -2000,
             "max": -100
           },
           {
-            "field": "DESCRIPTION",
+            "field": "Title",
             "operator": "contains",
             "value": "easypaisa",
             "case_sensitive": false
@@ -128,13 +143,13 @@
       "conditions": {
         "and": [
           {
-            "field": "TYPE",
+            "field": "Note",
             "operator": "equals",
             "value": "Raast Out",
             "case_sensitive": false
           },
           {
-            "field": "AMOUNT",
+            "field": "Amount",
             "operator": "range",
             "min": -1500,
             "max": -100
@@ -152,7 +167,7 @@
       "conditions": {
         "and": [
           {
-            "field": "TYPE",
+            "field": "Note",
             "operator": "equals",
             "value": "IBFT In",
             "case_sensitive": false
@@ -162,7 +177,7 @@
       "actions": {
         "set_category": "Transfer",
         "clean_description": {
-          "from_field": "DESCRIPTION",
+          "from_field": "Title",
           "rules": [
             {
               "pattern": "Incoming fund transfer from",
@@ -187,7 +202,7 @@
       "conditions": {
         "and": [
           {
-            "field": "TYPE",
+            "field": "Note",
             "operator": "equals",
             "value": "Peer to Peer",
             "case_sensitive": false
@@ -197,7 +212,7 @@
       "actions": {
         "set_category": "Transfer",
         "clean_description": {
-          "from_field": "DESCRIPTION",
+          "from_field": "Title",
           "rules": [
             {
               "pattern": "Money sent to",
@@ -222,7 +237,7 @@
       "conditions": {
         "and": [
           {
-            "field": "TYPE",
+            "field": "Note",
             "operator": "equals",
             "value": "Raast Out",
             "case_sensitive": false
@@ -232,7 +247,7 @@
       "actions": {
         "set_category": "Transfer",
         "clean_description": {
-          "from_field": "DESCRIPTION",
+          "from_field": "Title",
           "rules": [
             {
               "pattern": "Outgoing fund transfer to",
@@ -257,7 +272,7 @@
       "conditions": {
         "and": [
           {
-            "field": "DESCRIPTION",
+            "field": "Title",
             "operator": "contains",
             "value": "Surraiya Riaz",
             "case_sensitive": false
@@ -274,13 +289,13 @@
       "conditions": {
         "and": [
           {
-            "field": "TYPE",
+            "field": "Note",
             "operator": "contains",
             "value": "ATM",
             "case_sensitive": false
           },
           {
-            "field": "AMOUNT",
+            "field": "Amount",
             "operator": "less_than",
             "value": 0
           }
@@ -297,7 +312,7 @@
       "conditions": {
         "and": [
           {
-            "field": "TYPE",
+            "field": "Note",
             "operator": "equals",
             "value": "Transfer Out",
             "case_sensitive": false
@@ -315,7 +330,7 @@
       "conditions": {
         "and": [
           {
-            "field": "TYPE",
+            "field": "Note",
             "operator": "equals",
             "value": "Transfer In",
             "case_sensitive": false
@@ -333,13 +348,13 @@
       "conditions": {
         "and": [
           {
-            "field": "DESCRIPTION",
+            "field": "Title",
             "operator": "contains",
             "value": "salary",
             "case_sensitive": false
           },
           {
-            "field": "AMOUNT",
+            "field": "Amount",
             "operator": "greater_than",
             "value": 0
           }
@@ -356,19 +371,19 @@
       "conditions": {
         "or": [
           {
-            "field": "DESCRIPTION",
+            "field": "Title",
             "operator": "contains",
             "value": "amazon",
             "case_sensitive": false
           },
           {
-            "field": "DESCRIPTION",
+            "field": "Title",
             "operator": "contains",
             "value": "daraz",
             "case_sensitive": false
           },
           {
-            "field": "DESCRIPTION",
+            "field": "Title",
             "operator": "contains",
             "value": "aliexpress",
             "case_sensitive": false
@@ -386,19 +401,19 @@
       "conditions": {
         "or": [
           {
-            "field": "DESCRIPTION",
+            "field": "Title",
             "operator": "contains",
             "value": "carrefour",
             "case_sensitive": false
           },
           {
-            "field": "DESCRIPTION",
+            "field": "Title",
             "operator": "contains",
             "value": "metro",
             "case_sensitive": false
           },
           {
-            "field": "DESCRIPTION",
+            "field": "Title",
             "operator": "contains",
             "value": "grocery",
             "case_sensitive": false
