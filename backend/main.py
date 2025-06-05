@@ -563,13 +563,21 @@ async def transform_multiple_csvs(request: MultiCSVTransformRequest):
                 print(f"🔄 Starting transfer detection between {len(request.csv_data_list)} CSVs...")
                 print(f"💡 Note: Using cleaned data with numeric amounts should improve transfer detection accuracy!")
                 
-                # Initialize transfer detector
-                # OLD: transfer_detector = TransferDetector(
-                # NEW: Use improved transfer detector with better person-to-person matching
-                transfer_detector = ImprovedTransferDetector(
-                    user_name=request.user_name,
-                    date_tolerance_hours=request.date_tolerance_hours
-                )
+                # ENHANCED: Initialize transfer detector with exchange amount support
+                # Try enhanced detector first, fallback to improved detector
+                try:
+                    from transfer_detector_enhanced_exchange import TransferDetector as EnhancedTransferDetector
+                    transfer_detector = EnhancedTransferDetector(
+                        user_name=request.user_name,
+                        date_tolerance_hours=request.date_tolerance_hours
+                    )
+                    print("🚀 Using Enhanced Transfer Detector with Exchange Amount Support")
+                except ImportError:
+                    transfer_detector = ImprovedTransferDetector(
+                        user_name=request.user_name,
+                        date_tolerance_hours=request.date_tolerance_hours
+                    )
+                    print("⚠️  Using Standard Transfer Detector (enhanced not available)")
                 
                 # Detect transfers
                 transfer_analysis = transfer_detector.detect_transfers(request.csv_data_list)
@@ -656,6 +664,7 @@ if __name__ == "__main__":
     print("   🧹 NEW: Data cleaning pipeline integrated")
     print("   💱 NEW: Automatic currency column addition")
     print("   📊 NEW: Numeric amount standardization")
+    print("   💱 NEW: Enhanced Transfer Detection with Exchange Amount Support")
     print("   ⏹️  Press Ctrl+C to stop")
     print("")
     
