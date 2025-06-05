@@ -12,7 +12,6 @@ from enhanced_csv_parser import EnhancedCSVParser
 from robust_csv_parser import RobustCSVParser
 from data_cleaner import DataCleaner
 from transfer_detector import TransferDetector
-from transfer_detector_improved import ImprovedTransferDetector
 
 app = FastAPI(title="Bank Statement Parser API", version="2.0.0")
 
@@ -564,9 +563,7 @@ async def transform_multiple_csvs(request: MultiCSVTransformRequest):
                 print(f"💡 Note: Using cleaned data with numeric amounts should improve transfer detection accuracy!")
                 
                 # Initialize transfer detector
-                # OLD: transfer_detector = TransferDetector(
-                # NEW: Use improved transfer detector with better person-to-person matching
-                transfer_detector = ImprovedTransferDetector(
+                transfer_detector = TransferDetector(
                     user_name=request.user_name,
                     date_tolerance_hours=request.date_tolerance_hours
                 )
