@@ -330,6 +330,44 @@
         }
       }
     ],
+    "transfer_patterns": [
+      {
+        "rule_name": "NayaPay Incoming Fund Transfers",
+        "priority": 6,
+        "conditions": {
+          "and": [
+            {
+              "field": "Title",
+              "operator": "contains",
+              "value": "Incoming fund transfer from",
+              "case_sensitive": false
+            },
+            {
+              "field": "Amount",
+              "operator": "greater_than",
+              "value": 0
+            }
+          ]
+        },
+        "actions": {
+          "set_category": "Transfer",
+          "clean_description": {
+            "from_field": "Title",
+            "rules": [
+              {
+                "pattern": "Incoming fund transfer from",
+                "replacement": "Transfer from"
+              },
+              {
+                "pattern": "\\|Transaction ID [^\\n]*",
+                "replacement": ""
+              }
+            ]
+          },
+          "continue_processing": true
+        }
+      }
+    ],
     "specific_contacts": [
       {
         "rule_name": "Surraiya Riaz - Zunayyara Quran",

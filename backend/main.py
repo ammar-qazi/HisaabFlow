@@ -13,6 +13,7 @@ from robust_csv_parser import RobustCSVParser
 from data_cleaner import DataCleaner
 from transfer_detector import TransferDetector
 from transfer_detector_improved import ImprovedTransferDetector
+from transfer_detector_enhanced_ammar import TransferDetector as EnhancedAmmarTransferDetector
 
 app = FastAPI(title="Bank Statement Parser API", version="2.0.0")
 
@@ -83,7 +84,7 @@ uploaded_files = {}
 
 @app.get("/")
 async def root():
-    return {"message": "Bank Statement Parser API with Data Cleaning", "version": "2.0.0"}
+    return {"message": "Bank Statement Parser API with Enhanced Ammar Transfer Detection", "version": "2.0.0"}
 
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
@@ -168,7 +169,8 @@ async def parse_range(file_id: str, request: ParseRangeRequest):
     
     try:
         # STEP 1: DATA PARSING
-        print(f"\n🚀 STEP 1: DATA PARSING")
+        print(f"\
+🚀 STEP 1: DATA PARSING")
         
         # Try enhanced parser first, then robust parser as fallback
         enhanced_result = enhanced_parser.parse_with_range(
@@ -211,7 +213,8 @@ async def parse_range(file_id: str, request: ParseRangeRequest):
         # STEP 2: DATA CLEANING (NEW)
         final_result = parse_result
         if request.enable_cleaning:
-            print(f"\n🚀 STEP 2: DATA CLEANING")
+            print(f"\
+🚀 STEP 2: DATA CLEANING")
             
             cleaning_result = data_cleaner.clean_parsed_data(parse_result)
             
@@ -420,8 +423,9 @@ async def parse_multiple_csvs(request: MultiCSVParseRequest):
                     # Get template config for cleaning hints
                     template_config = config.get('template_config', {})
                     
+                    print(f"      DEBUG: Data before cleaning: {parse_result['data']}")
                     cleaning_result = data_cleaner.clean_parsed_data(parse_result, template_config)
-                    
+                    print(f"      DEBUG: Data after cleaning: {cleaning_result['data']}")
                     if cleaning_result['success']:
                         final_result = {
                             'success': True,
@@ -445,7 +449,8 @@ async def parse_multiple_csvs(request: MultiCSVParseRequest):
                     "file_id": file_id,
                     "file_name": file_info["original_name"],
                     "parse_result": final_result,
-                    "config": config
+                    "config": config,
+                    "data": final_result['data'] # Add cleaned data
                 })
                 
             except Exception as parse_error:
@@ -470,7 +475,7 @@ async def parse_multiple_csvs(request: MultiCSVParseRequest):
 
 @app.post("/multi-csv/transform")
 async def transform_multiple_csvs(request: MultiCSVTransformRequest):
-    """Transform multiple CSVs with transfer detection - IMPROVED WITH CLEANED DATA"""
+    """Transform multiple CSVs with ENHANCED AMMAR TRANSFER DETECTION"""
     try:
         print(f"🚀 Multi-CSV transform request received for {len(request.csv_data_list)} files")
         print(f"👤 User: {request.user_name}, Transfer detection: {request.enable_transfer_detection}")
@@ -485,9 +490,9 @@ async def transform_multiple_csvs(request: MultiCSVTransformRequest):
         all_transformed_data = []
         transformation_results = []
         
-        for csv_data in request.csv_data_list:
+        for i, csv_data in enumerate(request.csv_data_list):
             print(f"📁 Processing CSV: {csv_data.get('file_name', 'Unknown')}")
-            
+            csv_data['data'] = request.csv_data_list[i].get('data')
             # Get template configuration
             template_config = csv_data.get('template_config', {})
             column_mapping = template_config.get('column_mapping', {})
@@ -539,7 +544,10 @@ async def transform_multiple_csvs(request: MultiCSVTransformRequest):
                 })
                 
                 all_transformed_data.extend(transformed)
-                
+                # Merge transformed data with original data
+                for i, transformed_row in enumerate(transformed):
+                    csv_data['data'][i].update(transformed_row)
+
             except Exception as transform_error:
                 print(f"❌ Transform error for {csv_data.get('file_name')}: {str(transform_error)}")
                 raise HTTPException(status_code=500, detail=f"Transform error for {csv_data.get('file_name')}: {str(transform_error)}")
@@ -560,26 +568,39 @@ async def transform_multiple_csvs(request: MultiCSVTransformRequest):
         # Try transfer detection if enabled
         if request.enable_transfer_detection and len(request.csv_data_list) > 1:
             try:
-                print(f"🔄 Starting transfer detection between {len(request.csv_data_list)} CSVs...")
-                print(f"💡 Note: Using cleaned data with numeric amounts should improve transfer detection accuracy!")
+                print(f"🔄 Starting ENHANCED AMMAR TRANSFER DETECTION between {len(request.csv_data_list)} CSVs...")
+                print(f"💡 Features: Exchange To Amount matching, Ammar name-based detection, Currency-bank targeting")
                 
-                # ENHANCED: Initialize transfer detector with exchange amount support
-                # Try enhanced detector first, fallback to improved detector
+                # AMMAR SPECS: Use Enhanced Ammar Transfer Detector as PRIORITY
                 try:
-                    from transfer_detector_enhanced_exchange import TransferDetector as EnhancedTransferDetector
-                    transfer_detector = EnhancedTransferDetector(
+                    transfer_detector = EnhancedAmmarTransferDetector(
                         user_name=request.user_name,
                         date_tolerance_hours=request.date_tolerance_hours
                     )
-                    print("🚀 Using Enhanced Transfer Detector with Exchange Amount Support")
-                except ImportError:
-                    transfer_detector = ImprovedTransferDetector(
-                        user_name=request.user_name,
-                        date_tolerance_hours=request.date_tolerance_hours
-                    )
-                    print("⚠️  Using Standard Transfer Detector (enhanced not available)")
+                    print("🚀 Using ENHANCED AMMAR Transfer Detector with Exchange Amount Support")
+                    detector_used = "enhanced_ammar"
+                except Exception as e1:
+                    print(f"⚠️ Enhanced Ammar detector failed to initialize: {e1}")
+                    # Fallback to improved detector
+                    try:
+                        transfer_detector = ImprovedTransferDetector(
+                            user_name=request.user_name,
+                            date_tolerance_hours=request.date_tolerance_hours
+                        )
+                        print("⚠️  Using Standard Improved Transfer Detector (Enhanced Ammar not available)")
+                        detector_used = "improved"
+                    except Exception as e2:
+                        print(f"⚠️ Improved detector also failed: {e2}")
+                        # Last fallback to basic detector
+                        transfer_detector = TransferDetector(
+                            user_name=request.user_name,
+                            date_tolerance_hours=request.date_tolerance_hours
+                        )
+                        print("⚠️  Using Basic Transfer Detector (all enhanced detectors failed)")
+                        detector_used = "basic"
                 
                 # Detect transfers
+                print(f"🔍 Running transfer detection with {detector_used} detector...")
                 transfer_analysis = transfer_detector.detect_transfers(request.csv_data_list)
                 print(f"✅ Transfer detection complete: {transfer_analysis['summary']}")
                 
@@ -611,18 +632,36 @@ async def transform_multiple_csvs(request: MultiCSVTransformRequest):
                                 all_transformed_data[i]['_transfer_pair_id'] = match['pair_id']
                                 all_transformed_data[i]['_transfer_type'] = match['transfer_type']
                                 all_transformed_data[i]['_is_transfer'] = True
+                                all_transformed_data[i]['_detector_used'] = detector_used
+                                all_transformed_data[i]['_match_strategy'] = match.get('match_strategy', 'traditional')
                                 balance_corrections_applied += 1
                                 break
                     
                     print(f"✅ Transfer categorization applied - {balance_corrections_applied} balance corrections")
+                    
+                    # Log transfer detection results for Ammar
+                    exchange_matches = len([t for t in transfer_analysis['transfers'] if t.get('match_strategy') == 'exchange_amount'])
+                    traditional_matches = len([t for t in transfer_analysis['transfers'] if t.get('match_strategy') == 'traditional'])
+                    
+                    if exchange_matches > 0:
+                        print(f"🎯 AMMAR SPEC SUCCESS: {exchange_matches} Exchange Amount matches detected!")
+                    if traditional_matches > 0:
+                        print(f"🎯 Traditional amount matches: {traditional_matches}")
+                    
+                    # Add transfer detection info to analysis
+                    transfer_analysis['detector_used'] = detector_used
+                    transfer_analysis['exchange_amount_matches'] = exchange_matches
+                    transfer_analysis['traditional_matches'] = traditional_matches
                 else:
                     print(f"⚠️  No transfers detected")
                 
             except Exception as transfer_error:
                 print(f"⚠️ Transfer detection failed: {str(transfer_error)}")
                 print(f"🔄 Continuing without transfer detection...")
+                import traceback
+                print(f"📚 Full error traceback: {traceback.format_exc()}")
         else:
-            print(f"🚫 Transfer detection skipped")
+            print(f"🚫 Transfer detection skipped (not enabled or insufficient CSVs)")
         
         return {
             "success": True,
@@ -632,7 +671,10 @@ async def transform_multiple_csvs(request: MultiCSVTransformRequest):
                 "total_transactions": len(all_transformed_data),
                 "files_processed": len(request.csv_data_list),
                 "transfers_detected": len(transfer_analysis['transfers']) if transfer_analysis else 0,
-                "balance_corrections_applied": len([t for t in all_transformed_data if t.get('Category') == 'Balance Correction'])
+                "balance_corrections_applied": len([t for t in all_transformed_data if t.get('Category') == 'Balance Correction']),
+                "detector_used": transfer_analysis.get('detector_used', 'none'),
+                "exchange_amount_matches": transfer_analysis.get('exchange_amount_matches', 0),
+                "traditional_matches": transfer_analysis.get('traditional_matches', 0)
             },
             "file_results": transformation_results
         }
