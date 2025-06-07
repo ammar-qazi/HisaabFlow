@@ -1,7 +1,7 @@
 {
   "description": "NayaPay-specific rule overrides with Pakistani ride-hailing context",
-  "version": "1.6", 
-  "created_date": "2025-06-05",
+  "version": "1.6.1", 
+  "created_date": "2025-06-07",
   "bank_name": "NayaPay",
   "overrides": {
     "transfer_patterns": [
@@ -328,9 +328,7 @@
           },
           "continue_processing": true
         }
-      }
-    ],
-    "transfer_patterns": [
+      },
       {
         "rule_name": "NayaPay Incoming Fund Transfers",
         "priority": 6,
