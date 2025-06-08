@@ -12,7 +12,7 @@ from .models import *
 from .file_manager import FileManager
 from .csv_processor import CSVProcessor
 from .multi_csv_processor import MultiCSVProcessor
-from .template_manager import TemplateManager
+from .config_manager import ConfigManager
 from ..csv_parser import CSVParser
 
 
@@ -41,7 +41,7 @@ def create_app() -> FastAPI:
     file_manager = FileManager()
     csv_processor = CSVProcessor()
     multi_csv_processor = MultiCSVProcessor(file_manager)
-    template_manager = TemplateManager()
+    config_manager = ConfigManager()
     parser = CSVParser()  # For transform endpoint
     
     # Basic endpoints
@@ -142,29 +142,30 @@ def create_app() -> FastAPI:
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
     
-    # Template management endpoints
-    @app.post("/save-template")
-    async def save_template(request: SaveTemplateRequest):
-        """Save parsing template"""
-        return template_manager.save_template(request)
+    # Bank Configuration management endpoints
+    @app.post("/save-config")
+    async def save_config(request: SaveTemplateRequest):
+        """Save bank configuration"""
+        print(f"💾 API: Saving bank configuration: {request.template_name}")
+        return config_manager.save_config(request)
     
-    @app.get("/templates")
-    async def list_templates():
-        """List available templates"""
-        print(f"🌐 API: Listing available templates...")
-        result = template_manager.list_templates()
-        print(f"🌐 API: Found {len(result.get('templates', []))} templates")
-        print(f"🌐 API: Templates = {result.get('templates', [])}")
+    @app.get("/configs")
+    async def list_configs():
+        """List available bank configurations"""
+        print(f"📋 API: Listing available bank configurations...")
+        result = config_manager.list_configs()
+        print(f"📋 API: Found {len(result.get('configurations', []))} configurations")
+        print(f"📋 API: Configurations = {result.get('configurations', [])}")
         return result
     
-    @app.get("/template/{template_name}")
-    async def load_template(template_name: str):
-        """Load saved template"""
-        print(f"🌐 API: Loading template '{template_name}' (type: {type(template_name)})")
-        result = template_manager.load_template(template_name)
-        print(f"🌐 API: Template load result success = {result.get('success', False)}")
+    @app.get("/config/{config_name}")
+    async def load_config(config_name: str):
+        """Load bank configuration"""
+        print(f"🔍 API: Loading bank configuration '{config_name}'")
+        result = config_manager.load_config(config_name)
+        print(f"🔍 API: Configuration load success = {result.get('success', False)}")
         if result.get('success'):
-            print(f"🌐 API: Loaded bank_name = '{result.get('bank_name', 'UNKNOWN')}'")
+            print(f"🔍 API: Loaded bank = '{result.get('bank_name', 'UNKNOWN')}'")
         return result
     
     return app

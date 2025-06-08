@@ -11,11 +11,11 @@ axios.defaults.headers.common['Content-Type'] = 'application/json';
 // Add request interceptor for debugging
 axios.interceptors.request.use(
   (config) => {
-    console.log('Making request to:', config.url);
+    console.log('🌐 Making request to:', config.url);
     return config;
   },
   (error) => {
-    console.error('Request error:', error);
+    console.error('🚨 Request error:', error);
     return Promise.reject(error);
   }
 );
@@ -23,11 +23,11 @@ axios.interceptors.request.use(
 // Add response interceptor for debugging
 axios.interceptors.response.use(
   (response) => {
-    console.log('Response received:', response.status);
+    console.log('✅ Response received:', response.status);
     return response;
   },
   (error) => {
-    console.error('Response error:', error.response?.status, error.message);
+    console.error('🚨 Response error:', error.response?.status, error.message);
     return Promise.reject(error);
   }
 );
@@ -59,10 +59,10 @@ function App() {
     Account: ''
   });
   
-  // Template management
-  const [templateName, setTemplateName] = useState('');
-  const [templates, setTemplates] = useState([]);
-  const [selectedTemplate, setSelectedTemplate] = useState('');
+  // Configuration management (renamed from template management)
+  const [configName, setConfigName] = useState('');
+  const [configurations, setConfigurations] = useState([]);
+  const [selectedConfig, setSelectedConfig] = useState('');
   
   const fileInputRef = useRef(null);
 
@@ -76,10 +76,10 @@ function App() {
     clearMessages();
     
     try {
-      console.log('Testing connection to:', `${API_BASE}/`);
+      console.log('🔌 Testing connection to:', `${API_BASE}/`);
       const response = await axios.get(`${API_BASE}/`);
       setSuccess(`✅ Backend connected! Version: ${response.data.version}`);
-      console.log('Backend response:', response.data);
+      console.log('🔌 Backend response:', response.data);
     } catch (err) {
       console.error('Connection test failed:', err);
       setError(`❌ Cannot connect to backend at ${API_BASE}. Make sure the backend is running on port 8000. Error: ${err.message}`);
@@ -98,6 +98,7 @@ function App() {
       const formData = new FormData();
       formData.append('file', selectedFile);
       
+      console.log('📤 Uploading file:', selectedFile.name);
       const response = await axios.post(`${API_BASE}/upload`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
@@ -111,7 +112,7 @@ function App() {
       await previewFile(response.data.file_id);
       
     } catch (err) {
-      console.error('Upload error details:', err.response?.data);
+      console.error('📤 Upload error details:', err.response?.data);
       let errorMessage = err.response?.data?.detail || err.message;
       if (typeof errorMessage === 'object') {
         errorMessage = JSON.stringify(errorMessage);
@@ -127,6 +128,7 @@ function App() {
     
     setLoading(true);
     try {
+      console.log('👀 Previewing file:', id);
       const response = await axios.get(`${API_BASE}/preview/${id}`);
       setPreview(response.data);
       
@@ -137,7 +139,7 @@ function App() {
       }
       
     } catch (err) {
-      console.error('Preview error details:', err.response?.data);
+      console.error('👀 Preview error details:', err.response?.data);
       let errorMessage = err.response?.data?.detail || err.message;
       if (typeof errorMessage === 'object') {
         errorMessage = JSON.stringify(errorMessage);
@@ -163,8 +165,8 @@ function App() {
         encoding: 'utf-8'
       };
       
-      console.log('Parse request data:', requestData);
-      console.log('File ID:', fileId);
+      console.log('📊 Parse request data:', requestData);
+      console.log('📊 File ID:', fileId);
       
       const response = await axios.post(`${API_BASE}/parse-range/${fileId}`, requestData, {
         headers: {
@@ -172,7 +174,7 @@ function App() {
         }
       });
       
-      console.log('Parse response:', response.data);
+      console.log('📊 Parse response:', response.data);
       
       setParsedData(response.data);
       setSuccess(`Parsed ${response.data.row_count} rows successfully${response.data.cleaning_applied ? ' with data cleaning' : ''}`);
@@ -198,23 +200,8 @@ function App() {
       
       setColumnMapping(newMapping);
       
-      // If data cleaning was applied and a cleaned template is available, auto-apply it
-      if (response.data.cleaning_applied && selectedTemplate) {
-        const cleanedTemplateName = selectedTemplate.replace('_Enhanced_Template', '_Cleaned_Template');
-        if (templates.includes(cleanedTemplateName)) {
-          console.log(`Auto-applying cleaned template: ${cleanedTemplateName}`);
-          // Auto-apply the cleaned template since the data structure changed
-          setTimeout(() => {
-            applyTemplate(cleanedTemplateName);
-          }, 500);
-          setSuccess(`Parsed ${response.data.row_count} rows with data cleaning. Auto-applying '${cleanedTemplateName}' template.`);
-        }
-      }
-      
     } catch (err) {
-      console.error('Parse error full details:', err);
-      console.error('Parse error response:', err.response);
-      console.error('Parse error data:', err.response?.data);
+      console.error('📊 Parse error full details:', err);
       
       let errorMessage = 'Unknown parsing error';
       
@@ -244,28 +231,35 @@ function App() {
     setLoading(true);
     
     try {
-      // Get categorization rules and bank name from the current template if available
+      // Get configuration data if a bank configuration is selected
       let categorizationRules = null;
       let defaultCategoryRules = null;
       let accountMapping = null;
       let bankName = file?.name?.split('.')[0] || 'Unknown Bank';
       
-      if (selectedTemplate) {
+      if (selectedConfig) {
         try {
-          const templateResponse = await axios.get(`${API_BASE}/template/${selectedTemplate}`);
-          const templateConfig = templateResponse.data.config;
-          categorizationRules = templateConfig.categorization_rules;
-          defaultCategoryRules = templateConfig.default_category_rules;
-          accountMapping = templateConfig.account_mapping;
-          // Use bank name from template if available
-          if (templateConfig.bank_name) {
-            bankName = templateConfig.bank_name;
+          console.log('⚙️ Loading configuration rules from:', selectedConfig);
+          const configResponse = await axios.get(`${API_BASE}/config/${selectedConfig}`);
+          const configData = configResponse.data.config;
+          
+          // Extract advanced configuration data
+          categorizationRules = configData.categorization_rules;
+          defaultCategoryRules = configData.default_category_rules;
+          accountMapping = configData.account_mapping;
+          
+          // Use bank name from configuration if available
+          if (configData.bank_name) {
+            bankName = configData.bank_name;
           }
+          
+          console.log('⚙️ Configuration rules loaded successfully');
         } catch (err) {
-          console.warn('Could not load categorization rules from template:', err);
+          console.warn('⚙️ Could not load configuration rules:', err);
         }
       }
       
+      console.log('🔄 Transforming data for bank:', bankName);
       const response = await axios.post(`${API_BASE}/transform`, {
         data: parsedData.data,
         column_mapping: columnMapping,
@@ -281,6 +275,7 @@ function App() {
       setCurrentStep(4);
       
     } catch (err) {
+      console.error('🔄 Transformation error:', err);
       setError(`Transformation failed: ${err.response?.data?.detail || err.message}`);
     } finally {
       setLoading(false);
@@ -291,6 +286,7 @@ function App() {
     if (!transformedData) return;
     
     try {
+      console.log('📥 Exporting data...');
       const response = await axios.post(`${API_BASE}/export`, transformedData, {
         responseType: 'blob'
       });
@@ -307,12 +303,13 @@ function App() {
       setSuccess('File exported successfully');
       
     } catch (err) {
+      console.error('📥 Export error:', err);
       setError(`Export failed: ${err.response?.data?.detail || err.message}`);
     }
   };
 
-  const saveTemplate = async () => {
-    if (!templateName || !parsedData) return;
+  const saveConfig = async () => {
+    if (!configName || !parsedData) return;
     
     try {
       const config = {
@@ -324,52 +321,87 @@ function App() {
         bank_name: file?.name?.split('.')[0] || 'Unknown Bank'
       };
       
-      await axios.post(`${API_BASE}/save-template`, {
-        template_name: templateName,
+      console.log('💾 Saving bank configuration:', configName);
+      await axios.post(`${API_BASE}/save-config`, {
+        template_name: configName, // Using template_name for backward compatibility with SaveTemplateRequest
         config: config
       });
       
-      setSuccess(`Template "${templateName}" saved successfully`);
-      setTemplateName('');
-      loadTemplates();
+      setSuccess(`Bank Configuration \"${configName}\" saved successfully`);
+      setConfigName('');
+      loadConfigurations();
       
     } catch (err) {
-      setError(`Save template failed: ${err.response?.data?.detail || err.message}`);
+      console.error('💾 Save config error:', err);
+      setError(`Save configuration failed: ${err.response?.data?.detail || err.message}`);
     }
   };
 
-  const loadTemplates = async () => {
+  const loadConfigurations = async () => {
     try {
-      const response = await axios.get(`${API_BASE}/templates`);
-      setTemplates(response.data.templates);
+      console.log('📋 Loading available bank configurations...');
+      const response = await axios.get(`${API_BASE}/configs`);
+      setConfigurations(response.data.configurations || []);
+      console.log('📋 Loaded configurations:', response.data.configurations);
     } catch (err) {
-      console.error('Failed to load templates:', err);
+      console.error('📋 Failed to load configurations:', err);
+      // If the new endpoint fails, fall back to old templates endpoint temporarily
+      try {
+        console.log('📋 Falling back to templates endpoint...');
+        const fallbackResponse = await axios.get(`${API_BASE}/templates`);
+        setConfigurations(fallbackResponse.data.templates || []);
+      } catch (fallbackErr) {
+        console.error('📋 Fallback also failed:', fallbackErr);
+      }
     }
   };
 
-  const applyTemplate = async (templateNameOverride = null) => {
-    const templateToApply = templateNameOverride || selectedTemplate;
-    if (!templateToApply || !fileId) return;
+  const applyConfig = async (configNameOverride = null) => {
+    const configToApply = configNameOverride || selectedConfig;
+    if (!configToApply || !fileId) return;
     
     try {
-      const response = await axios.get(`${API_BASE}/template/${templateToApply}`);
+      console.log('⚙️ Applying bank configuration:', configToApply);
+      const response = await axios.get(`${API_BASE}/config/${configToApply}`);
       const config = response.data.config;
       
-      setStartRow(config.start_row);
-      setEndRow(config.end_row || '');
-      setStartCol(config.start_col);
-      setEndCol(config.end_col || '');
-      setColumnMapping(config.column_mapping);
+      console.log('⚙️ Configuration data:', config);
       
-      // Update selected template if we used an override
-      if (templateNameOverride) {
-        setSelectedTemplate(templateNameOverride);
+      setStartRow(config.start_row || 0);
+      setEndRow(config.end_row || '');
+      setStartCol(config.start_col || 0);
+      setEndCol(config.end_col || '');
+      setColumnMapping(config.column_mapping || {});
+      
+      // Update selected configuration if we used an override
+      if (configNameOverride) {
+        setSelectedConfig(configNameOverride);
       }
       
-      setSuccess(`Template "${templateToApply}" applied successfully`);
+      setSuccess(`Bank Configuration \"${configToApply}\" applied successfully`);
       
     } catch (err) {
-      setError(`Apply template failed: ${err.response?.data?.detail || err.message}`);
+      console.error('⚙️ Apply config error:', err);
+      // If the new endpoint fails, fall back to old template endpoint temporarily
+      try {
+        console.log('⚙️ Falling back to template endpoint...');
+        const fallbackResponse = await axios.get(`${API_BASE}/template/${configToApply}`);
+        const fallbackConfig = fallbackResponse.data.config;
+        
+        setStartRow(fallbackConfig.start_row || 0);
+        setEndRow(fallbackConfig.end_row || '');
+        setStartCol(fallbackConfig.start_col || 0);
+        setEndCol(fallbackConfig.end_col || '');
+        setColumnMapping(fallbackConfig.column_mapping || {});
+        
+        if (configNameOverride) {
+          setSelectedConfig(configNameOverride);
+        }
+        
+        setSuccess(`Configuration \"${configToApply}\" applied successfully (legacy)`);
+      } catch (fallbackErr) {
+        setError(`Apply configuration failed: ${err.response?.data?.detail || err.message}`);
+      }
     }
   };
 
@@ -386,7 +418,7 @@ function App() {
   };
 
   React.useEffect(() => {
-    loadTemplates();
+    loadConfigurations();
   }, []);
 
   return (
@@ -394,7 +426,7 @@ function App() {
       <div className="container">
         <div className="header">
           <h1>Bank Statement Parser</h1>
-          <p>Convert your bank CSV statements to the desired format</p>
+          <p>Convert your bank CSV statements with smart bank configurations</p>
         </div>
         
         <div className="main-content">
@@ -450,25 +482,25 @@ function App() {
                 <h2 className="step-title">Define Data Range</h2>
               </div>
               
-              {/* Template Controls */}
+              {/* Bank Configuration Controls */}
               <div className="template-section">
-                <h3>🔧 Quick Setup with Templates</h3>
+                <h3>🏦 Quick Setup with Bank Configurations</h3>
                 <div className="template-controls">
                   <select 
-                    value={selectedTemplate} 
-                    onChange={(e) => setSelectedTemplate(e.target.value)}
+                    value={selectedConfig} 
+                    onChange={(e) => setSelectedConfig(e.target.value)}
                   >
-                    <option value="">Select saved template...</option>
-                    {templates.map(template => (
-                      <option key={template} value={template}>{template}</option>
+                    <option value="">Select bank configuration...</option>
+                    {configurations.map(config => (
+                      <option key={config} value={config}>{config}</option>
                     ))}
                   </select>
                   <button 
                     className="btn btn-secondary" 
-                    onClick={applyTemplate}
-                    disabled={!selectedTemplate}
+                    onClick={applyConfig}
+                    disabled={!selectedConfig}
                   >
-                    Apply Template
+                    Apply Configuration
                   </button>
                 </div>
               </div>
@@ -582,22 +614,22 @@ function App() {
                 </div>
               </div>
               
-              {/* Save Template */}
+              {/* Save Bank Configuration */}
               <div className="template-section">
-                <h3>💾 Save Configuration as Template</h3>
+                <h3>💾 Save as Bank Configuration</h3>
                 <div className="template-controls">
                   <input
                     type="text"
-                    placeholder="Template name (e.g., 'NayaPay_Format')"
-                    value={templateName}
-                    onChange={(e) => setTemplateName(e.target.value)}
+                    placeholder="Configuration name (e.g., 'My Bank Setup')"
+                    value={configName}
+                    onChange={(e) => setConfigName(e.target.value)}
                   />
                   <button 
                     className="btn btn-secondary" 
-                    onClick={saveTemplate}
-                    disabled={!templateName}
+                    onClick={saveConfig}
+                    disabled={!configName}
                   >
-                    Save Template
+                    Save Configuration
                   </button>
                 </div>
               </div>
@@ -645,9 +677,9 @@ function App() {
               
               <div className="success">
                 ✅ Successfully converted {transformedData.length} transactions to Cashew format!
-                {selectedTemplate && (
+                {selectedConfig && (
                   <div style={{ marginTop: '10px', fontSize: '14px' }}>
-                    🎯 Used template: <strong>{selectedTemplate}</strong> for smart categorization
+                    🎯 Used configuration: <strong>{selectedConfig}</strong> for smart categorization
                   </div>
                 )}
               </div>

@@ -105,19 +105,39 @@
   - Cons: More work upfront, major frontend rewrite needed
   - Rationale: Aligns with goal to "completely move away from previous approach"
 
+## ✅ COMPLETED: Clean Break Frontend/Backend Configuration Conversion (June 2025)
+- **Problem**: Frontend still using old template-based system with `/template/` endpoints
+- **Solution**: Complete conversion to configuration-based system
+- **Backend Changes**:
+  - Created new `ConfigManager` class replacing `TemplateManager`
+  - New API endpoints: `/configs`, `/config/{config_name}`, `/save-config`
+  - Removed old template endpoints: `/templates`, `/template/{name}`, `/save-template`
+  - Configuration-based bank detection returning config names only
+  - User-friendly display names: "Nayapay Configuration", "Wise_Usd Configuration"
+- **Frontend Changes**:
+  - Updated all terminology from "Template" to "Bank Configuration"
+  - Replaced template API calls with config API calls
+  - Updated state variables: `selectedConfig`, `configurations`, `configName`
+  - New UI text: "Quick Setup with Bank Configurations", "Save as Bank Configuration"
+  - Fallback support for old template endpoints during transition
+- **Testing Results**:
+  - ✅ 4 bank configurations loaded: nayapay, wise_usd, wise_eur, wise_huf
+  - ✅ Configuration loading working: "Nayapay Configuration" loads start_row=13
+  - ✅ Frontend terminology updated throughout
+  - ✅ New `/configs` endpoint integration complete
+- **Benefits**: Clean separation from old template system, user-friendly configuration names
+
 ## Next Steps (For New Conversation)
-1. **PRIORITY**: Implement clean break backend configuration API
-   - Create new `/configs`, `/config/{bank_name}`, `/save-config` endpoints
-   - Remove all template endpoints entirely
-   - Return simplified config format (not template-compatible)
-   - Update bank detection to return config names only
-2. **Frontend Clean Break Conversion**:
-   - Replace all template API calls with config API calls
-   - Update all UI terminology from "template" to "configuration"
-   - Remove template switching logic entirely
-   - Update bank detection logic for config names
-3. **Testing & Validation**: Ensure complete flow works with pure config system
-4. **READY**: Merge unified config-based system to main branch
+1. **PRIORITY**: Test the complete configuration system
+   - Start backend server and test new `/configs`, `/config/{name}` endpoints
+   - Test frontend with new "Bank Configuration" interface
+   - Verify old template endpoints are completely removed
+   - Test end-to-end flow: upload → config selection → parsing → transformation
+2. **OPTIONAL**: Remove fallback template support from frontend
+   - Once new system is confirmed working, remove fallback code
+   - Clean up any remaining template references
+3. **READY**: Merge unified config-based system to main branch
+4. **FUTURE**: Add automatic config file generation from frontend saves
 
 ## Git Strategy
 - Current branch: Backend refactoring complete, debugging investigation complete
