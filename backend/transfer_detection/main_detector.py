@@ -8,6 +8,7 @@ from .exchange_analyzer import ExchangeAnalyzer
 from .cross_bank_matcher import CrossBankMatcher
 from .currency_converter import CurrencyConverter
 from .confidence_calculator import ConfidenceCalculator
+from .config_manager import ConfigurationManager
 
 
 class TransferDetector:
@@ -19,19 +20,26 @@ class TransferDetector:
     4. 24-hour date tolerance with fallback to traditional amount matching
     """
     
-    def __init__(self, user_name: str = "Ammar Qazi", date_tolerance_hours: int = 72):
-        self.user_name = user_name
-        self.date_tolerance_hours = date_tolerance_hours
+    def __init__(self, config_dir: str = "configs"):
+        # Initialize configuration manager
+        self.config = ConfigurationManager(config_dir)
+        self.user_name = self.config.get_user_name()
+        self.date_tolerance_hours = self.config.get_date_tolerance()
         
-        # Initialize components
-        self.cross_bank_matcher = CrossBankMatcher(user_name, date_tolerance_hours)
+        # Initialize components with configuration
+        self.cross_bank_matcher = CrossBankMatcher(config_dir)
         self.currency_converter = CurrencyConverter()
-        self.confidence_calculator = ConfidenceCalculator(user_name)
+        self.confidence_calculator = ConfidenceCalculator(self.user_name)
     
     def detect_transfers(self, csv_data_list: List[Dict]) -> Dict[str, Any]:
         """Main transfer detection function with Ammar's specifications"""
         
-        print("\n🔍 STARTING ENHANCED TRANSFER DETECTION (AMMAR SPECS)")
+        print("\n🔍 STARTING ENHANCED TRANSFER DETECTION (CONFIG-BASED)")
+        print("=" * 70)
+        print(f"👤 User: {self.user_name}")
+        print(f"📅 Date tolerance: {self.date_tolerance_hours} hours")
+        print(f"🏦 Configured banks: {', '.join(self.config.list_configured_banks())}")
+        print(f"🎯 Confidence threshold: {self.config.get_confidence_threshold()}")
         print("=" * 70)
         
         # Flatten all transactions with source info
@@ -109,8 +117,8 @@ class TransferDetector:
                     '_transaction_index': trans_idx,
                     '_csv_name': csv_data.get('file_name', f'CSV_{csv_idx}'),
                     '_template_config': csv_data.get('template_config', {}),
-                    '_bank_type': self.cross_bank_matcher.detect_bank_type(
-                        csv_data.get('file_name', ''), transaction
+                    '_bank_type': self.config.detect_bank_type(
+                        csv_data.get('file_name', '')
                     ),
                     '_raw_data': transaction
                 }

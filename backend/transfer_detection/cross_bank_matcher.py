@@ -1,5 +1,6 @@
 """
-Cross-bank transfer matching with Ammar's specifications
+Configuration-driven cross-bank transfer matching
+Replaces hardcoded logic with flexible configuration files
 """
 import re
 from typing import Dict, List, Set
@@ -7,72 +8,64 @@ from .amount_parser import AmountParser
 from .date_parser import DateParser
 from .exchange_analyzer import ExchangeAnalyzer
 from .confidence_calculator import ConfidenceCalculator
+from .config_manager import ConfigurationManager
 
 
 class CrossBankMatcher:
-    """Handles cross-bank transfer detection and matching"""
+    """Handles cross-bank transfer detection using configuration-driven rules"""
     
-    def __init__(self, user_name: str = "Ammar Qazi", date_tolerance_hours: int = 72):
-        self.user_name = user_name
-        self.date_tolerance_hours = date_tolerance_hours
-        self.exchange_analyzer = ExchangeAnalyzer()
-        self.confidence_calculator = ConfidenceCalculator(user_name)
+    def __init__(self, config_dir: str = "configs"):
+        self.config = ConfigurationManager(config_dir)
+        self.user_name = self.config.get_user_name()
+        self.date_tolerance_hours = self.config.get_date_tolerance()
+        self.confidence_threshold = self.config.get_confidence_threshold()
         
-        # Transfer description patterns
-        self.transfer_patterns = [
-            # Currency conversion patterns
-            r"converted\s+[\d,.]+\s+\w{3}\s+(from\s+\w{3}\s+balance\s+)?to\s+[\d,.]+\s*\w{3}",
-            r"converted\s+[\d,.]+\s+\w{3}",
-            r"balance\s+after\s+converting",
-            r"exchange\s+from\s+\w{3}\s+to\s+\w{3}",
-            
-            # User-specific patterns - AMMAR SPECIFICATIONS
-            rf"sent\s+(money\s+)?to\s+{re.escape(user_name.lower())}",
-            rf"transfer\s+to\s+{re.escape(user_name.lower())}",
-            rf"transfer\s+from\s+{re.escape(user_name.lower())}",
-            rf"incoming.*transfer\s+from\s+{re.escape(user_name.lower())}",
-
-            # Generic transfer patterns
-            r"transfer\s+to\s+\w+",
-            r"transfer\s+from\s+\w+",
-            r"incoming\s+fund\s+transfer",
-            r"fund\s+transfer\s+from",
-        ]
+        self.exchange_analyzer = ExchangeAnalyzer()
+        self.confidence_calculator = ConfidenceCalculator(self.user_name)
+        
+        print(f"🔧 CrossBankMatcher initialized:")
+        print(f"   👤 User: {self.user_name}")
+        print(f"   🏦 Banks: {', '.join(self.config.list_configured_banks())}")
     
     def find_transfer_candidates(self, transactions: List[Dict]) -> List[Dict]:
-        """Find transactions that match transfer description patterns"""
+        """Find transactions that match configured transfer patterns"""
         candidates = []
         
         for transaction in transactions:
-            # Check multiple possible description fields
-            description = str(
-                transaction.get('Description', '') or 
-                transaction.get('Title', '') or 
-                transaction.get('Note', '')
-            ).lower()
-
-            for pattern in self.transfer_patterns:
-                match = re.search(pattern, description, re.IGNORECASE)
-                if match:
+            bank_type = transaction.get('_bank_type', 'unknown')
+            description = self._get_description(transaction).lower()
+            
+            # Check outgoing patterns
+            outgoing_patterns = self.config.get_transfer_patterns(bank_type, 'outgoing')
+            for pattern in outgoing_patterns:
+                if pattern.lower() in description:
                     candidates.append({
                         **transaction,
                         '_transfer_pattern': pattern,
-                        '_is_transfer_candidate': True
+                        '_is_transfer_candidate': True,
+                        '_transfer_direction': 'outgoing'
                     })
                     break
+            
+            # Check incoming patterns if not already matched
+            if not any(t['_transaction_index'] == transaction['_transaction_index'] for t in candidates):
+                incoming_patterns = self.config.get_transfer_patterns(bank_type, 'incoming')
+                for pattern in incoming_patterns:
+                    if pattern.lower() in description:
+                        candidates.append({
+                            **transaction,
+                            '_transfer_pattern': pattern,
+                            '_is_transfer_candidate': True,
+                            '_transfer_direction': 'incoming'
+                        })
+                        break
         
         return candidates
     
     def match_cross_bank_transfers(self, potential_transfers: List[Dict], 
                                  all_transactions: List[Dict], 
                                  existing_pairs: List[Dict]) -> List[Dict]:
-        """
-        Match cross-bank transfers using AMMAR SPECIFICATIONS:
-        1. Exchange To Amount matching (primary)
-        2. Traditional amount matching (fallback)
-        3. Ammar name-based matching for Wise <-> Pakistani banks
-        4. Currency-based bank targeting
-        """
+        """Match cross-bank transfers using configuration-driven rules"""
         transfer_pairs = []
         existing_transaction_ids: Set[int] = set()
         
@@ -103,7 +96,7 @@ class CrossBankMatcher:
                 
             best_match = self._find_best_match(outgoing, available_incoming, existing_transaction_ids)
             
-            if best_match and best_match['confidence'] >= 0.7:
+            if best_match and best_match['confidence'] >= self.confidence_threshold:
                 transfer_pair = self._create_transfer_pair(outgoing, best_match, len(transfer_pairs))
                 
                 print(f"\n      🎉 TRANSFER PAIR CREATED!")
@@ -121,7 +114,7 @@ class CrossBankMatcher:
     
     def _find_best_match(self, outgoing: Dict, available_incoming: List[Dict], 
                         existing_transaction_ids: Set[int]) -> Dict:
-        """Find the best matching incoming transaction for an outgoing transfer"""
+        """Find the best matching incoming transaction using configuration"""
         outgoing_amount = abs(AmountParser.parse_amount(outgoing.get('Amount', '0')))
         exchange_amount = self.exchange_analyzer.get_exchange_to_amount(outgoing)
         exchange_currency = self.exchange_analyzer.get_exchange_to_currency(outgoing)
@@ -140,8 +133,8 @@ class CrossBankMatcher:
             if not self._check_date_tolerance(outgoing, incoming):
                 continue
 
-            # Check if this could be a cross-bank transfer
-            if not self._is_ammar_cross_bank_transfer(outgoing, incoming):
+            # Check if this could be a cross-bank transfer using config
+            if not self._is_cross_bank_transfer(outgoing, incoming):
                 continue
             
             matches = self._evaluate_matching_strategies(
@@ -162,6 +155,44 @@ class CrossBankMatcher:
                     }
         
         return best_match
+    
+    def _is_cross_bank_transfer(self, outgoing: Dict, incoming: Dict) -> bool:
+        """Check if transactions form a cross-bank transfer using configuration"""
+        outgoing_bank = outgoing.get('_bank_type', '')
+        incoming_bank = incoming.get('_bank_type', '')
+        
+        # Must be different banks
+        if outgoing_bank == incoming_bank:
+            return False
+
+        outgoing_desc = self._get_description(outgoing).lower()
+        incoming_desc = self._get_description(incoming).lower()
+        
+        # Check configured patterns
+        outgoing_patterns = self.config.get_transfer_patterns(outgoing_bank, 'outgoing')
+        incoming_patterns = self.config.get_transfer_patterns(incoming_bank, 'incoming')
+        
+        outgoing_matches = any(pattern.lower() in outgoing_desc for pattern in outgoing_patterns)
+        incoming_matches = any(pattern.lower() in incoming_desc for pattern in incoming_patterns)
+        
+        return outgoing_matches and incoming_matches
+    
+    def detect_bank_type(self, file_name: str, transaction: Dict) -> str:
+        """Detect bank type using configuration"""
+        bank_type = self.config.detect_bank_type(file_name)
+        if not bank_type:
+            print(f"⚠️  Unknown bank type for file: {file_name}")
+            print(f"   Please add configuration for this bank in configs/")
+            return 'unknown'
+        return bank_type
+    
+    def categorize_transaction(self, transaction: Dict) -> str:
+        """Categorize transaction using bank-specific rules"""
+        bank_type = transaction.get('_bank_type', '')
+        description = self._get_description(transaction)
+        
+        category = self.config.categorize_merchant(bank_type, description)
+        return category or 'Other'
     
     def _check_date_tolerance(self, outgoing: Dict, incoming: Dict) -> bool:
         """Check if dates are within tolerance"""
@@ -215,7 +246,7 @@ class CrossBankMatcher:
                 'match_details': f"Traditional {outgoing_amount}"
             })
         
-        # Strategy 3: Ammar-specific transfer with relaxed amount matching
+        # Strategy 3: Flexible amount matching for currency conversion
         if not matches:
             amount_diff_percentage = AmountParser.calculate_percentage_difference(
                 outgoing_amount, incoming_amount
@@ -225,80 +256,28 @@ class CrossBankMatcher:
                 confidence = self.confidence_calculator.calculate_confidence(
                     outgoing, incoming, is_cross_bank=True
                 ) - 0.1  # Slightly lower confidence
-                min_confidence = max(confidence, 0.7)  # Higher minimum confidence for Ammar transfers
+                min_confidence = max(confidence, 0.7)  # Higher minimum confidence
                 matches.append({
-                    'type': 'ammar_flexible',
+                    'type': 'flexible_currency',
                     'confidence': min_confidence,
-                    'matched_amount': incoming_amount,  # Use incoming amount as reference
-                    'match_details': f"Ammar transfer with currency conversion {outgoing_amount} USD → {incoming_amount} PKR"
+                    'matched_amount': incoming_amount,
+                    'match_details': f"Currency conversion {outgoing_amount} → {incoming_amount}"
                 })
         
         return matches
     
-    def _is_ammar_cross_bank_transfer(self, outgoing: Dict, incoming: Dict) -> bool:
-        """
-        Check if transactions form an Ammar-based cross-bank transfer
-        AMMAR SPEC: "Sent money to Ammar" <-> "Incoming fund transfer from Ammar"
-        """
-        # Get descriptions from multiple possible fields
-        outgoing_desc = self._get_description(outgoing).lower()
-        incoming_desc = self._get_description(incoming).lower()
-        user_name_lower = self.user_name.lower()
-        
-        # Must be different bank types
-        outgoing_bank = outgoing.get('_bank_type', '')
-        incoming_bank = incoming.get('_bank_type', '')
-        
-        if outgoing_bank == incoming_bank:
-            return False
-
-        # AMMAR SPEC: Wise -> Pakistani bank pattern
-        if (outgoing_bank == 'wise' and
-            incoming_bank in ['nayapay', 'bank_alfalah', 'meezan', 'pakistani_bank']):
-            
-            # Check for Ammar-specific patterns with more flexible matching
-            sent_to_ammar = ('sent money to' in outgoing_desc and user_name_lower in outgoing_desc)
-            
-            # More flexible Ammar matching for incoming transactions
-            ammar_variations = ['ammar qazi', 'ammar', 'qazi', 'ammar q']
-            
-            transfer_from_ammar = ('transfer from' in incoming_desc and user_name_lower in incoming_desc)
-            incoming_fund_from_ammar = ('incoming fund transfer from' in incoming_desc and user_name_lower in incoming_desc)
-            
-            transfer_from_ammar_var = any(('transfer from' in incoming_desc and variation in incoming_desc) for variation in ammar_variations)
-            incoming_fund_from_ammar_var = any(('incoming fund transfer from' in incoming_desc and variation in incoming_desc) for variation in ammar_variations)
-            
-            incoming_from_ammar = transfer_from_ammar or incoming_fund_from_ammar or transfer_from_ammar_var or incoming_fund_from_ammar_var
-            
-            if sent_to_ammar and incoming_from_ammar:
-                return True
-        
-        # AMMAR SPEC: Pakistani bank -> Wise pattern (reverse)
-        if (outgoing_bank in ['nayapay', 'bank_alfalah', 'meezan', 'pakistani_bank'] and
-            incoming_bank == 'wise'):
-            
-            outgoing_to_ammar = ('transfer to' in outgoing_desc and user_name_lower in outgoing_desc)
-            wise_from_ammar = ('received money from' in incoming_desc and user_name_lower in incoming_desc)
-            
-            if outgoing_to_ammar and wise_from_ammar:
-                return True
-        
-        return False
-    
-    def _get_description(self, transaction: Dict) -> str:
-        """Get description from transaction with fallback fields"""
-        return str(
-            transaction.get('Description', '') or 
-            transaction.get('Title', '') or 
-            transaction.get('Note', '') or 
-            transaction.get('DESCRIPTION', '') or 
-            transaction.get('TYPE', '')
-        )
-    
     def _create_transfer_pair(self, outgoing: Dict, best_match: Dict, pair_index: int) -> Dict:
         """Create a transfer pair from matched transactions"""
         outgoing_amount = abs(AmountParser.parse_amount(outgoing.get('Amount', '0')))
-        exchange_amount = self.exchange_analyzer.get_exchange_to_amount(outgoing) if best_match['type'] == 'exchange_amount' else None
+        incoming_amount = AmountParser.parse_amount(best_match['incoming'].get('Amount', '0'))
+        
+        # Set exchange_amount based on strategy
+        if best_match['type'] == 'exchange_amount':
+            exchange_amount = self.exchange_analyzer.get_exchange_to_amount(outgoing)
+        elif best_match['type'] == 'flexible_currency':
+            exchange_amount = incoming_amount  # For currency conversion, the incoming amount is the exchange amount
+        else:
+            exchange_amount = incoming_amount  # Default to incoming amount
         
         return {
             'outgoing': outgoing,
@@ -314,21 +293,12 @@ class CrossBankMatcher:
             'match_details': best_match['match_details']
         }
     
-    def detect_bank_type(self, file_name: str, transaction: Dict) -> str:
-        """Detect bank type from filename and transaction patterns"""
-        file_name_lower = file_name.lower()
-        
-        if 'wise' in file_name_lower or 'transferwise' in file_name_lower:
-            return 'wise'
-        elif 'nayapay' in file_name_lower:
-            return 'nayapay'
-        elif 'bank alfalah' in file_name_lower or 'alfalah' in file_name_lower:
-            return 'bank_alfalah'
-        elif 'meezan' in file_name_lower:
-            return 'meezan'
-        else:
-            # Try to detect from transaction patterns
-            desc = str(transaction.get('Description', '')).lower()
-            if 'incoming fund transfer' in desc or 'outgoing fund transfer' in desc:
-                return 'pakistani_bank'
-            return 'unknown'
+    def _get_description(self, transaction: Dict) -> str:
+        """Get description from transaction with fallback fields"""
+        return str(
+            transaction.get('Description', '') or 
+            transaction.get('Title', '') or 
+            transaction.get('Note', '') or 
+            transaction.get('DESCRIPTION', '') or 
+            transaction.get('TYPE', '')
+        )
