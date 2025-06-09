@@ -4,10 +4,13 @@ Handles single CSV file parsing, preview, and range detection
 """
 from fastapi import HTTPException
 from typing import Dict, Any
-from ..csv_parser import CSVParser
-from ..enhanced_csv_parser import EnhancedCSVParser
-from ..robust_csv_parser import RobustCSVParser
-from ..data_cleaner import DataCleaner
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from enhanced_csv_parser import EnhancedCSVParser
+from robust_csv_parser import RobustCSVParser
+from data_cleaner import DataCleaner
 from .models import ParseRangeRequest
 
 
@@ -15,7 +18,6 @@ class CSVProcessor:
     """Handles CSV parsing operations"""
     
     def __init__(self):
-        self.parser = CSVParser()
         self.enhanced_parser = EnhancedCSVParser()
         self.robust_parser = RobustCSVParser()
         self.data_cleaner = DataCleaner()

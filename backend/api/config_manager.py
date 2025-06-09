@@ -4,7 +4,10 @@ Replaces template system entirely with configuration management
 """
 import os
 from typing import Dict, List, Optional
-from ..transfer_detection.enhanced_config_manager import EnhancedConfigurationManager
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from transfer_detection.enhanced_config_manager import EnhancedConfigurationManager
 
 # Import HTTPException only when needed
 try:

@@ -4,11 +4,16 @@ Handles parsing and transforming multiple CSV files, delegating transfer detecti
 """
 from fastapi import HTTPException
 from typing import List, Dict, Any
-from ..enhanced_csv_parser import EnhancedCSVParser
-from ..data_cleaner import DataCleaner
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from enhanced_csv_parser import EnhancedCSVParser
+from data_cleaner import DataCleaner
 from .models import MultiCSVParseRequest, MultiCSVTransformRequest
 from .file_manager import FileManager
 from .transfer_detection_handler import TransferDetectionHandler
+from .config_manager import ConfigManager
 
 
 class MultiCSVProcessor:
@@ -19,6 +24,7 @@ class MultiCSVProcessor:
         self.data_cleaner = DataCleaner()
         self.file_manager = file_manager
         self.transfer_handler = TransferDetectionHandler()
+        self.config_manager = ConfigManager()
     
     def parse_multiple_csvs(self, request: MultiCSVParseRequest) -> Dict[str, Any]:
         """Parse multiple CSV files with individual configurations"""
@@ -139,8 +145,9 @@ class MultiCSVProcessor:
         if enable_cleaning:
             print(f"🧹 Applying data cleaning to {file_name}...")
             
-            template_config = config.get('template_config', {})
-            cleaning_result = self.data_cleaner.clean_parsed_data(parse_result, template_config)
+            # Use configuration-based cleaning instead of template
+            config_config = config.get('config_config', {})
+            cleaning_result = self.data_cleaner.clean_parsed_data(parse_result, config_config)
             
             if cleaning_result['success']:
                 final_result = {
@@ -171,19 +178,20 @@ class MultiCSVProcessor:
         for i, csv_data in enumerate(request.csv_data_list):
             print(f"📁 Processing CSV: {csv_data.get('file_name', 'Unknown')}")
             
-            # Get template configuration
-            template_config = csv_data.get('template_config', {})
-            print(f"🔍 DEBUG: Template config keys = {list(template_config.keys())}")
-            print(f"🔍 DEBUG: Template config name = '{template_config.get('name', 'NONE')}'")
-            print(f"🔍 DEBUG: Template config bank_name = '{template_config.get('bank_name', 'NONE')}'")
+            # Get configuration (supports both new config and legacy template)
+            config_data = csv_data.get('config_config', csv_data.get('template_config', {}))
+            print(f"🔍 DEBUG: Config keys = {list(config_data.keys())}")
+            print(f"🔍 DEBUG: Config name = '{config_data.get('name', 'NONE')}'")
+            print(f"🔍 DEBUG: Config bank_name = '{config_data.get('bank_name', 'NONE')}'")
             
-            column_mapping = template_config.get('column_mapping', {})
-            bank_name = template_config.get('bank_name', csv_data.get('file_name', 'Unknown'))
-            categorization_rules = template_config.get('categorization_rules', [])
-            default_category_rules = template_config.get('default_category_rules')
-            account_mapping = template_config.get('account_mapping')
+            column_mapping = config_data.get('column_mapping', {})
+            bank_name = config_data.get('bank_name', csv_data.get('file_name', 'Unknown'))
+            categorization_rules = config_data.get('categorization_rules', [])
+            default_category_rules = config_data.get('default_category_rules')
+            account_mapping = config_data.get('account_mapping')
             
             print(f"🔍 DEBUG: Final bank_name for processing = '{bank_name}'")
+            print(f"🔧 Using configuration-based system (template support as fallback)")
             
             print(f"🏦 Bank: {bank_name}, Rules: {len(categorization_rules)}, Rows: {len(csv_data.get('data', []))}")
             
@@ -201,13 +209,13 @@ class MultiCSVProcessor:
                 
                 print(f"✅ Transformed {len(transformed)} transactions for {csv_data.get('file_name')}")
                 
-                template_name_used = template_config.get('name', 'None')
-                print(f"🔍 DEBUG: Recording template_used = '{template_name_used}'")
+                config_name_used = config_data.get('name', 'None')
+                print(f"🔍 DEBUG: Recording config_used = '{config_name_used}'")
                 
                 transformation_results.append({
                     "file_name": csv_data.get('file_name'),
                     "transactions": len(transformed),
-                    "template_used": template_name_used
+                    "config_used": config_name_used
                 })
                 
                 all_transformed_data.extend(transformed)

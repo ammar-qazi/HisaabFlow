@@ -1,0 +1,77 @@
+🏦 Bank Statement Parser - Starting Application...
+==================================================
+🔍 Checking system requirements...
+   ✅ Python found: python3
+   ✅ Node.js found: v20.19.2
+   ✅ Package manager found
+
+🧹 Cleaning up any existing processes...
+🚀 Starting Backend Server...
+   Backend starting on http://127.0.0.1:8000
+   Using modular configuration-based system (v3.0.0)
+   Main file: main.py (clean modular version - 94 lines)
+   Waiting for backend to initialize...
+INFO:     Will watch for changes in these directories: ['/home/ammar/claude_projects/bank_statement_parser/backend']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [30916] using StatReload
+✅ Universal Transformer imported successfully in enhanced_csv_parser
+⚠️  Router import failed: attempted relative import with no known parent package
+🔄 Using minimal endpoints instead...
+⚠️  No API routers available - using minimal endpoints only
+✅ Basic endpoints added due to router import issues
+
+🌟 Starting Modular Configuration-Based FastAPI Server...
+   📡 Backend: http://127.0.0.1:8000
+   📋 API docs: http://127.0.0.1:8000/docs
+   ⚙️  Architecture: Modular API routers
+   📏 Main file: Under 300 lines
+   ⏹️  Press Ctrl+C to stop
+
+INFO:     Started server process [30926]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+✅ Backend running successfully!
+🎨 Starting Frontend Application...
+   Frontend starting on http://localhost:3000
+   Waiting for frontend to initialize...
+
+> bank-statement-parser@1.0.0 start
+> react-scripts start
+
+(node:30955) [DEP_WEBPACK_DEV_SERVER_ON_AFTER_SETUP_MIDDLEWARE] DeprecationWarning: 'onAfterSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:30955) [DEP_WEBPACK_DEV_SERVER_ON_BEFORE_SETUP_MIDDLEWARE] DeprecationWarning: 'onBeforeSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+Starting the development server...
+
+Compiled successfully!
+
+You can now view bank-statement-parser in the browser.
+
+  Local:            http://localhost:3000
+  On Your Network:  http://192.168.1.193:3000
+
+Note that the development build is not optimized.
+To create a production build, use npm run build.
+
+webpack compiled successfully
+✅ Frontend running successfully!
+🌐 Opening application in browser...
+
+🎯 Application is running!
+   📡 Backend API: http://127.0.0.1:8000
+   🎨 Frontend:    http://localhost:3000
+   📋 API Docs:    http://127.0.0.1:8000/docs
+
+Press [CTRL+C] or [Enter] to stop the application...
+🧹 Shutting down servers...
+🧹 Cleaning up any existing processes...
+INFO:     Shutting down
+   Stopping backend on port 8000...
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [30926]
+./start_app.sh: line 32: 30916 Killed                  python main.py  (wd: ~/claude_projects/bank_statement_parser/backend)
+   Stopping frontend on port 3000...
+The build failed because the process exited too early. This probably means the system ran out of memory or someone called `kill -9` on the process.
+✅ Application stopped successfully!
+   Thank you for using Bank Statement Parser! 🏦

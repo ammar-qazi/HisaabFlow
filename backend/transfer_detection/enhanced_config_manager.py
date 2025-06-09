@@ -111,6 +111,10 @@ class EnhancedConfigurationManager:
                 
             bank_name = config_file.stem
             config = configparser.ConfigParser()
+            
+            # **FIX: Preserve case for option names (keys)**
+            config.optionxform = str  # This prevents lowercase conversion
+            
             config.read(config_file)
             
             try:

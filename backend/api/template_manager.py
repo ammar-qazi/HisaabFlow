@@ -5,8 +5,19 @@ Replaces template files with configuration-based bank parsing
 import os
 from fastapi import HTTPException
 from typing import Dict, List, Optional
-from ..transfer_detection.enhanced_config_manager import EnhancedConfigurationManager
-from .models import SaveTemplateRequest
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from transfer_detection.enhanced_config_manager import EnhancedConfigurationManager
+
+try:
+    from api.models import SaveTemplateRequest
+except ImportError:
+    # Fallback model definition
+    class SaveTemplateRequest:
+        def __init__(self, template_name, config):
+            self.template_name = template_name
+            self.config = config
 
 
 class TemplateManager:

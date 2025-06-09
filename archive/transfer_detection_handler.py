@@ -3,9 +3,13 @@ Transfer detection logic for multi-CSV processing
 Handles initialization and execution of transfer detection between CSV files
 """
 from typing import List, Dict, Any
-from ..transfer_detector import TransferDetector
-from ..transfer_detector_improved import ImprovedTransferDetector
-from ..transfer_detector_enhanced_ammar_refactored import TransferDetector as EnhancedAmmarTransferDetector
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from transfer_detector import TransferDetector
+from transfer_detector_improved import ImprovedTransferDetector
+from transfer_detector_enhanced_ammar_refactored import TransferDetector as EnhancedAmmarTransferDetector
 
 
 class TransferDetectionHandler:
@@ -63,7 +67,7 @@ class TransferDetectionHandler:
             
             # Fallback to enhanced ammar detector with old interface
             try:
-                from ..transfer_detector_enhanced_ammar import TransferDetector as LegacyEnhancedAmmarTransferDetector
+                from transfer_detector_enhanced_ammar import TransferDetector as LegacyEnhancedAmmarTransferDetector
                 transfer_detector = LegacyEnhancedAmmarTransferDetector(
                     user_name=request.user_name,
                     date_tolerance_hours=request.date_tolerance_hours

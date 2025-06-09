@@ -13,7 +13,7 @@ from .file_manager import FileManager
 from .csv_processor import CSVProcessor
 from .multi_csv_processor import MultiCSVProcessor
 from .config_manager import ConfigManager
-from ..csv_parser import CSVParser
+# from ..csv_parser import CSVParser  # Removed - archived file
 
 
 def create_app() -> FastAPI:
@@ -42,7 +42,7 @@ def create_app() -> FastAPI:
     csv_processor = CSVProcessor()
     multi_csv_processor = MultiCSVProcessor(file_manager)
     config_manager = ConfigManager()
-    parser = CSVParser()  # For transform endpoint
+    # parser = CSVParser()  # Removed - archived file
     
     # Basic endpoints
     @app.get("/")
@@ -100,7 +100,10 @@ def create_app() -> FastAPI:
         try:
             # Use enhanced parser if categorization rules are provided
             if request.categorization_rules or request.default_category_rules:
-                from ..enhanced_csv_parser import EnhancedCSVParser
+                import sys
+                import os
+                sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                from enhanced_csv_parser import EnhancedCSVParser
                 enhanced_parser = EnhancedCSVParser()
                 result = enhanced_parser.transform_to_cashew(
                     request.data, 
@@ -111,8 +114,13 @@ def create_app() -> FastAPI:
                     getattr(request, 'account_mapping', None)
                 )
             else:
-                # Fall back to basic parser
-                result = parser.transform_to_cashew(
+                # Fall back to enhanced parser (basic transformation)
+                import sys
+                import os
+                sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                from enhanced_csv_parser import EnhancedCSVParser
+                enhanced_parser = EnhancedCSVParser()
+                result = enhanced_parser.transform_to_cashew(
                     request.data, 
                     request.column_mapping, 
                     request.bank_name

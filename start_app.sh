@@ -50,25 +50,28 @@ cleanup_ports() {
 # Function to start backend
 start_backend() {
     echo "🚀 Starting Backend Server..."
-    cd backend
     
-    # Check if virtual environment exists
+    # Check if virtual environment exists in root directory
     if [ ! -d "venv" ]; then
-        echo "❌ Virtual environment not found!"
-        echo "   Please run: python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt"
+        echo "❌ Virtual environment not found in root directory!"
+        echo "   Please run: python3 -m venv venv && source venv/bin/activate && pip install -r backend/requirements.txt"
         exit 1
     fi
     
-    # Activate virtual environment and start server
+    # Activate virtual environment from root directory
     source venv/bin/activate
     
     # Check if requirements are installed
     if ! python -c "import fastapi" 2>/dev/null; then
         echo "📦 Installing backend dependencies..."
-        pip install -r requirements.txt
+        pip install -r backend/requirements.txt
     fi
     
+    # Change to backend directory and start server
+    cd backend
     echo "   Backend starting on http://127.0.0.1:8000"
+    echo "   Using modular configuration-based system (v3.0.0)"
+    echo "   Main file: main.py (clean modular version - 94 lines)"
     python main.py &
     BACKEND_PID=$!
     cd ..

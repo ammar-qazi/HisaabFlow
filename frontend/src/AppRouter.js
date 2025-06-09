@@ -1,10 +1,7 @@
-import React, { useState } from 'react';
-import App from './App';
+import React from 'react';
 import MultiCSVApp from './MultiCSVApp';
 
 function AppRouter() {
-  const [currentApp, setCurrentApp] = useState('multi'); // Default to multi-CSV
-
   return (
     <div>
       <div style={{ 
@@ -15,24 +12,12 @@ function AppRouter() {
         marginBottom: '20px'
       }}>
         <h3>🏦 Bank Statement Parser</h3>
-        <div style={{ marginTop: '10px' }}>
-          <button 
-            className={`btn ${currentApp === 'single' ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => setCurrentApp('single')}
-            style={{ marginRight: '10px' }}
-          >
-            📄 Single CSV
-          </button>
-          <button 
-            className={`btn ${currentApp === 'multi' ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => setCurrentApp('multi')}
-          >
-            📄📄 Multi-CSV + Transfer Detection
-          </button>
-        </div>
+        <p style={{ margin: '5px 0', color: '#666' }}>
+          Upload single or multiple CSV files for processing and transfer detection
+        </p>
       </div>
       
-      {currentApp === 'single' ? <App /> : <MultiCSVApp />}
+      <MultiCSVApp />
     </div>
   );
 }

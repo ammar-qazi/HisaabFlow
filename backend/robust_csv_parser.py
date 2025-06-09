@@ -127,15 +127,28 @@ class RobustCSVParser:
                         encoding: str = 'utf-8') -> Dict:
         """Parse CSV with specified range"""
         try:
+            print(f"🔍 Robust parser: Reading file {file_path}")
             df_full = self.read_csv_robust(file_path, encoding)
+            print(f"📊 Full dataframe shape: {df_full.shape}")
+            
+            # Convert parameters to integers (fix for string indexing bug)
+            start_row = int(start_row) if start_row is not None else 0
+            start_col = int(start_col) if start_col is not None else 0
             
             # Extract the specified range
             if end_row is None:
                 end_row = len(df_full)
+            else:
+                end_row = int(end_row)
+                
             if end_col is None:
                 end_col = len(df_full.columns)
+            else:
+                end_col = int(end_col)
             
-            # Extract data range
+            print(f"🎯 Extracting range: rows {start_row}:{end_row}, cols {start_col}:{end_col}")
+            
+            # Extract data range with proper integer indexing
             df_range = df_full.iloc[start_row:end_row, start_col:end_col].copy()
             
             # Use first row as headers if it looks like headers
@@ -151,6 +164,8 @@ class RobustCSVParser:
             for col in df_range.columns:
                 df_range[col] = df_range[col].astype(str).replace('nan', '')
             
+            print(f"✅ Successfully extracted {len(df_range)} rows, {len(df_range.columns)} columns")
+            
             return {
                 'success': True,
                 'headers': df_range.columns.tolist(),
@@ -158,6 +173,10 @@ class RobustCSVParser:
                 'row_count': len(df_range)
             }
         except Exception as e:
+            print(f"❌ Robust parser error: {str(e)}")
+            print(f"🔍 Full error traceback: {repr(e)}")
+            import traceback
+            print(f"🔍 Full error traceback: {traceback.format_exc()}")
             return {
                 'success': False,
                 'error': str(e)

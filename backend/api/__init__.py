@@ -1,17 +1,13 @@
-# API Module
-from .routes import create_app
-from .models import *
-from .file_manager import FileManager
-from .csv_processor import CSVProcessor
-from .multi_csv_processor import MultiCSVProcessor
-from .template_manager import TemplateManager
-from .transfer_detection_handler import TransferDetectionHandler
+# API Module - Clean imports for router-based architecture
+# Avoid relative imports to prevent package context issues
 
 __all__ = [
-    'create_app',
-    'FileManager',
-    'CSVProcessor', 
-    'MultiCSVProcessor',
-    'TemplateManager',
-    'TransferDetectionHandler'
+    'config_router',
+    'file_router',
+    'parse_router', 
+    'transform_router',
+    'setup_logging_middleware'
 ]
+
+# Note: Individual routers should be imported directly from their modules
+# Example: from api.config_endpoints import config_router

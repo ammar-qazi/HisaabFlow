@@ -21,7 +21,7 @@ class DateParser:
             
             date_formats = [
                 '%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y', '%d-%m-%Y', '%Y-%m-%d %H:%M:%S',
-                '%d-%m-%y', '%m-%d-%y', '%y-%m-%d'  # Add 2-digit year formats
+                '%m-%d-%y', '%d-%m-%y', '%y-%m-%d'  # 2-digit year formats (MM-DD-YY prioritized)
             ]
             
             for fmt in date_formats:
