@@ -16,16 +16,20 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 try:
     from enhanced_csv_parser import EnhancedCSVParser
+    from bank_detection import BankDetector, BankConfigManager
 except ImportError:
     # Fallback path for import issues
     backend_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     sys.path.insert(0, backend_path)
     from enhanced_csv_parser import EnhancedCSVParser
+    from bank_detection import BankDetector, BankConfigManager
 
 transform_router = APIRouter()
 
-# Initialize parser
+# Initialize parser and bank detection
 enhanced_parser = EnhancedCSVParser()
+bank_config_manager = BankConfigManager()
+bank_detector = BankDetector(bank_config_manager)
 
 class TransformRequest(BaseModel):
     data: List[Dict[str, Any]]
@@ -76,8 +80,8 @@ async def transform_multi_csv_data(request: Request):
         raw_data = json.loads(body)
         print(f"🗂️ Request keys: {list(raw_data.keys())}")
         
-        # Extract data from frontend format
-        data, column_mapping, bank_name = _extract_transform_data(raw_data)
+        # Extract data from frontend format using bank-agnostic detection
+        data, column_mapping, bank_name = _extract_transform_data_per_bank(raw_data)
         
         print(f"📈 Final data length: {len(data)}")
         print(f"🏦 Final bank name: {bank_name}")
@@ -152,150 +156,131 @@ async def transform_multi_csv_data(request: Request):
         print(f"📖 Full traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e))
 
-def _extract_transform_data(raw_data: dict):
-    """Extract transformation data from frontend request format"""
+def _extract_transform_data_per_bank(raw_data: dict):
+    """Extract transformation data using bank-agnostic detection for each CSV file"""
     
     # Handle different frontend data formats
     if 'csv_data_list' in raw_data:
-        # Frontend sends data in csv_data_list format
         print(f"📋 Frontend format detected: csv_data_list")
         csv_data_list = raw_data.get('csv_data_list', [])
         print(f"📈 CSV data list length: {len(csv_data_list)}")
         
-        # Process all CSV files, not just the first one
-        if csv_data_list:
-            # Combine data from all CSV files
-            all_data = []
-            combined_column_mapping = {}
-            combined_bank_name = ''
-            
-            for csv_index, csv_data in enumerate(csv_data_list):
-                print(f"🗂️ Processing CSV {csv_index + 1}/{len(csv_data_list)}")
-                csv_file_data = csv_data.get('data', [])
-                if csv_file_data:
-                    all_data.extend(csv_file_data)
-                    print(f"   📊 Added {len(csv_file_data)} rows from CSV {csv_index + 1}")
-                
-                # Use configuration from first file for consistency
-                if csv_index == 0:
-                    first_csv = csv_data
-            print(f"🗂️ First CSV keys: {list(first_csv.keys()) if first_csv else 'empty'}")
-            
-            data = all_data  # Use combined data from all files
-            
-            # **DEBUG: Check all possible configuration sources**
-            print(f"🔍 CONFIGURATION DEBUG:")
-            if 'config' in first_csv:
-                print(f"   ✅ 'config' found: {first_csv['config']}")
-            if 'template_config' in first_csv:
-                print(f"   ⚠️  'template_config' found: {first_csv['template_config']}")
-            if 'configuration' in first_csv:
-                print(f"   ✅ 'configuration' found: {first_csv['configuration']}")
-            if 'bank_config' in first_csv:
-                print(f"   ✅ 'bank_config' found: {first_csv['bank_config']}")
-                
-            # Try to find column mapping in different places
-            column_mapping = first_csv.get('column_mapping', {})
-            
-            # NEW: Check for configuration-based mapping first
-            if not column_mapping and 'config' in first_csv:
-                config = first_csv.get('config', {})
-                column_mapping = config.get('column_mapping', {})
-                print(f"🗂️ Found column mapping in config: {column_mapping}")
-            elif not column_mapping and 'template_config' in first_csv:
-                template_config = first_csv.get('template_config', {})
-                column_mapping = template_config.get('column_mapping', {})
-                print(f"🗂️ Found column mapping in template_config: {column_mapping}")
-            
-            # Try to find bank name
-            bank_name = first_csv.get('bank_name', '')
-            
-            # NEW: Check for configuration-based bank name first
-            if not bank_name and 'config' in first_csv:
-                config = first_csv.get('config', {})
-                bank_name = config.get('bank_name', '')
-                print(f"🏦 Found bank name in config: {bank_name}")
-            elif not bank_name and 'template_config' in first_csv:
-                template_config = first_csv.get('template_config', {})
-                bank_name = template_config.get('bank_name', '')
-                print(f"🏦 Found bank name in template_config: {bank_name}")
-            
-            # If still empty, create a basic mapping from the data structure
-            if not column_mapping and data:
-                sample_row = data[0]
-                print(f"📄 Sample row keys: {list(sample_row.keys())}")
-                
-                # **SMART MAPPING**: Try to detect Wise vs other banks
-                if 'Description' in sample_row and 'TransferwiseId' in sample_row:
-                    print(f"🔍 WISE BANK DETECTED - creating Wise-specific mapping")
-                    
-                    # Find the correct payment reference column name
-                    payment_ref_col = None
-                    for col_key in sample_row.keys():
-                        if 'payment' in col_key.lower() and 'reference' in col_key.lower():
-                            payment_ref_col = col_key
-                            break
-                    
-                    # If no payment reference found, use any likely candidates
-                    if not payment_ref_col:
-                        for col_key in sample_row.keys():
-                            if col_key.lower() in ['paymentreference', 'payment_reference', 'reference', 'note']:
-                                payment_ref_col = col_key
-                                break
-                    
-                    print(f"🔍 Payment reference column found: '{payment_ref_col}'")
-                    
-                    column_mapping = {
-                        'Date': 'Date',
-                        'Amount': 'Amount', 
-                        'Title': 'Description',  # Map to Description for Wise
-                        'Note': payment_ref_col or 'Note',  # Use detected column or fallback
-                        'Currency': 'Currency'
-                    }
-                    bank_name = bank_name or 'wise_eur'  # Default to wise_eur
-                    print(f"🔧 Created WISE column mapping: {column_mapping}")
-                else:
-                    # Default mapping for other banks
-                    print(f"🔍 NON-WISE BANK DETECTED - creating standard mapping")
-                    column_mapping = {
-                        'Date': 'Date',
-                        'Amount': 'Amount', 
-                        'Title': 'Title',
-                        'Note': 'Note',
-                        'Currency': 'Currency'
-                    }
-                    print(f"🔧 Created basic column mapping: {column_mapping}")
-            
-            # Default bank name if still empty
-            if not bank_name:
-                # Try to detect bank from data
-                if data and 'TransferwiseId' in data[0]:
-                    bank_name = 'wise_eur'
-                    print(f"🏦 Auto-detected bank name: {bank_name}")
-                else:
-                    bank_name = 'nayapay'  # Default based on the data we see
-                    print(f"🏦 Using default bank name: {bank_name}")
-        else:
+        if not csv_data_list:
             print(f"⚠️ No CSV data found in csv_data_list")
-            data = []
-            column_mapping = {}
-            bank_name = ''
+            return [], {}, ''
+        
+        # Process each CSV file with its own bank detection
+        all_transformed_data = []
+        
+        for csv_index, csv_data in enumerate(csv_data_list):
+            print(f"\n🗂️ Processing CSV {csv_index + 1}/{len(csv_data_list)}")
+            
+            # Get data from this CSV
+            csv_file_data = csv_data.get('data', [])
+            filename = csv_data.get('filename', f'file_{csv_index + 1}.csv')
+            
+            if not csv_file_data:
+                print(f"   ⚠️ No data in CSV {csv_index + 1}")
+                continue
+                
+            print(f"   📊 CSV has {len(csv_file_data)} rows")
+            print(f"   📁 Filename: {filename}")
+            
+            # Detect bank type for this specific CSV
+            detection_result = bank_detector.detect_bank_from_data(filename, csv_file_data)
+            print(f"   🎯 Bank detected: {detection_result}")
+            
+            if not detection_result.is_confident:
+                print(f"   ⚠️ Low confidence detection for {filename}")
+                # TODO: In future, ask user to manually select bank
+                
+            detected_bank = detection_result.bank_name
+            
+            # Get bank-specific column mapping
+            if detected_bank != 'unknown':
+                bank_column_mapping = bank_config_manager.get_column_mapping(detected_bank)
+                print(f"   🗺️ Using bank-specific mapping: {bank_column_mapping}")
+            else:
+                # Fallback to generic mapping
+                print(f"   🔧 Using fallback mapping for unknown bank")
+                sample_row = csv_file_data[0] if csv_file_data else {}
+                bank_column_mapping = _create_fallback_mapping(sample_row)
+            
+            # Transform this CSV's data using its specific bank mapping
+            try:
+                print(f"   🔄 Transforming CSV {csv_index + 1} with {detected_bank} mapping")
+                
+                # Apply bank-specific mapping to standardize column names
+                standardized_data = []
+                for row in csv_file_data:
+                    standardized_row = {}
+                    for target_col, source_col in bank_column_mapping.items():
+                        if source_col in row:
+                            standardized_row[target_col] = row[source_col]
+                        else:
+                            standardized_row[target_col] = ''  # Empty if column not found
+                    standardized_data.append(standardized_row)
+                
+                print(f"   ✅ Standardized {len(standardized_data)} rows for CSV {csv_index + 1}")
+                if standardized_data:
+                    print(f"   📄 Sample standardized row: {standardized_data[0]}")
+                
+                # Add standardized data to combined results
+                all_transformed_data.extend(standardized_data)
+                
+            except Exception as e:
+                print(f"   ❌ Error processing CSV {csv_index + 1}: {str(e)}")
+                continue
+        
+        print(f"\n📈 Combined data from all CSVs: {len(all_transformed_data)} total rows")
+        
+        # Use the most common bank or first detected bank for overall processing
+        # For now, we'll use a standard mapping since all data is now standardized
+        combined_column_mapping = {
+            'Date': 'Date',
+            'Amount': 'Amount',
+            'Title': 'Title', 
+            'Note': 'Note',
+            'Balance': 'Balance'
+        }
+        
+        # Use first detected bank name or default
+        combined_bank_name = 'multi_bank_combined'
+        
+        return all_transformed_data, combined_column_mapping, combined_bank_name
+        
     else:
-        # Standard format
+        # Standard single-file format
         print(f"📋 Standard format detected")
         data = raw_data.get('data', [])
         column_mapping = raw_data.get('column_mapping', {})
         bank_name = raw_data.get('bank_name', '')
+        
+        return data, column_mapping, bank_name
+
+def _create_fallback_mapping(sample_row: dict) -> dict:
+    """Create a fallback column mapping when bank detection fails"""
+    mapping = {}
     
-    # **FINAL DEBUG OUTPUT**
-    print(f"🔍 FINAL EXTRACTION RESULTS:")
-    print(f"   📊 Data rows: {len(data)}")
-    print(f"   🗺️  Column mapping: {column_mapping}")
-    print(f"   🏦 Bank name: {bank_name}")
-    if data:
-        print(f"   📄 Sample data keys: {list(data[0].keys())}")
+    # Standard mappings based on common column names
+    for key in sample_row.keys():
+        key_lower = key.lower()
+        
+        if 'date' in key_lower or 'timestamp' in key_lower:
+            mapping['Date'] = key
+        elif 'amount' in key_lower:
+            mapping['Amount'] = key
+        elif 'description' in key_lower or 'title' in key_lower:
+            mapping['Title'] = key
+        elif 'note' in key_lower or 'type' in key_lower or 'reference' in key_lower:
+            mapping['Note'] = key
+        elif 'balance' in key_lower:
+            mapping['Balance'] = key
+        elif 'currency' in key_lower:
+            mapping['Currency'] = key
     
-    return data, column_mapping, bank_name
+    print(f"🔧 Created fallback mapping: {mapping}")
+    return mapping
 
 @transform_router.post("/export")
 async def export_csv_data(request: Request):
