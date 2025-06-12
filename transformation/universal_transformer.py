@@ -138,13 +138,24 @@ class UniversalTransformer:
     def _map_to_cashew_format(self, row: Dict, column_mapping: Dict[str, str], 
                              bank_name: str, account_mapping: Dict = None) -> Dict:
         """Map source row to Cashew format using column mapping"""
+        # ✅ PRESERVE existing Account field if already set (from config cashew_account)
+        existing_account = row.get('Account', '')
+        
+        # For multi-bank combined data, ALWAYS preserve the existing Account field
+        # For single bank data, use existing Account if set, otherwise fallback to bank_name
+        account_value = existing_account
+        if not account_value and bank_name != 'multi_bank_combined':
+            account_value = bank_name
+        
+        print(f"   🏦 Account field logic: existing='{existing_account}', bank_name='{bank_name}', final='{account_value}'")
+        
         cashew_row = {
             'Date': '',
             'Amount': 0,
             'Category': '',
             'Title': '', 
             'Note': '',
-            'Account': bank_name
+            'Account': account_value
         }
         
         # Map each Cashew column using the mapping
@@ -156,10 +167,11 @@ class UniversalTransformer:
                     cashew_row[cashew_col] = self._standardize_date(value)
                 elif cashew_col == 'Amount':
                     cashew_row[cashew_col] = self._standardize_amount(value)
-                elif cashew_col == 'Account' and account_mapping:
-                    # Use currency-based account mapping if available
-                    currency = str(value)
-                    cashew_row[cashew_col] = account_mapping.get(currency, bank_name)
+                elif cashew_col == 'Account':
+                    # ✅ SKIP Account mapping - preserve the pre-set value from config
+                    # Account field was already set from bank config's cashew_account or multi-bank processing
+                    print(f"   🏦 Skipping Account column mapping - preserving existing value: '{cashew_row['Account']}'")
+                    continue
                 else:
                     cashew_row[cashew_col] = str(value) if value is not None else ''
         

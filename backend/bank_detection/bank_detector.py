@@ -89,14 +89,47 @@ class BankDetector:
         return confidence, reasons
     
     def _check_filename_patterns(self, filename: str, patterns: List[str]) -> float:
-        """Check if filename matches any patterns"""
+        """Check if filename matches any patterns (supports both simple and regex)"""
+        if not patterns:
+            return 0.0
+            
         filename_lower = filename.lower()
+        max_score = 0.0
+        
+        # Debug filename matching
+        print(f"🔍 Checking filename '{filename}' against patterns: {patterns}")
         
         for pattern in patterns:
-            if pattern.lower() in filename_lower:
-                return 1.0
+            pattern_lower = pattern.lower()
+            score = 0.0
+            
+            # Check if pattern looks like regex (contains regex metacharacters)
+            if any(char in pattern for char in ['^', '$', '\\d', '\\w', '+', '*', '?', '[', ']', '(', ')']):
+                try:
+                    # Treat as regex pattern
+                    if re.match(pattern, filename, re.IGNORECASE):
+                        score = 1.0
+                        print(f"✅ Regex pattern '{pattern}' matched filename '{filename}'")
+                    else:
+                        print(f"❌ Regex pattern '{pattern}' did not match filename '{filename}'")
+                except re.error as e:
+                    print(f"⚠️ Invalid regex pattern '{pattern}': {e}")
+                    # Fallback to simple string matching
+                    if pattern_lower in filename_lower:
+                        score = 0.7  # Lower confidence for fallback
+                        print(f"✅ Fallback string match for pattern '{pattern}'")
+            else:
+                # Simple string containment check
+                if pattern_lower in filename_lower:
+                    score = 0.8  # Good confidence for simple patterns
+                    print(f"✅ Simple pattern '{pattern}' found in filename '{filename}'")
+                else:
+                    print(f"❌ Simple pattern '{pattern}' not found in filename '{filename}'")
+            
+            max_score = max(max_score, score)
         
-        return 0.0
+        print(f"🎯 Final filename score: {max_score}")
+        return max_score
     
     def _check_content_signatures(self, content: str, signatures: List[str]) -> float:
         """Check if content contains bank-specific signatures"""

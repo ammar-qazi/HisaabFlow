@@ -62,9 +62,9 @@ class EnhancedCSVParser:
     
     def parse_with_range(self, file_path: str, start_row: int, end_row: Optional[int] = None, 
                         start_col: int = 0, end_col: Optional[int] = None, 
-                        encoding: str = 'utf-8') -> Dict:
+                        encoding: str = 'utf-8', header_row: Optional[int] = None) -> Dict:
         """Parse CSV with specified range using modular CSV reader"""
-        return self.csv_reader.parse_with_range(file_path, start_row, end_row, start_col, end_col, encoding)
+        return self.csv_reader.parse_with_range(file_path, start_row, end_row, start_col, end_col, encoding, header_row)
     
     def transform_to_cashew(self, data: List[Dict], column_mapping: Dict[str, str], 
                            bank_name: str = "", categorization_rules: List[Dict] = None,

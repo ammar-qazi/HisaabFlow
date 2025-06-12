@@ -308,6 +308,15 @@ body {
   100% { transform: rotate(360deg); }
 }
 
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: .5;
+  }
+}
+
 .data-preview {
   max-height: 400px;
   overflow: auto;
@@ -460,6 +469,85 @@ body {
   font-size: 1.1rem;
 }
 
+/* Bank Detection Styles */
+.bank-detection {
+  margin: 20px 0;
+  padding: 15px;
+  background: #e3f2fd;
+  border-radius: 8px;
+  border-left: 4px solid #2196f3;
+}
+
+.bank-detection h5 {
+  margin: 0 0 10px 0;
+  color: #1976d2;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.detection-results {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.bank-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.bank-badge.nayapay {
+  background: #4caf50;
+  color: white;
+}
+
+.bank-badge.wise,
+.bank-badge.wise-usd,
+.bank-badge.wise-eur,
+.bank-badge.wise-huf {
+  background: #00d4aa;
+  color: white;
+}
+
+.bank-badge.unknown {
+  background: #6c757d;
+  color: white;
+}
+
+.bank-badge.detecting {
+  background: #f59e0b;
+  color: white;
+  animation: pulse 2s infinite;
+}
+
+.confidence-score {
+  background: #fff3e0;
+  color: #f57c00;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.detection-source {
+  color: #6c757d;
+  font-size: 0.8rem;
+  font-style: italic;
+}
+
+.detection-note {
+  color: #495057;
+  font-size: 0.85rem;
+  background: #f8f9fa;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
 @media (max-width: 768px) {
   .main-content {
     padding: 20px;
@@ -493,4 +581,41 @@ body {
   .bank-rule-item {
     padding: 15px;
   }
+  
+  .detection-results {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}
+
+/* Auto-configuration styling */
+.auto-config-notice {
+  background: #e8f5e8;
+  color: #2d5a2d;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-top: 8px;
+  font-size: 14px;
+  border: 1px solid #c3e6c3;
+}
+
+.mapping-status.config-applied {
+  background: #e8f5e8;
+  color: #2d5a2d;
+  border: 1px solid #c3e6c3;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.mapping-status.manual-mapping {
+  background: #fff3e0;
+  color: #f57c00;
+  border: 1px solid #ffcc80;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
 }

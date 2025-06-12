@@ -8,13 +8,23 @@ from typing import Dict, List, Optional
 class CSVReader:
     """Handles reading CSV files with manual parsing for inconsistent structures"""
     
-    def preview_csv(self, file_path: str, encoding: str = 'utf-8') -> Dict:
+    def preview_csv(self, file_path: str, encoding: str = 'utf-8', header_row: int = None, 
+                   bank_name: str = None, config_manager=None) -> Dict:
         """Preview CSV file and return basic info using robust CSV reading"""
         try:
             # Try utf-8-sig first to handle BOM characters properly
             if encoding == 'utf-8':
                 encoding = 'utf-8-sig'
                 print(f"      🔧 Using utf-8-sig encoding to handle BOM characters")
+            
+            # 🆕 HEADER DETECTION: Use bank-specific configuration if available
+            detected_header_info = None
+            if config_manager and bank_name:
+                print(f"🔍 Using bank-specific header detection for {bank_name}")
+                detected_header_info = config_manager.detect_header_row(file_path, bank_name, encoding)
+                if detected_header_info['success']:
+                    header_row = detected_header_info['header_row']
+                    print(f"📋 Bank config detected headers at row {header_row}")
             
             # Use manual CSV reading for inconsistent structures
             lines = []
@@ -41,13 +51,47 @@ class CSVReader:
             df_preview = pd.DataFrame(padded_lines)
             df_preview = df_preview.fillna('')
             
-            return {
+            # 🔧 FIX: Use actual header names if header_row is specified
+            column_names = [f"Column_{i}" for i in range(len(df_preview.columns))]
+            
+            # If header_row is specified and valid, use actual headers
+            if header_row is not None and 0 <= header_row < len(lines):
+                actual_headers = lines[header_row][:max_cols]
+                # Clean up headers (remove BOM, strip whitespace)
+                cleaned_headers = []
+                for header in actual_headers:
+                    if header:
+                        # Remove BOM character if present
+                        clean_header = header.replace('\ufeff', '').strip()
+                        cleaned_headers.append(clean_header)
+                    else:
+                        cleaned_headers.append(f"Column_{len(cleaned_headers)}")
+                
+                # Pad headers to match column count
+                while len(cleaned_headers) < max_cols:
+                    cleaned_headers.append(f"Column_{len(cleaned_headers)}")
+                
+                column_names = cleaned_headers[:max_cols]
+                print(f"      📝 Using actual headers from row {header_row}: {column_names}")
+            else:
+                print(f"      📝 Using generic column names: {column_names[:5]}...")
+            
+            result = {
                 'success': True,
                 'total_rows': len(df_preview),
                 'total_columns': len(df_preview.columns),
                 'preview_data': df_preview.to_dict('records'),
-                'column_names': [f"Column_{i}" for i in range(len(df_preview.columns))]
+                'column_names': column_names
             }
+            
+            # 🆕 Add header detection info to result if available
+            if detected_header_info:
+                result['header_detection'] = detected_header_info
+                result['suggested_header_row'] = detected_header_info['header_row']
+                result['suggested_data_start_row'] = detected_header_info['data_start_row']
+            
+            return result
+            
         except Exception as e:
             return {
                 'success': False,
@@ -70,11 +114,12 @@ class CSVReader:
     
     def parse_with_range(self, file_path: str, start_row: int, end_row: Optional[int] = None, 
                         start_col: int = 0, end_col: Optional[int] = None, 
-                        encoding: str = 'utf-8') -> Dict:
+                        encoding: str = 'utf-8', header_row: Optional[int] = None) -> Dict:
         """Parse CSV with specified range using manual CSV reading for compatibility"""
         try:
             print(f"🔍 Parsing CSV: {file_path}")
             print(f"   📊 Range: start_row={start_row}, end_row={end_row}, start_col={start_col}, end_col={end_col}")
+            print(f"   📋 Header row: {header_row}")
             
             # Try utf-8-sig first to handle BOM characters properly
             if encoding == 'utf-8':
@@ -97,12 +142,18 @@ class CSVReader:
             
             print(f"   🔄 Extracting range: rows {start_row}:{end_row}, cols {start_col}:{end_col}")
             
-            # Extract header row
-            if start_row >= len(lines):
-                raise ValueError(f"Start row {start_row} is beyond file length {len(lines)}")
+            # 🔧 CRITICAL FIX: Use separate header_row and data_start_row
+            actual_header_row = header_row if header_row is not None else start_row
+            actual_data_start_row = start_row
             
-            headers = lines[start_row][start_col:end_col]
-            print(f"   📋 Headers extracted: {headers}")
+            print(f"   🔧 Using header_row={actual_header_row}, data_start_row={actual_data_start_row}")
+            
+            # Extract header row
+            if actual_header_row >= len(lines):
+                raise ValueError(f"Header row {actual_header_row} is beyond file length {len(lines)}")
+            
+            headers = lines[actual_header_row][start_col:end_col]
+            print(f"   📋 Headers extracted from row {actual_header_row}: {headers}")
             
             # Debug BOM on headers - INLINE DEBUG
             if headers:
@@ -112,9 +163,9 @@ class CSVReader:
                 else:
                     print(f"      ✅ No BOM character in first header: '{first_header}'")
             
-            # Extract data rows (starting from the row after headers)
+            # Extract data rows (starting from actual_data_start_row)
             data_rows = []
-            for i in range(start_row + 1, min(end_row, len(lines))):
+            for i in range(actual_data_start_row, min(end_row, len(lines))):
                 if i < len(lines) and len(lines[i]) >= end_col:
                     row_data = lines[i][start_col:end_col]
                     # Only include rows with meaningful data

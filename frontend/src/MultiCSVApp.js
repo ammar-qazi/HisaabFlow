@@ -63,24 +63,17 @@ function MultiCSVApp() {
     setSuccess(null);
   };
 
-  // Load configurations on mount (UPDATED: Using new configuration system)
+  // Load configurations on mount
   React.useEffect(() => {
     const loadConfigurations = async () => {
       try {
         console.log('🔍 Loading bank configurations from /api/v3/configs');
         const response = await axios.get(`${API_BASE}/api/v3/configs`);
         console.log('✅ Configurations loaded:', response.data);
-        setTemplates(response.data.configurations); // Keep 'templates' state name for now
+        setTemplates(response.data.configurations);
       } catch (err) {
         console.error('❌ Failed to load configurations:', err);
-        // Fallback to legacy templates if needed
-        try {
-          console.log('🔄 Falling back to legacy templates');
-          const fallbackResponse = await axios.get(`${API_BASE}/templates`);
-          setTemplates(fallbackResponse.data.templates);
-        } catch (fallbackErr) {
-          console.error('❌ Legacy template fallback also failed:', fallbackErr);
-        }
+        setError('Failed to load bank configurations. Please check if the backend is running.');
       }
     };
     loadConfigurations();
@@ -88,7 +81,10 @@ function MultiCSVApp() {
 
   // Configuration and preview functions (UPDATED: Using new configuration system)
   const applyTemplate = async (fileIndex, configName) => {
-    if (!configName) return;
+    if (!configName) {
+      console.log('🔍 No configuration selected - user will use manual column mapping with standard Cashew fields');
+      return;
+    }
     
     try {
       console.log(`🔍 Loading configuration: ${configName}`);
@@ -96,6 +92,11 @@ function MultiCSVApp() {
       const config = response.data.config;
       
       console.log(`📋 Applying configuration ${configName}:`, config);
+      
+      // 🔍 DEBUG: Log column mapping being applied for Option B testing
+      console.log('🔍 Configuration Application Debug:');
+      console.log('  - config.column_mapping:', config.column_mapping);
+      console.log('  - Will set columnMapping to:', config.column_mapping || {});
       
       setUploadedFiles(prev => {
         const updated = [...prev];
@@ -121,77 +122,166 @@ function MultiCSVApp() {
       
     } catch (err) {
       console.error('❌ Configuration load failed:', err);
-      // Fallback to legacy template system
-      try {
-        console.log('🔄 Falling back to legacy template system');
-        const fallbackResponse = await axios.get(`${API_BASE}/template/${configName}`);
-        const config = fallbackResponse.data.config;
-        
-        setUploadedFiles(prev => {
-          const updated = [...prev];
-          updated[fileIndex] = {
-            ...updated[fileIndex],
-            selectedTemplate: configName,
-            parseConfig: {
-              start_row: config.start_row || 0,
-              end_row: config.end_row || null,
-              start_col: config.start_col || 0,
-              end_col: config.end_col || null,
-              encoding: 'utf-8'
-            },
-            columnMapping: config.column_mapping || {}
-          };
-          return updated;
+      console.log('🔍 Configuration load failed - user will use manual column mapping with standard Cashew fields');
+      setError(`Failed to load configuration "${configName}": ${err.response?.data?.detail || err.message}`);
+    }
+  };
+
+  const previewFileById = async (fileId) => {
+    console.log(`🔍 DEBUG: previewFileById called with fileId: ${fileId}`);
+    
+    setLoading(true);
+    try {
+      console.log(`🔍 DEBUG: Requesting preview for fileId: ${fileId}`);
+      const response = await axios.get(`${API_BASE}/preview/${fileId}`);
+      
+      console.log('🔍 DEBUG: Preview response received:', response.data);
+      
+      // Find the file in uploadedFiles by fileId and update it
+      setUploadedFiles(prev => {
+        const updated = prev.map(file => {
+          if (file.fileId === fileId) {
+            console.log(`🔍 DEBUG: Updating preview data for ${file.fileName}`);
+            return {
+              ...file,
+              preview: {
+                ...response.data,
+                suggested_header_row: response.data.suggested_header_row,
+                suggested_data_start_row: response.data.suggested_data_start_row
+              }
+            };
+          }
+          return file;
         });
+        return updated;
+      });
+      
+      // Handle auto-configuration based on backend bank detection
+      const backendBankDetection = response.data.bank_detection;
+      if (backendBankDetection && backendBankDetection.detected_bank !== 'unknown') {
+        const detectedBank = backendBankDetection.detected_bank;
+        const confidence = backendBankDetection.confidence;
         
-        setSuccess(`Legacy template "${configName}" applied to ${uploadedFiles[fileIndex].fileName}`);
-      } catch (fallbackErr) {
-        setError(`Failed to apply configuration: ${err.response?.data?.detail || err.message}`);
+        console.log(`🏦 DEBUG: Backend detected bank: ${detectedBank} (${confidence.toFixed(2)} confidence)`);
+        
+        // Map backend bank names to configuration names
+        const bankToConfigMap = {
+          'nayapay': 'Nayapay Configuration',
+          'wise_usd': 'Wise_Usd Configuration', 
+          'wise_eur': 'Wise_Eur Configuration',
+          'wise_huf': 'Wise_Huf Configuration'
+        };
+        
+        const suggestedConfig = bankToConfigMap[detectedBank];
+        
+        if (suggestedConfig && confidence > 0.5) {
+          console.log(`🔧 DEBUG: Auto-applying configuration: ${suggestedConfig}`);
+          
+          // Find the file index and apply configuration
+          const fileIndex = uploadedFiles.findIndex(f => f.fileId === fileId);
+          if (fileIndex !== -1) {
+            setTimeout(() => {
+              applyTemplate(fileIndex, suggestedConfig);
+            }, 500);
+          }
+          
+          setSuccess(`Smart detection: ${detectedBank} bank detected (${(confidence * 100).toFixed(0)}% confidence). Auto-applied "${suggestedConfig}".`);
+        }
       }
+      
+    } catch (err) {
+      console.error('❌ DEBUG: Preview error:', err);
+      setError(`Preview failed: ${err.response?.data?.detail || err.message}`);
+    } finally {
+      setLoading(false);
     }
   };
 
   const previewFile = async (fileIndex) => {
+    console.log(`🔍 DEBUG: previewFile called with fileIndex: ${fileIndex}`);
+    console.log(`🔍 DEBUG: uploadedFiles length: ${uploadedFiles.length}`);
+    
     const fileData = uploadedFiles[fileIndex];
-    if (!fileData) return;
+    if (!fileData) {
+      console.error(`❌ DEBUG: No file data found at index ${fileIndex}`);
+      return;
+    }
+    
+    console.log(`🔍 DEBUG: Found file data:`, fileData.fileName, fileData.fileId);
     
     setLoading(true);
     try {
+      // 🔧 CRITICAL FIX: Let backend handle bank-aware header detection automatically
+      console.log(`🔍 DEBUG: Requesting bank-aware preview for ${fileData.fileName}`);
       const response = await axios.get(`${API_BASE}/preview/${fileData.fileId}`);
       
+      console.log('🔍 DEBUG: Preview response:', response.data);
+      
+      // Store preview data with bank-detected information
       setUploadedFiles(prev => {
         const updated = [...prev];
         updated[fileIndex] = {
           ...updated[fileIndex],
-          preview: response.data
+          preview: {
+            ...response.data,
+            // Store bank-detected row information for parsing
+            suggested_header_row: response.data.suggested_header_row,
+            suggested_data_start_row: response.data.suggested_data_start_row
+          }
         };
         return updated;
       });
       
-      // Auto-detect data range
-      console.log(`🔍 Auto-detecting header row for ${fileData.fileName}`);
-      const detectionResponse = await axios.get(`${API_BASE}/detect-range/${fileData.fileId}`);
-      
-      if (detectionResponse.data.success && detectionResponse.data.suggested_header_row !== null) {
-        const detectedStartRow = detectionResponse.data.suggested_header_row;
-        console.log(`📍 Detected start row: ${detectedStartRow} for ${fileData.fileName}`);
+      // 🔧 NEW: Auto-apply configuration based on backend bank detection
+      const backendBankDetection = response.data.bank_detection;
+      if (backendBankDetection && backendBankDetection.detected_bank !== 'unknown') {
+        const detectedBank = backendBankDetection.detected_bank;
+        const confidence = backendBankDetection.confidence;
+        const headerRow = response.data.suggested_header_row;
+        const dataRow = response.data.suggested_data_start_row;
         
-        setUploadedFiles(prev => {
-          const updated = [...prev];
-          updated[fileIndex] = {
-            ...updated[fileIndex],
-            parseConfig: {
-              ...updated[fileIndex].parseConfig,
-              start_row: detectedStartRow
-            }
-          };
-          return updated;
-        });
+        console.log(`🏦 Bank detected: ${detectedBank} (${confidence.toFixed(2)} confidence)`);
+        console.log(`📋 Headers at row ${headerRow}, data starts at row ${dataRow}`);
         
-        setSuccess(`Smart detection: ${fileData.fileName} headers found at row ${detectedStartRow}`);
+        // Map backend bank names to frontend configuration names
+        const bankToConfigMap = {
+          'nayapay': 'Nayapay Configuration',
+          'wise_usd': 'Wise_Usd Configuration', 
+          'wise_eur': 'Wise_Eur Configuration',
+          'wise_huf': 'Wise_Huf Configuration'
+        };
+        
+        const suggestedConfig = bankToConfigMap[detectedBank];
+        
+        if (suggestedConfig && confidence > 0.5) {
+          console.log(`🔧 Auto-applying configuration: ${suggestedConfig}`);
+          
+          // Update the selectedConfiguration immediately
+          setUploadedFiles(prev => {
+            const updated = [...prev];
+            updated[fileIndex] = {
+              ...updated[fileIndex],
+              selectedConfiguration: suggestedConfig
+            };
+            return updated;
+          });
+          
+          // Apply the configuration after a short delay
+          setTimeout(() => {
+            applyTemplate(fileIndex, suggestedConfig);
+          }, 500);
+          
+          setSuccess(`Smart detection: ${detectedBank} bank detected (${(confidence * 100).toFixed(0)}% confidence). Auto-applied "${suggestedConfig}". Headers at row ${headerRow}, data starts at row ${dataRow}.`);
+        } else {
+          setSuccess(`Bank detected: ${detectedBank} (${(confidence * 100).toFixed(0)}% confidence), but confidence too low for auto-configuration. Please select manually.`);
+        }
+      } else {
+        console.log(`📝 Using manual configuration for ${fileData.fileName}`);
+        setSuccess(`Preview loaded for ${fileData.fileName} - using manual configuration`);
       }
       
     } catch (err) {
+      console.error('❌ Preview error:', err);
       setError(`Preview failed for ${fileData.fileName}: ${err.response?.data?.detail || err.message}`);
     } finally {
       setLoading(false);
@@ -214,7 +304,8 @@ function MultiCSVApp() {
     setTransferAnalysis,
     setCurrentStep,
     applyTemplate,
-    previewFile
+    previewFile,
+    previewFileById
   };
 
   // Create handlers

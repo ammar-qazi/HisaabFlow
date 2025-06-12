@@ -227,51 +227,56 @@ def _extract_transform_data_per_bank(raw_data: dict):
                 print(f"   🧹 Cleaned headers: {cleaned_headers}")
                 print(f"   📄 Sample cleaned row: {csv_file_data[0]}")
             
-            # 🏦 Get Account name from bank configuration's cashew_account
-            account_name = 'Unknown'  # Default fallback
+            # 🏦 Set the correct Account field based on detected bank
+            bank_display_names = {
+                'nayapay': 'NayaPay',
+                'wise_usd': 'Wise USD', 
+                'wise_eur': 'Wise EUR',
+                'wise_huf': 'Wise HUF',
+                'unknown': filename.replace('.csv', '').replace('_', ' ').title()
+            }
             
-            if bank_info and 'detected_bank' in bank_info:
-                detected_bank = bank_info['detected_bank']
-                if detected_bank != 'unknown':
-                    # 📚 Load full bank configuration to get cashew_account
-                    try:
-                        bank_config = bank_config_manager.get_bank_config(detected_bank)
-                        if bank_config and bank_config.has_section('bank_info'):
-                            cashew_account = bank_config.get('bank_info', 'cashew_account', fallback=None)
-                            if cashew_account:
-                                account_name = cashew_account
-                                print(f"   🏦 Using cashew_account from {detected_bank} config: '{account_name}'")
-                            else:
-                                print(f"   ⚠️  No cashew_account in {detected_bank} config")
-                        else:
-                            print(f"   ⚠️  Could not load config for {detected_bank}")
-                    except Exception as e:
-                        print(f"   ⚠️  Error loading config for {detected_bank}: {e}")
-                        
-            # Fallback to filename if config loading failed
-            if account_name == 'Unknown':
+            # 🔍 ENHANCED DEBUGGING FOR ACCOUNT FIELD LOGIC
+            print(f"   🔍 Account field logic:")
+            print(f"       - Detected bank: '{detected_bank}'")
+            print(f"       - Filename: '{filename}'")
+            print(f"       - Bank display names available: {list(bank_display_names.keys())}")
+            
+            if detected_bank and detected_bank != 'unknown':
+                account_name = bank_display_names.get(detected_bank, detected_bank.title())
+                print(f"       - Using detected bank mapping: '{detected_bank}' -> '{account_name}'")
+            else:
                 account_name = filename.replace('.csv', '').replace('_', ' ').replace('-', ' ').title()
-                print(f"   🏦 Using filename fallback: '{account_name}'")
+                print(f"       - Using filename fallback: '{filename}' -> '{account_name}'")
+                
+            print(f"   🏦 Final Account field will be set to: '{account_name}'")
             
-            # Update Account field for each row
-            for row in csv_file_data:
+            # 🔍 Count how many rows will be updated
+            if csv_file_data:
+                print(f"   🔍 Will update Account field for {len(csv_file_data)} rows")
+            
+            # Update Account field for each row with correct bank name
+            for row_index, row in enumerate(csv_file_data):
                 row['Account'] = account_name
+                # 🔍 DEBUG: Show first few Account field assignments
+                if row_index < 3:
+                    print(f"       - Row {row_index + 1}: Account = '{row.get('Account', 'NOT_SET')}'")
             
-            print(f"   ✅ Account field '{account_name}' set for all {len(csv_file_data)} rows")
+            print(f"   ✅ Account field updated for all {len(csv_file_data)} rows")
             
             # Add cleaned data to combined results
             all_transformed_data.extend(csv_file_data)
-            print(f"   ✅ Added {len(csv_file_data)} rows to combined data (total now: {len(all_transformed_data)})")
+            print(f"   ✅ Added {len(csv_file_data)} rows to combined data (total now: {len(all_transformed_data)})"))"
                 
         print(f"\n📈 Combined data from all CSVs: {len(all_transformed_data)} total rows")
         
         # 🔍 DEBUG: Verify Account fields in final combined data
         if all_transformed_data:
             account_values = set()
-            for row in all_transformed_data:
+            for row in all_transformed_data[:10]:  # Check first 10 rows
                 account_values.add(row.get('Account', 'MISSING'))
             print(f"🔍 Final combined data Account field values: {list(account_values)}")
-            print(f"🔍 Sample row: {all_transformed_data[0]}")
+            print(f"🔍 Final combined data sample row: {all_transformed_data[0]}")
         
         # Use standard mapping since all data is already standardized
         combined_column_mapping = {
@@ -282,11 +287,8 @@ def _extract_transform_data_per_bank(raw_data: dict):
             'Balance': 'Balance'
         }
         
-        # Use 'multi_bank_combined' as identifier (Account fields already set per-CSV)
-        # But preserve the individual Account fields we just set!
+        # Use first detected bank name or default
         combined_bank_name = 'multi_bank_combined'
-        
-        print(f"🔍 Final combined data Account values BEFORE transform: {list(set(row.get('Account', 'MISSING') for row in all_transformed_data))}")
         
         return all_transformed_data, combined_column_mapping, combined_bank_name
         

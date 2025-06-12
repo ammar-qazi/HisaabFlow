@@ -71,7 +71,7 @@ class RobustCSVParser:
             
             return pd.DataFrame(padded_lines)
     
-    def preview_csv(self, file_path: str, encoding: str = 'utf-8') -> Dict:
+    def preview_csv(self, file_path: str, encoding: str = 'utf-8', header_row: int = None) -> Dict:
         """Preview CSV file and return basic info"""
         try:
             df_preview = self.read_csv_robust(file_path, encoding, nrows=20)
@@ -83,12 +83,30 @@ class RobustCSVParser:
             for col in df_preview.columns:
                 df_preview[col] = df_preview[col].astype(str).replace('nan', '')
             
+            # 🆕 If header_row is specified, use actual column names from that row
+            column_names = [f"Column_{i}" for i in range(len(df_preview.columns))]
+            if header_row is not None and 0 <= header_row < len(df_preview):
+                try:
+                    actual_headers = df_preview.iloc[header_row].tolist()
+                    # Clean up headers (remove BOM, strip whitespace)
+                    cleaned_headers = []
+                    for i, header in enumerate(actual_headers):
+                        if header and str(header).strip():
+                            clean_header = str(header).replace('\ufeff', '').strip()
+                            cleaned_headers.append(clean_header)
+                        else:
+                            cleaned_headers.append(f"Column_{i}")
+                    column_names = cleaned_headers
+                    print(f"📝 Using actual headers from row {header_row}: {column_names}")
+                except Exception as e:
+                    print(f"⚠️ Failed to extract headers from row {header_row}: {e}")
+            
             return {
                 'success': True,
                 'total_rows': len(df_preview),
                 'total_columns': len(df_preview.columns),
                 'preview_data': df_preview.to_dict('records'),
-                'column_names': [f"Column_{i}" for i in range(len(df_preview.columns))]
+                'column_names': column_names
             }
         except Exception as e:
             return {
