@@ -1,6 +1,5 @@
 """
 Configuration-driven cross-bank transfer matching
-Replaces hardcoded logic with flexible configuration files
 """
 import re
 from typing import Dict, List, Set
@@ -23,9 +22,7 @@ class CrossBankMatcher:
         self.exchange_analyzer = ExchangeAnalyzer()
         self.confidence_calculator = ConfidenceCalculator(self.user_name)
         
-        print(f"🔧 CrossBankMatcher initialized:")
-        print(f"   👤 User: {self.user_name}")
-        print(f"   🏦 Banks: {', '.join(self.config.list_configured_banks())}")
+        print(f"🔧 CrossBankMatcher: {self.user_name}, Banks: {', '.join(self.config.list_configured_banks())}")
     
     def find_transfer_candidates(self, transactions: List[Dict]) -> List[Dict]:
         """Find transactions that match configured transfer patterns"""
@@ -74,20 +71,16 @@ class CrossBankMatcher:
             existing_transaction_ids.add(pair['outgoing']['_transaction_index'])
             existing_transaction_ids.add(pair['incoming']['_transaction_index'])
         
-        print(f"\n🔄 MATCHING CROSS-BANK TRANSFERS...")
+        print(f"🔄 MATCHING CROSS-BANK TRANSFERS...")
         
-        # Filter out already matched transactions
-        available_outgoing = [
-            t for t in potential_transfers 
-            if t['_transaction_index'] not in existing_transaction_ids and 
-               AmountParser.parse_amount(t.get('Amount', '0')) < 0  # Must be negative (outgoing)
-        ]
+        # Filter available transactions
+        available_outgoing = [t for t in potential_transfers 
+                            if t['_transaction_index'] not in existing_transaction_ids and 
+                               AmountParser.parse_amount(t.get('Amount', '0')) < 0]
         
-        available_incoming = [
-            t for t in all_transactions 
-            if t['_transaction_index'] not in existing_transaction_ids and 
-               AmountParser.parse_amount(t.get('Amount', '0')) > 0  # Must be positive (incoming)
-        ]
+        available_incoming = [t for t in all_transactions 
+                            if t['_transaction_index'] not in existing_transaction_ids and 
+                               AmountParser.parse_amount(t.get('Amount', '0')) > 0]
         
         # Match each outgoing transaction
         for outgoing in available_outgoing:
@@ -99,17 +92,15 @@ class CrossBankMatcher:
             if best_match and best_match['confidence'] >= self.confidence_threshold:
                 transfer_pair = self._create_transfer_pair(outgoing, best_match, len(transfer_pairs))
                 
-                print(f"\n      🎉 TRANSFER PAIR CREATED!")
-                print(f"         📤 Outgoing: {outgoing['_csv_name']} | -{transfer_pair['amount']}")
-                print(f"         📥 Incoming: {best_match['incoming']['_csv_name']} | {best_match['incoming_amount']}")
-                print(f"         🔧 Strategy: {best_match['type']}")
-                print(f"         🎯 Confidence: {best_match['confidence']:.2f}")
+                print(f"🎉 PAIR: {outgoing['_csv_name']} | -{transfer_pair['amount']} → "
+                      f"{best_match['incoming']['_csv_name']} | {best_match['incoming_amount']} "
+                      f"({best_match['type']}, {best_match['confidence']:.2f})")
                 
                 transfer_pairs.append(transfer_pair)
                 existing_transaction_ids.add(outgoing['_transaction_index'])
                 existing_transaction_ids.add(best_match['incoming']['_transaction_index'])
         
-        print(f"\n   ✅ Created {len(transfer_pairs)} cross-bank transfer pairs")
+        print(f"✅ Created {len(transfer_pairs)} cross-bank transfer pairs")
         return transfer_pairs
     
     def _find_best_match(self, outgoing: Dict, available_incoming: List[Dict], 
@@ -181,8 +172,7 @@ class CrossBankMatcher:
         """Detect bank type using configuration"""
         bank_type = self.config.detect_bank_type(file_name)
         if not bank_type:
-            print(f"⚠️  Unknown bank type for file: {file_name}")
-            print(f"   Please add configuration for this bank in configs/")
+            print(f"⚠️  Unknown bank type for file: {file_name}. Add configuration in configs/")
             return 'unknown'
         return bank_type
     
