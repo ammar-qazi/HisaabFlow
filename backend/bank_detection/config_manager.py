@@ -78,33 +78,23 @@ class BankConfigManager:
             bank_info = dict(config['bank_info'])
             detection_info['display_name'] = bank_info.get('name', bank_name).title()
             
-            # Load simple filename patterns
+            # Load filename patterns (both simple and regex)
             if 'file_patterns' in bank_info:
                 patterns = bank_info['file_patterns'].split(',')
                 detection_info['filename_patterns'] = [p.strip().lower() for p in patterns]
             
-            # Load regex filename patterns (prioritized over simple patterns)
             if 'filename_regex_patterns' in bank_info:
                 regex_patterns = bank_info['filename_regex_patterns'].split(',')
-                # Add both simple and regex patterns for flexibility
                 detection_info['filename_patterns'].extend([p.strip() for p in regex_patterns])
                 print(f"🔍 Added regex patterns for {bank_name}: {regex_patterns}")
         
-        # Add basic content signatures based on bank type
+        # Add bank-specific content signatures
         if 'wise' in bank_name.lower():
-            detection_info['content_signatures'] = [
-                'TransferwiseId', 'Payment Reference', 'Exchange From', 'Exchange To'
-            ]
-            detection_info['required_headers'] = [
-                'Date', 'Amount', 'Currency', 'Description'
-            ]
+            detection_info['content_signatures'] = ['TransferwiseId', 'Payment Reference', 'Exchange From', 'Exchange To']
+            detection_info['required_headers'] = ['Date', 'Amount', 'Currency', 'Description']
         elif 'nayapay' in bank_name.lower():
-            detection_info['content_signatures'] = [
-                'NayaPay ID', 'NayaPay Account Number', 'Customer Name'
-            ]
-            detection_info['required_headers'] = [
-                'TIMESTAMP', 'TYPE', 'DESCRIPTION', 'AMOUNT', 'BALANCE'
-            ]
+            detection_info['content_signatures'] = ['NayaPay ID', 'NayaPay Account Number', 'Customer Name']
+            detection_info['required_headers'] = ['TIMESTAMP', 'TYPE', 'DESCRIPTION', 'AMOUNT', 'BALANCE']
         
         print(f"🔍 Detection info for {bank_name}: {detection_info}")
         return detection_info
@@ -171,8 +161,7 @@ class BankConfigManager:
         Returns:
             Dict with header_row, data_start_row, and headers information
         """
-        print(f"🔍 Detecting header row for file: {file_path}")
-        print(f"🏦 Bank name: {bank_name}")
+        print(f"🔍 Detecting header row for file: {file_path}, Bank: {bank_name}")
         
         # Read first few lines to understand file structure
         try:
@@ -185,22 +174,10 @@ class BankConfigManager:
                         break
         except Exception as e:
             print(f"❌ Error reading file for header detection: {e}")
-            return {
-                'success': False,
-                'error': str(e),
-                'header_row': 0,
-                'data_start_row': 1,
-                'headers': []
-            }
+            return {'success': False, 'error': str(e), 'header_row': 0, 'data_start_row': 1, 'headers': []}
         
         if not lines:
-            return {
-                'success': False,
-                'error': 'No data found in file',
-                'header_row': 0,
-                'data_start_row': 1,
-                'headers': []
-            }
+            return {'success': False, 'error': 'No data found in file', 'header_row': 0, 'data_start_row': 1, 'headers': []}
         
         # If bank name provided, use bank-specific configuration
         if bank_name and bank_name in self._bank_configs:
@@ -211,17 +188,11 @@ class BankConfigManager:
             
             # Validate header row exists and extract headers
             if header_row < len(lines):
-                headers = lines[header_row]
-                # Clean headers (remove BOM, strip whitespace)
-                headers = [h.replace('\ufeff', '').strip() for h in headers]
+                headers = [h.replace('\ufeff', '').strip() for h in lines[header_row]]
                 
                 return {
-                    'success': True,
-                    'header_row': header_row,
-                    'data_start_row': csv_config['data_start_row'],
-                    'headers': headers,
-                    'method': 'bank_config',
-                    'bank_name': bank_name
+                    'success': True, 'header_row': header_row, 'data_start_row': csv_config['data_start_row'],
+                    'headers': headers, 'method': 'bank_config', 'bank_name': bank_name
                 }
             else:
                 print(f"⚠️ Configured header row {header_row} is beyond file length {len(lines)}")
@@ -233,6 +204,8 @@ class BankConfigManager:
     def _auto_detect_headers(self, lines: List[List[str]]) -> Dict[str, Any]:
         """Auto-detect header row by analyzing content patterns"""
         header_candidates = []
+        financial_keywords = ['date', 'time', 'timestamp', 'amount', 'balance', 'description', 
+                             'type', 'transaction', 'currency', 'reference', 'memo', 'note']
         
         for i, line in enumerate(lines[:15]):  # Check first 15 lines
             if not line:
@@ -241,14 +214,9 @@ class BankConfigManager:
             # Score this line as potential header
             score = 0
             reasons = []
-            
-            # Check for common financial headers
             line_lower = [cell.lower().strip() for cell in line]
-            financial_keywords = [
-                'date', 'time', 'timestamp', 'amount', 'balance', 'description', 
-                'type', 'transaction', 'currency', 'reference', 'memo', 'note'
-            ]
             
+            # Check for financial keywords
             for cell in line_lower:
                 for keyword in financial_keywords:
                     if keyword in cell:
@@ -256,13 +224,12 @@ class BankConfigManager:
                         reasons.append(f"contains_{keyword}")
                         break
             
-            # Bonus for all-text row (likely headers)
+            # Bonus for all-text row, penalty for mostly numbers
             if all(not cell.replace('-', '').replace('.', '').replace(',', '').isdigit() 
                    for cell in line if cell.strip()):
                 score += 2
                 reasons.append("all_text")
             
-            # Penalty for rows with mostly numbers (likely data)
             numeric_cells = sum(1 for cell in line if cell.strip() and 
                               cell.replace('-', '').replace('.', '').replace(',', '').isdigit())
             if numeric_cells > len(line) / 2:
@@ -271,39 +238,26 @@ class BankConfigManager:
             
             if score > 0:
                 header_candidates.append({
-                    'row_index': i,
-                    'score': score,
-                    'headers': line,
-                    'reasons': reasons
+                    'row_index': i, 'score': score, 'headers': line, 'reasons': reasons
                 })
                 print(f"  Row {i}: score={score}, reasons={reasons}, content={line[:3]}")
         
-        # Select best candidate
+        # Select best candidate or fallback
         if header_candidates:
             best_candidate = max(header_candidates, key=lambda x: x['score'])
             header_row = best_candidate['row_index']
             headers = [h.replace('\ufeff', '').strip() for h in best_candidate['headers']]
-            
             print(f"🎯 Auto-detected headers at row {header_row}: {headers}")
             
             return {
-                'success': True,
-                'header_row': header_row,
-                'data_start_row': header_row + 1,
-                'headers': headers,
-                'method': 'auto_detect',
-                'score': best_candidate['score'],
+                'success': True, 'header_row': header_row, 'data_start_row': header_row + 1,
+                'headers': headers, 'method': 'auto_detect', 'score': best_candidate['score'],
                 'reasons': best_candidate['reasons']
             }
         else:
-            # Fallback to row 0
             print("🔧 No clear headers detected, defaulting to row 0")
             headers = [h.replace('\ufeff', '').strip() for h in lines[0]] if lines else []
-            
             return {
-                'success': True,
-                'header_row': 0,
-                'data_start_row': 1,
-                'headers': headers,
-                'method': 'fallback'
+                'success': True, 'header_row': 0, 'data_start_row': 1,
+                'headers': headers, 'method': 'fallback'
             }

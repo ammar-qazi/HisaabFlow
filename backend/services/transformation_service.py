@@ -11,12 +11,16 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 try:
     from enhanced_csv_parser import EnhancedCSVParser
     from bank_detection import BankDetector, BankConfigManager
+    from transfer_detection.main_detector import TransferDetector
+    from transfer_detection.config_manager import ConfigurationManager
 except ImportError:
     # Fallback path for import issues
     backend_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     sys.path.insert(0, backend_path)
     from enhanced_csv_parser import EnhancedCSVParser
     from bank_detection import BankDetector, BankConfigManager
+    from transfer_detection.main_detector import TransferDetector
+    from transfer_detection.config_manager import ConfigurationManager
 
 
 class TransformationService:
@@ -26,6 +30,8 @@ class TransformationService:
         self.enhanced_parser = EnhancedCSVParser()
         self.bank_config_manager = BankConfigManager()
         self.bank_detector = BankDetector(self.bank_config_manager)
+        self.transfer_detector = TransferDetector()
+        self.transfer_config = ConfigurationManager()
     
     def transform_single_data(self, data: list, column_mapping: dict, bank_name: str = "", 
                             categorization_rules: list = None, default_category_rules: dict = None,
@@ -126,28 +132,27 @@ class TransformationService:
             if result:
                 print(f"📄 Sample result (first row): {result[0] if result else 'none'}")
             
+            # Apply description cleaning and transfer detection
+            print(f"\n🧹 Applying description cleaning and transfer detection...")
+            enhanced_result, transfer_analysis = self._apply_advanced_processing(result, raw_data)
+            
+            print(f"🔍 Transfer detection summary:")
+            print(f"   📊 Transfer pairs found: {transfer_analysis['summary']['transfer_pairs_found']}")
+            print(f"   🔄 Potential transfers: {transfer_analysis['summary']['potential_transfers']}")
+            
             # Frontend expects 'transformed_data' and 'transfer_analysis' format
             response_data = {
                 "success": True,
-                "transformed_data": result,
+                "transformed_data": enhanced_result,
                 "transformation_summary": {
-                    "total_transactions": len(result),
+                    "total_transactions": len(enhanced_result),
                     "bank_name": bank_name,
                     "data_source": "multi-csv"
                 },
-                "transfer_analysis": {
-                    "summary": {
-                        "transfer_pairs_found": 0,
-                        "potential_transfers": 0,
-                        "conflicts": 0,
-                        "flagged_for_review": 0
-                    },
-                    "transfers": [],
-                    "conflicts": []
-                },
+                "transfer_analysis": transfer_analysis,
                 # Legacy fields for compatibility
-                "data": result,
-                "row_count": len(result),
+                "data": enhanced_result,
+                "row_count": len(enhanced_result),
                 "bank_name": bank_name
             }
             
@@ -278,3 +283,191 @@ class TransformationService:
             print(f"   🏦 Using filename fallback: '{account_name}'")
         
         return account_name
+    
+    def _apply_advanced_processing(self, transformed_data: list, raw_data: dict):
+        """Apply description cleaning and transfer detection to transformed data"""
+        
+        # Step 1: Apply description cleaning
+        cleaned_data = self._apply_description_cleaning(transformed_data, raw_data)
+        
+        # Step 2: Run transfer detection
+        transfer_analysis = self._run_transfer_detection(cleaned_data, raw_data)
+        
+        # Step 3: Apply transfer categorization
+        final_data = self._apply_transfer_categorization(cleaned_data, transfer_analysis)
+        
+        return final_data, transfer_analysis
+    
+    def _apply_description_cleaning(self, data: list, raw_data: dict):
+        """Apply bank-specific description cleaning to data"""
+        print(f"🧹 Applying description cleaning...")
+        print(f"   📊 Data rows to clean: {len(data)}")
+        
+        # DEBUG: Show sample data structure
+        if data:
+            print(f"   📄 Sample row: {data[0]}")
+        
+        # Get CSV data list to determine bank types for each transaction
+        csv_data_list = raw_data.get('csv_data_list', [])
+        print(f"   📂 CSV data list count: {len(csv_data_list)}")
+        
+        # Track cleaning results
+        cleaned_count = 0
+        bank_matches = {}
+        
+        for row_idx, row in enumerate(data):
+            account = row.get('Account', '')
+            bank_name = None
+            
+            print(f"   🔍 Row {row_idx + 1}: Account='{account}', Title='{row.get('Title', '')}'")
+            
+            # Find bank type based on Account name
+            for csv_idx, csv_data in enumerate(csv_data_list):
+                bank_info = csv_data.get('bank_info', {})
+                detected_bank = bank_info.get('detected_bank')
+                print(f"      📁 CSV {csv_idx}: detected_bank='{detected_bank}'")
+                
+                if detected_bank and detected_bank != 'unknown':
+                    # Get cashew account name for this bank
+                    try:
+                        bank_config = self.bank_config_manager.get_bank_config(detected_bank)
+                        if bank_config and bank_config.has_section('bank_info'):
+                            cashew_account = bank_config.get('bank_info', 'cashew_account', fallback=None)
+                            print(f"         🏦 Bank config cashew_account: '{cashew_account}'")
+                            if cashew_account == account:
+                                bank_name = detected_bank
+                                print(f"         ✅ MATCH! Using bank: {bank_name}")
+                                break
+                    except Exception as e:
+                        print(f"         ⚠️  Error getting bank config: {e}")
+                        continue
+            
+            if bank_name:
+                bank_matches[bank_name] = bank_matches.get(bank_name, 0) + 1
+                
+                # Apply description cleaning for this bank
+                original_title = row.get('Title', '')
+                cleaned_title = self.transfer_config.apply_description_cleaning(bank_name, original_title)
+                if cleaned_title != original_title:
+                    print(f"      🧹 CLEANED: '{original_title}' → '{cleaned_title}'")
+                    row['Title'] = cleaned_title
+                    cleaned_count += 1
+                else:
+                    print(f"      ⚪ No change: '{original_title}'")
+            else:
+                print(f"      ❌ No bank match for account: '{account}'")
+        
+        print(f"   📊 Description cleaning summary:")
+        print(f"      🧹 Total rows cleaned: {cleaned_count}")
+        print(f"      🏦 Bank matches: {bank_matches}")
+        
+        return data
+    
+    def _run_transfer_detection(self, data: list, raw_data: dict):
+        """Run transfer detection on the processed data"""
+        print(f"🔍 Running transfer detection...")
+        print(f"   📊 Input data rows: {len(data)}")
+        
+        # DEBUG: Show sample data structure
+        if data:
+            print(f"   📄 Sample row keys: {list(data[0].keys())}")
+            print(f"   📄 Sample row: {data[0]}")
+        
+        # Convert data to the format expected by transfer detector
+        csv_data_list = []
+        
+        # Group data by account/bank for transfer detection
+        accounts = {}
+        for row in data:
+            account = row.get('Account', 'Unknown')
+            if account not in accounts:
+                accounts[account] = []
+            accounts[account].append(row)
+        
+        print(f"   🏦 Accounts found: {list(accounts.keys())}")
+        
+        # Create csv_data_list format for transfer detector
+        for account, rows in accounts.items():
+            csv_data = {
+                'data': rows,
+                'file_name': f'{account}.csv',
+                'template_config': {}
+            }
+            csv_data_list.append(csv_data)
+            print(f"      📁 Account '{account}': {len(rows)} transactions")
+        
+        print(f"   📂 Prepared {len(csv_data_list)} CSV data items for transfer detection")
+        
+        try:
+            # Run transfer detection
+            print(f"   🔍 Calling TransferDetector.detect_transfers()...")
+            detection_result = self.transfer_detector.detect_transfers(csv_data_list)
+            
+            print(f"   📊 Transfer detection results:")
+            print(f"      📋 Summary: {detection_result.get('summary', {})}")
+            print(f"      🔄 Transfer pairs: {len(detection_result.get('transfers', []))}")
+            print(f"      💭 Potential transfers: {len(detection_result.get('potential_transfers', []))}")
+            
+            return {
+                "summary": detection_result.get('summary', {}),
+                "transfers": detection_result.get('transfers', []),
+                "potential_transfers": detection_result.get('potential_transfers', []),
+                "conflicts": detection_result.get('conflicts', []),
+                "flagged_transactions": detection_result.get('flagged_transactions', [])
+            }
+        except Exception as e:
+            print(f"⚠️ Transfer detection error: {e}")
+            import traceback
+            print(f"📖 Transfer detection traceback: {traceback.format_exc()}")
+            return {
+                "summary": {
+                    "transfer_pairs_found": 0,
+                    "potential_transfers": 0,
+                    "conflicts": 0,
+                    "flagged_for_review": 0
+                },
+                "transfers": [],
+                "potential_transfers": [],
+                "conflicts": [],
+                "flagged_transactions": []
+            }
+
+    
+    def _apply_transfer_categorization(self, data: list, transfer_analysis: dict):
+        """Apply 'Balance Correction' category to detected transfers"""
+        print(f"🏷️ Applying transfer categorization...")
+        
+        transfer_pairs = transfer_analysis.get('transfers', [])
+        if not transfer_pairs:
+            return data
+        
+        # Create a lookup for transfer matches
+        transfer_matches = {}
+        for pair in transfer_pairs:
+            outgoing = pair.get('outgoing', {})
+            incoming = pair.get('incoming', {})
+            
+            # Create keys based on amount, date, and description
+            for transaction_type, transaction in [('outgoing', outgoing), ('incoming', incoming)]:
+                if transaction:
+                    key = f"{transaction.get('Amount', '')}_{transaction.get('Date', '')}_{transaction.get('Description', '')}"
+                    transfer_matches[key] = {
+                        'category': 'Balance Correction',
+                        'note_suffix': f" | Transfer {transaction_type} - Pair ID: {pair.get('pair_id', 'unknown')}"
+                    }
+        
+        # Apply categorization to matching transactions
+        matches_applied = 0
+        for row in data:
+            key = f"{row.get('Amount', '')}_{row.get('Date', '')}_{row.get('Title', '')}"
+            if key in transfer_matches:
+                match_info = transfer_matches[key]
+                row['Category'] = match_info['category']
+                
+                # Append transfer info to Note
+                current_note = row.get('Note', '')
+                row['Note'] = current_note + match_info['note_suffix']
+                matches_applied += 1
+        
+        print(f"   ✅ Applied transfer categorization to {matches_applied} transactions")
+        return data

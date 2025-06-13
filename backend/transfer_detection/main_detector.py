@@ -23,20 +23,18 @@ class TransferDetector:
     def __init__(self, config_dir: str = "configs"):
         # Initialize configuration manager
         self.config = ConfigurationManager(config_dir)
-        self.user_name = self.config.get_user_name()
         self.date_tolerance_hours = self.config.get_date_tolerance()
         
         # Initialize components with configuration
         self.cross_bank_matcher = CrossBankMatcher(config_dir)
         self.currency_converter = CurrencyConverter()
-        self.confidence_calculator = ConfidenceCalculator(self.user_name)
+        self.confidence_calculator = ConfidenceCalculator()
     
     def detect_transfers(self, csv_data_list: List[Dict]) -> Dict[str, Any]:
         """Main transfer detection function with Ammar's specifications"""
         
         print("\n🔍 STARTING ENHANCED TRANSFER DETECTION (CONFIG-BASED)")
         print("=" * 70)
-        print(f"👤 User: {self.user_name}")
         print(f"📅 Date tolerance: {self.date_tolerance_hours} hours")
         print(f"🏦 Configured banks: {', '.join(self.config.list_configured_banks())}")
         print(f"🎯 Confidence threshold: {self.config.get_confidence_threshold()}")

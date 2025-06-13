@@ -8,8 +8,8 @@ from .date_parser import DateParser
 class ConfidenceCalculator:
     """Calculates confidence scores for transfer pair matching"""
     
-    def __init__(self, user_name: str = "Ammar Qazi"):
-        self.user_name = user_name
+    def __init__(self):
+        pass
     
     def calculate_confidence(self, outgoing: Dict, incoming: Dict, 
                            is_cross_bank: bool = False, 
@@ -30,10 +30,13 @@ class ConfidenceCalculator:
         if DateParser.same_day(outgoing_date, incoming_date):
             confidence += 0.2
         
-        # Ammar name match bonus
+        # Name match bonus (flexible name detection)
         outgoing_desc = str(outgoing.get('Description', '')).lower()
         incoming_desc = str(incoming.get('Description', '')).lower()
-        if (self.user_name.lower() in outgoing_desc and self.user_name.lower() in incoming_desc):
+        
+        # Look for common name patterns in transfer descriptions
+        if ('transfer to' in outgoing_desc and 'from' in incoming_desc) or \
+           ('sent to' in outgoing_desc and 'received from' in incoming_desc):
             confidence += 0.1
         
         return min(confidence, 1.0)

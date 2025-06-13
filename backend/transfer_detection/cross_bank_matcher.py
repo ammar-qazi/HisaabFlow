@@ -15,14 +15,13 @@ class CrossBankMatcher:
     
     def __init__(self, config_dir: str = "configs"):
         self.config = ConfigurationManager(config_dir)
-        self.user_name = self.config.get_user_name()
         self.date_tolerance_hours = self.config.get_date_tolerance()
         self.confidence_threshold = self.config.get_confidence_threshold()
         
         self.exchange_analyzer = ExchangeAnalyzer()
-        self.confidence_calculator = ConfidenceCalculator(self.user_name)
+        self.confidence_calculator = ConfidenceCalculator()
         
-        print(f"🔧 CrossBankMatcher: {self.user_name}, Banks: {', '.join(self.config.list_configured_banks())}")
+        print(f"🔧 CrossBankMatcher: Banks: {', '.join(self.config.list_configured_banks())}")
     
     def find_transfer_candidates(self, transactions: List[Dict]) -> List[Dict]:
         """Find transactions that match configured transfer patterns"""
@@ -156,17 +155,71 @@ class CrossBankMatcher:
         if outgoing_bank == incoming_bank:
             return False
 
-        outgoing_desc = self._get_description(outgoing).lower()
-        incoming_desc = self._get_description(incoming).lower()
+        outgoing_desc = self._get_description(outgoing)
+        incoming_desc = self._get_description(incoming)
         
-        # Check configured patterns
+        # Check configured patterns and extract names
         outgoing_patterns = self.config.get_transfer_patterns(outgoing_bank, 'outgoing')
         incoming_patterns = self.config.get_transfer_patterns(incoming_bank, 'incoming')
         
-        outgoing_matches = any(pattern.lower() in outgoing_desc for pattern in outgoing_patterns)
-        incoming_matches = any(pattern.lower() in incoming_desc for pattern in incoming_patterns)
+        # Extract names from outgoing transaction
+        outgoing_name = None
+        for pattern in outgoing_patterns:
+            extracted_name = self.config.extract_name_from_transfer_pattern(pattern, outgoing_desc)
+            if extracted_name:
+                outgoing_name = extracted_name
+                break
+        
+        # Extract names from incoming transaction  
+        incoming_name = None
+        for pattern in incoming_patterns:
+            extracted_name = self.config.extract_name_from_transfer_pattern(pattern, incoming_desc)
+            if extracted_name:
+                incoming_name = extracted_name
+                break
+        
+        # If we found names in both transactions, check if they could match
+        if outgoing_name and incoming_name:
+            # Names should be similar (same person transferring)
+            return self._names_match(outgoing_name, incoming_name)
+        
+        # Fallback to simple pattern matching if name extraction fails
+        outgoing_matches = any(self._pattern_matches(pattern, outgoing_desc) for pattern in outgoing_patterns)
+        incoming_matches = any(self._pattern_matches(pattern, incoming_desc) for pattern in incoming_patterns)
         
         return outgoing_matches and incoming_matches
+    
+    def _pattern_matches(self, pattern: str, description: str) -> bool:
+        """Check if pattern matches description (simple version without name extraction)"""
+        # Remove {name} placeholder and check if rest of pattern matches
+        simple_pattern = pattern.replace('{name}', '').strip()
+        return simple_pattern.lower() in description.lower()
+    
+    def _names_match(self, name1: str, name2: str) -> bool:
+        """Check if two extracted names could refer to the same person"""
+        if not name1 or not name2:
+            return False
+        
+        name1_clean = name1.lower().strip()
+        name2_clean = name2.lower().strip()
+        
+        # Exact match
+        if name1_clean == name2_clean:
+            return True
+        
+        # Check if one name is contained in the other (e.g., "John" vs "John Smith")
+        if name1_clean in name2_clean or name2_clean in name1_clean:
+            return True
+        
+        # Check for similar names with different formatting
+        name1_parts = set(name1_clean.split())
+        name2_parts = set(name2_clean.split())
+        
+        # If they share at least one common word, consider it a match
+        if name1_parts.intersection(name2_parts):
+            return True
+        
+        return False
     
     def detect_bank_type(self, file_name: str, transaction: Dict) -> str:
         """Detect bank type using configuration"""

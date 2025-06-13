@@ -19,6 +19,7 @@ class BankConfig:
     outgoing_patterns: Dict[str, str]
     incoming_patterns: Dict[str, str]
     categorization_rules: Dict[str, str]
+    description_cleaning_rules: Dict[str, str]
 
 
 class ConfigurationManager:
@@ -38,9 +39,8 @@ class ConfigurationManager:
             config.read(app_config_path)
         else:
             # Default configuration if file missing
-            print("⚠️  app.conf not found. Please create configs/app.conf")
+            print("⚠️  app.conf not found. Creating default configuration.")
             config['general'] = {
-                'user_name': 'Ammar Qazi',
                 'date_tolerance_hours': '72'
             }
             config['transfer_detection'] = {
@@ -61,14 +61,34 @@ class ConfigurationManager:
             config.read(config_file)
             
             try:
+                # Load transfer patterns (support both old and new format)
+                outgoing_patterns = {}
+                incoming_patterns = {}
+                
+                # New format: [transfer_patterns] section
+                if config.has_section('transfer_patterns'):
+                    transfer_patterns = dict(config.items('transfer_patterns'))
+                    for key, pattern in transfer_patterns.items():
+                        if 'outgoing' in key.lower() or 'out' in key.lower() or 'send' in key.lower():
+                            outgoing_patterns[key] = pattern
+                        elif 'incoming' in key.lower() or 'in' in key.lower() or 'receive' in key.lower():
+                            incoming_patterns[key] = pattern
+                
+                # Old format: separate sections (for backward compatibility)
+                if config.has_section('outgoing_patterns'):
+                    outgoing_patterns.update(dict(config.items('outgoing_patterns')))
+                if config.has_section('incoming_patterns'):
+                    incoming_patterns.update(dict(config.items('incoming_patterns')))
+                
                 bank_config = BankConfig(
                     name=config.get('bank_info', 'name', fallback=bank_name),
                     file_patterns=[p.strip() for p in config.get('bank_info', 'file_patterns', fallback=bank_name).split(',')],
                     currency_primary=config.get('bank_info', 'currency_primary', fallback='USD'),
                     cashew_account=config.get('bank_info', 'cashew_account', fallback=bank_name),
-                    outgoing_patterns=dict(config.items('outgoing_patterns')) if config.has_section('outgoing_patterns') else {},
-                    incoming_patterns=dict(config.items('incoming_patterns')) if config.has_section('incoming_patterns') else {},
-                    categorization_rules=dict(config.items('categorization')) if config.has_section('categorization') else {}
+                    outgoing_patterns=outgoing_patterns,
+                    incoming_patterns=incoming_patterns,
+                    categorization_rules=dict(config.items('categorization')) if config.has_section('categorization') else {},
+                    description_cleaning_rules=dict(config.items('description_cleaning')) if config.has_section('description_cleaning') else {}
                 )
                 
                 bank_configs[bank_name] = bank_config
@@ -78,10 +98,6 @@ class ConfigurationManager:
                 print(f"❌ Error loading {bank_name}.conf: {e}")
         
         return bank_configs
-    
-    def get_user_name(self) -> str:
-        """Get configured user name"""
-        return self.app_config.get('general', 'user_name', fallback='Ammar Qazi')
     
     def get_date_tolerance(self) -> int:
         """Get date tolerance in hours"""
@@ -123,15 +139,9 @@ class ConfigurationManager:
             return []
         
         patterns = config.outgoing_patterns if direction == 'outgoing' else config.incoming_patterns
-        user_name = self.get_user_name()
         
-        # Replace {user_name} placeholder in patterns
-        compiled_patterns = []
-        for pattern in patterns.values():
-            compiled_pattern = pattern.format(user_name=user_name)
-            compiled_patterns.append(compiled_pattern)
-        
-        return compiled_patterns
+        # Return patterns as-is with {name} placeholder for flexible matching
+        return list(patterns.values())
     
     def categorize_merchant(self, bank_name: str, merchant: str) -> Optional[str]:
         """Get category for a merchant based on bank configuration"""
@@ -143,6 +153,49 @@ class ConfigurationManager:
         for merchant_pattern, category in config.categorization_rules.items():
             if merchant_pattern.lower() in merchant_lower:
                 return category
+        
+        return None
+    
+    def apply_description_cleaning(self, bank_name: str, description: str) -> str:
+        """Apply bank-specific description cleaning rules"""
+        config = self.bank_configs.get(bank_name)
+        if not config or not config.description_cleaning_rules:
+            return description
+        
+        cleaned_description = description
+        
+        for rule_name, rule_pattern in config.description_cleaning_rules.items():
+            if '|' in rule_pattern:
+                # Pattern|replacement format for regex replacement
+                pattern, replacement = rule_pattern.split('|', 1)
+                try:
+                    cleaned_description = re.sub(pattern, replacement, cleaned_description)
+                except re.error:
+                    # If regex fails, treat as simple string replacement
+                    cleaned_description = cleaned_description.replace(pattern, replacement)
+            else:
+                # Simple string replacement (for backward compatibility)
+                cleaned_description = cleaned_description.replace(rule_pattern, '')
+        
+        return cleaned_description.strip()
+    
+    def extract_name_from_transfer_pattern(self, pattern: str, description: str) -> Optional[str]:
+        """Extract name from transfer description using pattern with {name} placeholder"""
+        if '{name}' not in pattern:
+            return None
+        
+        # Convert pattern to regex by replacing {name} with capture group
+        # Use more permissive capture group to get full names
+        regex_pattern = re.escape(pattern).replace(r'\{name\}', r'([^,;.!?]+)')
+        
+        try:
+            match = re.search(regex_pattern, description, re.IGNORECASE)
+            if match:
+                extracted_name = match.group(1).strip()
+                # Clean up the extracted name (remove extra spaces, etc.)
+                return ' '.join(extracted_name.split())
+        except re.error:
+            pass
         
         return None
     

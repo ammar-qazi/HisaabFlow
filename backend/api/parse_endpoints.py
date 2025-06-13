@@ -137,13 +137,16 @@ async def parse_multiple_csvs(request: MultiCSVParseRequest):
     print(f"🚀 Multi-CSV parse request for {len(request.file_ids)} files")
     
     try:
-        # Validate all file IDs exist
+        # Validate all file IDs exist and add file_id to file_info
         file_infos = []
         for file_id in request.file_ids:
             file_info = get_uploaded_file(file_id)
             if not file_info:
                 raise HTTPException(status_code=404, detail=f"File {file_id} not found")
-            file_infos.append(file_info)
+            # Add file_id to the file_info structure
+            file_info_with_id = file_info.copy()
+            file_info_with_id['file_id'] = file_id
+            file_infos.append(file_info_with_id)
         
         if len(request.file_ids) != len(request.parse_configs):
             raise HTTPException(status_code=400, detail="Number of file IDs must match number of parse configs")
