@@ -10,7 +10,7 @@ import os
 sys.path.insert(0, os.path.dirname(__file__))
 
 # Import the modular version
-from csv_parsing.enhanced_csv_parser import EnhancedCSVParser
+from csv_parsing.csv_parser_core import EnhancedCSVParser
 
 # Re-export for backward compatibility
 __all__ = ['EnhancedCSVParser']

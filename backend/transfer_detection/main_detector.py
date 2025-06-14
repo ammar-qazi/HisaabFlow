@@ -1,14 +1,14 @@
 """
 Main transfer detector orchestrating all components
 """
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 from .amount_parser import AmountParser
 from .date_parser import DateParser
 from .exchange_analyzer import ExchangeAnalyzer
 from .cross_bank_matcher import CrossBankMatcher
 from .currency_converter import CurrencyConverter
 from .confidence_calculator import ConfidenceCalculator
-from .config_manager import ConfigurationManager
+from .config_manager import ConfigurationManager # Assuming this is transfer_detection.config_manager
 
 
 class TransferDetector:
@@ -20,13 +20,19 @@ class TransferDetector:
     4. 24-hour date tolerance with fallback to traditional amount matching
     """
     
-    def __init__(self, config_dir: str = "configs"):
-        # Initialize configuration manager
-        self.config = ConfigurationManager(config_dir)
+    def __init__(self, config_dir: str = "configs", config_manager: Optional[ConfigurationManager] = None):
+        if config_manager:
+            self.config = config_manager
+            # Pass the shared config_manager to CrossBankMatcher
+            # Ensure CrossBankMatcher's __init__ can accept config_manager
+            self.cross_bank_matcher = CrossBankMatcher(config_manager=self.config)
+        else:
+            # If no shared instance is provided, create its own.
+            self.config = ConfigurationManager(config_dir)
+            # Pass the config_dir that was used if creating its own
+            self.cross_bank_matcher = CrossBankMatcher(config_dir=config_dir)
+            
         self.date_tolerance_hours = self.config.get_date_tolerance()
-        
-        # Initialize components with configuration
-        self.cross_bank_matcher = CrossBankMatcher(config_dir)
         self.currency_converter = CurrencyConverter()
         self.confidence_calculator = ConfidenceCalculator()
     
@@ -48,6 +54,9 @@ class TransferDetector:
         # Find potential transfers
         print("\n🔍 FINDING TRANSFER CANDIDATES...")
         potential_transfers = self.cross_bank_matcher.find_transfer_candidates(all_transactions)
+        print(f"DEBUG MainDetector: Potential Transfer Candidates ({len(potential_transfers)}):")
+        for pt_idx, pt in enumerate(potential_transfers):
+            print(f"  PT {pt_idx}: Desc='{pt.get('Description', pt.get('Title', ''))[:60]}...', Amt={pt.get('Amount')}, Date={pt.get('Date')}, Bank={pt.get('_bank_type')}, Dir={pt.get('_transfer_direction')}, CSV='{pt.get('_csv_name')}'")
         print(f"   ✅ Found {len(potential_transfers)} potential transfer candidates")
         
         # STEP 1: Match currency conversions (internal conversions)
@@ -80,6 +89,7 @@ class TransferDetector:
         print("=" * 70)
         
         return {
+            'processed_transactions': all_transactions, # Return the transactions with _transaction_index
             'transfers': all_transfer_pairs,
             'potential_transfers': potential_transfers,
             'conflicts': conflicts,
@@ -98,6 +108,7 @@ class TransferDetector:
     def _prepare_transactions(self, csv_data_list: List[Dict]) -> List[Dict]:
         """Flatten all transactions with source info and metadata"""
         all_transactions = []
+        global_transaction_counter = 0 # Initialize a global counter
         
         for csv_idx, csv_data in enumerate(csv_data_list):
             print(f"\n📁 Processing CSV {csv_idx}: {csv_data.get('file_name', f'CSV_{csv_idx}')}")
@@ -112,15 +123,16 @@ class TransferDetector:
                 enhanced_transaction = {
                     **transaction,
                     '_csv_index': csv_idx,
-                    '_transaction_index': trans_idx,
+                    '_transaction_index': global_transaction_counter, # Use global counter
                     '_csv_name': csv_data.get('file_name', f'CSV_{csv_idx}'),
-                    '_template_config': csv_data.get('template_config', {}),
+                    # '_template_config': csv_data.get('template_config', {}), # Not used by this detector
                     '_bank_type': self.config.detect_bank_type(
                         csv_data.get('file_name', '')
                     ),
                     '_raw_data': transaction
                 }
                 all_transactions.append(enhanced_transaction)
+                global_transaction_counter += 1 # Increment global counter
         
         return all_transactions
     

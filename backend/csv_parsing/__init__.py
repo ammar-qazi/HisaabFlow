@@ -2,6 +2,6 @@
 CSV Parsing Module - Modular CSV processing components
 """
 
-from .enhanced_csv_parser import EnhancedCSVParser
+from .csv_parser_core import EnhancedCSVParser
 
 __all__ = ['EnhancedCSVParser']

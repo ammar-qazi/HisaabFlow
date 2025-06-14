@@ -18,14 +18,24 @@ class CurrencyConverter:
         conversion_candidates = []
         
         for transaction in all_transactions:
+            # Ensure _transaction_index is present, if not, assign a temporary one for matching scope
+            if '_transaction_index' not in transaction:
+                transaction['_transaction_index'] = id(transaction) # Use object id as a fallback unique id
+
             if transaction['_transaction_index'] in matched_transactions:
                 continue
                 
-            desc = str(transaction.get('Description', '')).lower()
+            # Prioritize original title if available, fallback to current (potentially cleaned) title/description
+            original_title_val = transaction.get('_original_title')
+            current_title_val = transaction.get('Title', transaction.get('Description', '')) # Use Title first, then Description
+            
+            desc_to_use_for_conversion = original_title_val if original_title_val is not None else current_title_val
+            # Ensure desc_to_use_for_conversion is a string before calling .lower()
+            desc_for_conversion_matching = str(desc_to_use_for_conversion).lower()
+            
             amount = AmountParser.parse_amount(transaction.get('Amount', '0'))
             date = DateParser.parse_date(transaction.get('Date', ''))
-            
-            conversion_info = self.extract_conversion_info(desc, amount)
+            conversion_info = self.extract_conversion_info(desc_for_conversion_matching, amount)
             
             if conversion_info:
                 conversion_candidates.append({
@@ -34,6 +44,10 @@ class CurrencyConverter:
                     '_amount': amount,
                     '_date': date
                 })
+        
+        print(f"DEBUG CC: Initial conversion_candidates count: {len(conversion_candidates)}")
+        for idx, cand in enumerate(conversion_candidates):
+            print(f"DEBUG CC: Candidate {idx}: Desc='{cand.get('Description', '')[:60]}...', Amt={cand.get('_amount')}, Date={cand.get('_date')}, Info={cand.get('_conversion_info')}, CSV='{cand.get('_csv_name')}'")
         
         # Match conversion pairs
         for i, candidate1 in enumerate(conversion_candidates):
@@ -50,7 +64,10 @@ class CurrencyConverter:
                 
                 conv2 = candidate2['_conversion_info']
                 
-                if self.is_matching_conversion(conv1, conv2, candidate1, candidate2):
+                print(f"DEBUG CC: Checking pair: C1({candidate1.get('_csv_name', 'N/A')}/{candidate1.get('_transaction_index', 'N/A')}) vs C2({candidate2.get('_csv_name', 'N/A')}/{candidate2.get('_transaction_index', 'N/A')})")
+                match_result = self.is_matching_conversion(conv1, conv2, candidate1, candidate2)
+                print(f"DEBUG CC: is_matching_conversion result for C1 vs C2: {match_result}")
+                if match_result:
                     if candidate1['_amount'] < 0 and candidate2['_amount'] > 0:
                         outgoing, incoming = candidate1, candidate2
                     elif candidate1['_amount'] > 0 and candidate2['_amount'] < 0:
@@ -86,26 +103,29 @@ class CurrencyConverter:
     
     def extract_conversion_info(self, description: str, amount: float) -> Optional[Dict]:
         """Extract currency conversion details from description"""
+        print(f"DEBUG CC extract_conversion_info: Received Desc='{description}', Amt={amount}")
         patterns = [
             r"converted\s+([\d,.]+)\s+(\w{3})\s+(?:from\s+\w{3}\s+balance\s+)?to\s+([\d,.]+)\s*(\w{3})",
             r"converted\s+([\d,.]+)\s+(\w{3}).*?to\s+([\d,.]+)\s*(\w{3})",
             r"converted\s+([\d,.]+)\s+(\w{3})\s+from\s+\w{3}\s+balance\s+to\s+([\d,.]+)\s*(\w{3})"
         ]
         
-        for pattern in patterns:
+        for pattern_idx, pattern in enumerate(patterns):
             match = re.search(pattern, description, re.IGNORECASE)
             if match:
                 from_amount = float(match.group(1).replace(',', ''))
                 from_currency = match.group(2).upper()
                 to_amount = float(match.group(3).replace(',', ''))
                 to_currency = match.group(4).upper()
-                
-                return {
+                result_dict = {
                     'from_amount': from_amount,
                     'from_currency': from_currency,
                     'to_amount': to_amount,
                     'to_currency': to_currency
                 }
+                # print(f"DEBUG CC extract_conversion_info: Matched pattern {pattern_idx}. Info: {result_dict}")
+                return result_dict
+        # print(f"DEBUG CC extract_conversion_info: No match for Desc='{description[:60]}...'")
         
         return None
     

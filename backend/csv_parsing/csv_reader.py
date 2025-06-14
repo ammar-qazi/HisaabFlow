@@ -137,8 +137,10 @@ class CSVReader:
             # Extract the specified range
             if end_row is None:
                 end_row = len(lines)
-            if end_col is None:
-                end_col = 5  # Default to 5 for NayaPay
+            # If end_col is None (not specified in the bank's .conf file),
+            # it means we should parse all columns from start_col to the end of the line.
+            # The Python slice [start:None] handles this行为 correctly, so no default needed here.
+            # The previous default 'end_col = 5' was specific to NayaPay and caused issues for other banks.
             
             print(f"   🔄 Extracting range: rows {start_row}:{end_row}, cols {start_col}:{end_col}")
             
@@ -166,7 +168,12 @@ class CSVReader:
             # Extract data rows (starting from actual_data_start_row)
             data_rows = []
             for i in range(actual_data_start_row, min(end_row, len(lines))):
-                if i < len(lines) and len(lines[i]) >= end_col:
+                # Check if the current line index is valid
+                # and if the line has enough columns if end_col is specified.
+                # If end_col is None, we parse all available columns from start_col.
+                line_is_valid_for_slicing = (i < len(lines) and 
+                                             (end_col is None or len(lines[i]) >= end_col))
+                if line_is_valid_for_slicing:
                     row_data = lines[i][start_col:end_col]
                     # Only include rows with meaningful data
                     if any(cell.strip() for cell in row_data):
