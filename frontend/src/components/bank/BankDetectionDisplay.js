@@ -24,7 +24,7 @@ function BankDetectionDisplay({ bankDetection, preview, parsedData, loading }) {
     };
     source = 'backend';
     console.log('🏦 DEBUG: Using bank info from parsed data:', parsedData.bank_info);
-  } else if (preview?.bank_detection && Object.keys(preview.bank_detection).length > 0) {
+  } else if (preview?.bank_detection && preview.bank_detection.detected_bank) {
     // Use 'bank_detection' from preview response
     displayInfo = {
       bankType: preview.bank_detection.detected_bank || 'Unknown',
@@ -42,7 +42,17 @@ function BankDetectionDisplay({ bankDetection, preview, parsedData, loading }) {
     };
     source = 'backend';
     console.log('🏦 DEBUG: Using bank info from preview:', preview.bank_info);
-  } else if (bankDetection) {
+  } else if (bankDetection && bankDetection.detected_bank) {
+    // Check if bankDetection has detected_bank (from stored bank detection data)
+    displayInfo = {
+      bankType: bankDetection.detected_bank || 'Unknown',
+      confidence: bankDetection.confidence,
+      source: 'Backend (Stored)'
+    };
+    source = 'backend';
+    console.log('🏦 DEBUG: Using stored bank detection:', bankDetection);
+  } else if (bankDetection && bankDetection.bankType) {
+    // Legacy frontend detection
     displayInfo = {
       bankType: bankDetection.bankType || 'Unknown',
       confidence: null,
@@ -123,9 +133,11 @@ const formatBankType = (bankType) => {
   
   // Handle backend bank types
   if (bankType === 'nayapay') return 'NayaPay';
+  if (bankType === 'forint_bank') return 'Forint Bank';
   if (bankType === 'wise_usd') return 'Wise USD';
   if (bankType === 'wise_eur') return 'Wise EUR';
   if (bankType === 'wise_huf') return 'Wise HUF';
+  if (bankType === 'wise_family') return 'Wise Family';
   
   // Handle frontend bank types
   if (bankType === 'Transferwise') return 'Wise';

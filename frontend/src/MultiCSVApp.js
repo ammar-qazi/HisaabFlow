@@ -70,12 +70,17 @@ function MultiCSVApp() {
       const result = await ConfigurationService.loadConfigurations();
       if (result.success) {
         setTemplates(result.configurations);
+        
+        // Update dynamic bank mapping with loaded configurations
+        if (result.configurations && result.raw_bank_names) {
+          autoConfigHook.updateBankConfigMapping(result.configurations, result.raw_bank_names);
+        }
       } else {
         setError(result.error);
       }
     };
     loadConfigurations();
-  }, []);
+  }, []); // Remove autoConfigHook dependency to prevent loop
 
   // Configuration application function
   const applyTemplate = async (fileIndex, configName) => {
@@ -108,7 +113,8 @@ function MultiCSVApp() {
     setError,
     setSuccess,
     applyTemplate,
-    autoConfigHook
+    autoConfigHook.processDetectionResult,
+    autoConfigHook.generateSuccessMessage
   );
 
   // Create state object for handlers
@@ -128,7 +134,8 @@ function MultiCSVApp() {
     setCurrentStep,
     applyTemplate,
     previewFile,
-    previewFileById
+    previewFileById,
+    dynamicBankMapping: autoConfigHook.bankConfigMapping  // Pass dynamic mapping
   };
 
   // Create handlers

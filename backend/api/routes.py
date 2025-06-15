@@ -13,6 +13,8 @@ from .file_manager import FileManager
 from .csv_processor import CSVProcessor
 from .multi_csv_processor import MultiCSVProcessor
 from .config_manager import ConfigManager
+from services.cashew_transformer import CashewTransformer # Import new transformer
+
 # from ..csv_parser import CSVParser  # Removed - archived file
 
 
@@ -42,6 +44,7 @@ def create_app() -> FastAPI:
     csv_processor = CSVProcessor()
     multi_csv_processor = MultiCSVProcessor(file_manager)
     config_manager = ConfigManager()
+    cashew_transformer = CashewTransformer() # Instantiate new transformer
     # parser = CSVParser()  # Removed - archived file
     
     # Basic endpoints
@@ -97,34 +100,30 @@ def create_app() -> FastAPI:
     @app.post("/transform")
     async def transform_data(request: TransformRequest):
         """Transform data to Cashew format with smart categorization"""
+        print(f"ℹ️ [MIGRATION][API Routes] /transform endpoint called.")
         try:
             # Use enhanced parser if categorization rules are provided
             if request.categorization_rules or request.default_category_rules:
-                import sys
-                import os
-                sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-                from enhanced_csv_parser import EnhancedCSVParser
-                enhanced_parser = EnhancedCSVParser()
-                result = enhanced_parser.transform_to_cashew(
+                print(f"  Transforming with categorization rules using CashewTransformer.")
+                result = cashew_transformer.transform_to_cashew( # Use CashewTransformer
                     request.data, 
                     request.column_mapping, 
                     request.bank_name,
                     request.categorization_rules,
                     request.default_category_rules,
-                    getattr(request, 'account_mapping', None)
+                    request.account_mapping # Pydantic model handles default if not present
                 )
             else:
-                # Fall back to enhanced parser (basic transformation)
-                import sys
-                import os
-                sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-                from enhanced_csv_parser import EnhancedCSVParser
-                enhanced_parser = EnhancedCSVParser()
-                result = enhanced_parser.transform_to_cashew(
+                print(f"  Performing basic transformation using CashewTransformer.")
+                result = cashew_transformer.transform_to_cashew( # Use CashewTransformer
                     request.data, 
                     request.column_mapping, 
-                    request.bank_name
+                    request.bank_name,
+                    None, # categorization_rules
+                    None, # default_category_rules
+                    request.account_mapping # account_mapping
                 )
+            print(f"  Transformation result: {len(result)} rows.")
             return {
                 "success": True,
                 "data": result,

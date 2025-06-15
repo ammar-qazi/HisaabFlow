@@ -156,17 +156,18 @@ class BankDetector:
         
         for required in required_headers:
             required_lower = required.lower().strip()
+            found_match_for_required = False
             
-            # Exact match
-            if required_lower in headers_lower:
-                matches += 1
-                continue
-            
-            # Partial match (for compound headers)
             for header in headers_lower:
-                if required_lower in header or header in required_lower:
-                    matches += 1
+                # Prioritize exact match or required being a part of a longer actual header
+                if required_lower == header: # Exact match
+                    found_match_for_required = True
                     break
+                if required_lower in header: # required is a substring of an actual header (e.g. "Date" in "Transaction Date")
+                    found_match_for_required = True
+                    break
+            if found_match_for_required:
+                    matches += 1
         
         # Return percentage of required headers found
         return matches / len(required_headers)

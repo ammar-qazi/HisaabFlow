@@ -33,12 +33,16 @@ except ImportError:
 class ConfigManager:
     """Manages bank configurations - no more templates"""
     
-    def __init__(self, config_dir: str = "../configs"):
-        self.config_dir = config_dir
+    def __init__(self, config_dir: str = None):
+        if config_dir is None:
+            # Correct path to project_root/configs from backend/api/
+            self.config_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "configs"))
+        else:
+            self.config_dir = config_dir
         self.enhanced_config_manager = EnhancedConfigurationManager(config_dir)
         
-        print(f"🔧 ConfigManager initialized (no more templates!)")
-        print(f"⚙️  Config directory: {config_dir}")
+        print(f"🔧 [api.ConfigManager] Initialized (no more templates!)")
+        print(f"⚙️  [api.ConfigManager] Effective config directory: {self.config_dir}")
         print(f"🏦 Available bank configurations: {self.enhanced_config_manager.list_configured_banks()}")
     
     def save_config(self, request: SaveTemplateRequest) -> Dict[str, any]:
@@ -65,10 +69,11 @@ class ConfigManager:
     
     def list_configs(self) -> Dict[str, List[str]]:
         """List available bank configurations"""
-        print(f"📋 Listing available bank configurations...")
+        print(f"📋 [api.ConfigManager] Listing available bank configurations...")
         
         try:
             available_configs = self.enhanced_config_manager.list_configured_banks()
+            print(f"🔍 [api.ConfigManager] Raw banks from EnhancedConfigurationManager: {available_configs}")
             
             # Return user-friendly names
             config_display_names = []
@@ -77,9 +82,9 @@ class ConfigManager:
                 if config:
                     display_name = f"{config.name.title()} Configuration"
                     config_display_names.append(display_name)
-                    print(f"📋 Available: {display_name} (from {bank_name}.conf)")
+                    print(f"📋 [api.ConfigManager] Processing for display: {display_name} (from {bank_name}.conf)")
             
-            print(f"📋 Total configurations found: {len(config_display_names)}")
+            print(f"📋 [api.ConfigManager] Total configurations to be returned: {len(config_display_names)}")
             
             return {
                 "configurations": config_display_names,
@@ -87,7 +92,7 @@ class ConfigManager:
                 "count": len(config_display_names)
             }
         except Exception as e:
-            print(f"❌ Config list error: {str(e)}")
+            print(f"❌ [api.ConfigManager] Config list error: {str(e)}")
             raise HTTPException(status_code=500, detail=str(e))
     
     def load_config(self, config_name: str) -> Dict[str, any]:

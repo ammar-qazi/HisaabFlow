@@ -7,7 +7,7 @@ const API_BASE = 'http://localhost:8000';
  * Custom hook for preview-related handlers
  * Handles file preview requests and auto-configuration processing
  */
-export const usePreviewHandlers = ({
+export const usePreviewHandlers = (
   uploadedFiles,
   setUploadedFiles,
   setLoading,
@@ -16,17 +16,7 @@ export const usePreviewHandlers = ({
   applyTemplate,
   processDetectionResult,
   generateSuccessMessage
-}) => {
-
-  const previewFileById = useCallback(async (fileId) => {
-    const fileIndex = uploadedFiles.findIndex(f => f.fileId === fileId);
-    if (fileIndex === -1) {
-      setError('File not found');
-      return;
-    }
-    
-    await previewFile(fileIndex);
-  }, [uploadedFiles, setError]);
+) => {
 
   const previewFile = useCallback(async (fileIndex) => {
     const fileData = uploadedFiles[fileIndex];
@@ -52,47 +42,54 @@ export const usePreviewHandlers = ({
             ...response.data,
             suggested_header_row: response.data.suggested_header_row,
             suggested_data_start_row: response.data.suggested_data_start_row
-          }
+          },
+          // Store bank detection data for UI display
+          bankDetection: response.data.bank_detection
         };
         return updated;
       });
       
       // Process auto-configuration based on backend bank detection
-      const autoConfigResult = processDetectionResult(response.data.bank_detection);
-      
-      if (autoConfigResult.shouldApply) {
-        const { detectedBank, confidence, configName } = autoConfigResult;
-        const headerRow = response.data.suggested_header_row;
-        const dataRow = response.data.suggested_data_start_row;
+      if (response.data.bank_detection) {
+        const autoConfigResult = processDetectionResult(response.data.bank_detection);
         
-        console.log(`🏦 Bank detected: ${detectedBank} (${confidence.toFixed(2)} confidence)`);
-        console.log(`📋 Headers at row ${headerRow}, data starts at row ${dataRow}`);
-        
-        // Update the selectedConfiguration immediately
-        setUploadedFiles(prev => {
-          const updated = [...prev];
-          updated[fileIndex] = {
-            ...updated[fileIndex],
-            selectedConfiguration: configName
-          };
-          return updated;
-        });
-        
-        // Apply the configuration after a short delay
-        setTimeout(() => {
-          applyTemplate(fileIndex, configName);
-        }, 500);
-        
-        const successMessage = generateSuccessMessage(detectedBank, confidence, configName, headerRow, dataRow);
-        setSuccess(successMessage);
-        
-      } else {
-        if (autoConfigResult.configName) {
-          setSuccess(autoConfigResult.message + ' Please select manually.');
+        if (autoConfigResult.shouldApply) {
+          const { detectedBank, confidence, configName } = autoConfigResult;
+          const headerRow = response.data.suggested_header_row;
+          const dataRow = response.data.suggested_data_start_row;
+          
+          console.log(`🏦 Bank detected: ${detectedBank} (${confidence.toFixed(2)} confidence)`);
+          console.log(`📋 Headers at row ${headerRow}, data starts at row ${dataRow}`);
+          
+          // Update the selectedConfiguration immediately
+          setUploadedFiles(prev => {
+            const updated = [...prev];
+            updated[fileIndex] = {
+              ...updated[fileIndex],
+              selectedConfiguration: configName
+            };
+            return updated;
+          });
+          
+          // Apply the configuration after a short delay
+          setTimeout(() => {
+            applyTemplate(fileIndex, configName);
+          }, 500);
+          
+          const successMessage = generateSuccessMessage(detectedBank, confidence, configName, headerRow, dataRow);
+          setSuccess(successMessage);
+          
         } else {
-          console.log(`📝 Using manual configuration for ${fileData.fileName}`);
-          setSuccess(`Preview loaded for ${fileData.fileName} - using manual configuration`);
+          if (autoConfigResult.configName) {
+            setSuccess(autoConfigResult.message + ' Please select manually.');
+          } else {
+            console.log(`📝 Using manual configuration for ${fileData.fileName}`);
+            setSuccess(`Preview loaded for ${fileData.fileName} - using manual configuration`);
+          }
         }
+      } else {
+        console.log(`📝 No bank detection data in response for ${fileData.fileName}`);
+        setSuccess(`Preview loaded for ${fileData.fileName} - no bank detection available`);
       }
       
     } catch (err) {
@@ -102,6 +99,16 @@ export const usePreviewHandlers = ({
       setLoading(false);
     }
   }, [uploadedFiles, setUploadedFiles, setLoading, setError, setSuccess, applyTemplate, processDetectionResult, generateSuccessMessage]);
+
+  const previewFileById = useCallback(async (fileId) => {
+    const fileIndex = uploadedFiles.findIndex(f => f.fileId === fileId);
+    if (fileIndex === -1) {
+      setError('File not found');
+      return;
+    }
+    
+    await previewFile(fileIndex);
+  }, [uploadedFiles, setError, previewFile]);
 
   return {
     previewFileById,

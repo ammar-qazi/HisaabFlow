@@ -11,11 +11,8 @@ class CSVReader:
     def preview_csv(self, file_path: str, encoding: str = 'utf-8', header_row: int = None, 
                    bank_name: str = None, config_manager=None) -> Dict:
         """Preview CSV file and return basic info using robust CSV reading"""
-        try:
-            # Try utf-8-sig first to handle BOM characters properly
-            if encoding == 'utf-8':
-                encoding = 'utf-8-sig'
-                print(f"      🔧 Using utf-8-sig encoding to handle BOM characters")
+        try: # Ensure the provided encoding is used directly
+            print(f"      ℹ️ [CSVReader.preview_csv] Using encoding: {encoding}")
             
             # 🆕 HEADER DETECTION: Use bank-specific configuration if available
             detected_header_info = None
@@ -100,10 +97,8 @@ class CSVReader:
     
     def read_csv_lines(self, file_path: str, encoding: str = 'utf-8') -> List[List[str]]:
         """Read CSV file as list of lines with manual parsing"""
-        # Try utf-8-sig first to handle BOM characters properly
-        if encoding == 'utf-8':
-            encoding = 'utf-8-sig'
-            print(f"      🔧 Using utf-8-sig encoding to handle BOM characters")
+        # Use the provided encoding directly
+        print(f"      ℹ️ [CSVReader.read_csv_lines] Using encoding: {encoding}")
         
         lines = []
         with open(file_path, 'r', encoding=encoding, newline='') as f:
@@ -120,11 +115,8 @@ class CSVReader:
             print(f"🔍 Parsing CSV: {file_path}")
             print(f"   📊 Range: start_row={start_row}, end_row={end_row}, start_col={start_col}, end_col={end_col}")
             print(f"   📋 Header row: {header_row}")
-            
-            # Try utf-8-sig first to handle BOM characters properly
-            if encoding == 'utf-8':
-                encoding = 'utf-8-sig'
-                print(f"      🔧 Using utf-8-sig encoding to handle BOM characters")
+            # Use the provided encoding directly
+            print(f"      ℹ️ [CSVReader.parse_with_range] Using encoding: {encoding}")
             
             # Read all lines
             lines = self.read_csv_lines(file_path, encoding)

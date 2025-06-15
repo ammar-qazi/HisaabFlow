@@ -27,15 +27,16 @@ class BankConfigManager:
     def load_all_configs(self):
         """Load all bank configuration files"""
         print(f"📂 Loading bank configurations from: {self.config_dir}")
-        
+
         if not os.path.exists(self.config_dir):
-            print(f"❌ Config directory not found: {self.config_dir}")
+            print(f"❌ [bank_detection.BankConfigManager] Config directory not found: {self.config_dir}")
             return
-            
+
         config_files = [f for f in os.listdir(self.config_dir) if f.endswith('.conf')]
-        print(f"📋 Found config files: {config_files}")
-        
+        print(f"📋 [bank_detection.BankConfigManager] Found .conf files: {config_files}")
+
         for config_file in config_files:
+            print(f"ℹ️ [bank_detection.BankConfigManager] Attempting to load: {config_file}")
             if config_file == 'app.conf':  # Skip app config
                 continue
                 
@@ -44,16 +45,17 @@ class BankConfigManager:
             
             try:
                 config = self._load_config_file(config_path)
+                print(f"📄 [bank_detection.BankConfigManager] Successfully parsed {config_file}. Sections: {config.sections()}")
                 self._bank_configs[bank_name] = config
                 
                 # Extract detection patterns
                 detection_info = self._extract_detection_info(config, bank_name)
                 self._detection_patterns[bank_name] = detection_info
                 
-                print(f"✅ Loaded config for bank: {bank_name}")
+                print(f"✅ [bank_detection.BankConfigManager] Loaded config for bank: {bank_name}")
                 
             except Exception as e:
-                print(f"❌ Error loading config {config_file}: {str(e)}")
+                print(f"❌ [bank_detection.BankConfigManager] Error loading config {config_file}: {str(e)}")
     
     def _load_config_file(self, config_path: str) -> configparser.ConfigParser:
         """Load a single configuration file"""
@@ -69,32 +71,55 @@ class BankConfigManager:
             'display_name': bank_name.title(),
             'content_signatures': [],
             'required_headers': [],
-            'filename_patterns': [bank_name],
-            'confidence_weight': 1.0
+            'filename_patterns': [bank_name.lower()], # Default to bank_name itself, case-insensitive
+            'confidence_weight': 1.0 # This seems to be a placeholder, BankDetector has its own weights
         }
         
-        # Get bank info
+        # Get bank info from [bank_info] section
         if config.has_section('bank_info'):
-            bank_info = dict(config['bank_info'])
-            detection_info['display_name'] = bank_info.get('name', bank_name).title()
+            bank_info_dict = dict(config['bank_info'])
+            detection_info['display_name'] = bank_info_dict.get('name', bank_name).title()
             
             # Load filename patterns (both simple and regex)
-            if 'file_patterns' in bank_info:
-                patterns = bank_info['file_patterns'].split(',')
-                detection_info['filename_patterns'] = [p.strip().lower() for p in patterns]
+            loaded_filename_patterns = []
+            if 'file_patterns' in bank_info_dict:
+                patterns = bank_info_dict['file_patterns'].split(',')
+                loaded_filename_patterns.extend([p.strip().lower() for p in patterns if p.strip()])
             
-            if 'filename_regex_patterns' in bank_info:
-                regex_patterns = bank_info['filename_regex_patterns'].split(',')
-                detection_info['filename_patterns'].extend([p.strip() for p in regex_patterns])
-                print(f"🔍 Added regex patterns for {bank_name}: {regex_patterns}")
-        
-        # Add bank-specific content signatures
-        if 'wise' in bank_name.lower():
-            detection_info['content_signatures'] = ['TransferwiseId', 'Payment Reference', 'Exchange From', 'Exchange To']
-            detection_info['required_headers'] = ['Date', 'Amount', 'Currency', 'Description']
-        elif 'nayapay' in bank_name.lower():
-            detection_info['content_signatures'] = ['NayaPay ID', 'NayaPay Account Number', 'Customer Name']
-            detection_info['required_headers'] = ['TIMESTAMP', 'TYPE', 'DESCRIPTION', 'AMOUNT', 'BALANCE']
+            if 'filename_regex_patterns' in bank_info_dict:
+                regex_patterns = bank_info_dict['filename_regex_patterns'].split(',')
+                loaded_filename_patterns.extend([p.strip() for p in regex_patterns if p.strip()])
+                print(f"ℹ️ [BankConfigManager] Added regex patterns for {bank_name}: {regex_patterns}")
+            
+            if loaded_filename_patterns:
+                detection_info['filename_patterns'] = loaded_filename_patterns
+            elif bank_name: # Fallback if no patterns specified in config, use bank_name
+                 detection_info['filename_patterns'] = [bank_name.lower()]
+
+            # Load content signatures from 'detection_content_signatures' field in [bank_info]
+            detection_keywords_str = bank_info_dict.get('detection_content_signatures', '')
+            if detection_keywords_str:
+                content_signatures_from_config = [s.strip() for s in detection_keywords_str.split(',') if s.strip()]
+                detection_info['content_signatures'] = content_signatures_from_config
+                print(f"ℹ️ [BankConfigManager] For {bank_name}, using 'detection_content_signatures' from config: {content_signatures_from_config}")
+
+        # Get required_headers from [csv_config] section's 'expected_headers'
+        bank_specific_expected_headers = []
+        if config.has_section('csv_config'):
+            csv_cfg = dict(config['csv_config'])
+            expected_headers_str = csv_cfg.get('expected_headers', '')
+            if expected_headers_str:
+                bank_specific_expected_headers = [h.strip() for h in expected_headers_str.split(',') if h.strip()]
+                detection_info['required_headers'] = bank_specific_expected_headers
+                print(f"ℹ️ [BankConfigManager] For {bank_name}, using 'expected_headers' for detection's required_headers: {bank_specific_expected_headers}")
+
+        # Fallback for content_signatures if not provided by 'detection_content_signatures'
+        if not detection_info['content_signatures']:
+            fallback_signatures = [detection_info['display_name']] # Start with display name
+            if bank_specific_expected_headers: # Add expected headers as content signatures
+                fallback_signatures.extend(bank_specific_expected_headers)
+            detection_info['content_signatures'] = list(set(fallback_signatures)) # Use set to remove duplicates
+            print(f"ℹ️ [BankConfigManager] For {bank_name}, using fallback content_signatures (display_name + expected_headers): {detection_info['content_signatures']}")
         
         print(f"🔍 Detection info for {bank_name}: {detection_info}")
         return detection_info
@@ -185,20 +210,48 @@ class BankConfigManager:
             header_row = csv_config['header_row']
             
             print(f"📋 Using bank-specific header detection: header_row={header_row}")
-            
-            # Validate header row exists and extract headers
+
             if header_row < len(lines):
                 headers = [h.replace('\ufeff', '').strip() for h in lines[header_row]]
+                expected_headers_from_conf = csv_config.get('expected_headers', [])
                 
-                return {
-                    'success': True, 'header_row': header_row, 'data_start_row': csv_config['data_start_row'],
-                    'headers': headers, 'method': 'bank_config', 'bank_name': bank_name
-                }
+                # Validate if these headers match expected_headers from config
+                if expected_headers_from_conf:
+                    match_count = 0
+                    temp_headers_lower = [h.lower() for h in headers]
+                    for eh in expected_headers_from_conf:
+                        # Allow partial match for robustness, e.g. "AMOUNT" in "TOTAL AMOUNT"
+                        if any(eh.lower() in th_lower for th_lower in temp_headers_lower):
+                            match_count += 1
+                    
+                    # Consider a match if at least 50% of expected headers are found
+                    # or if there are few expected headers (e.g. 1 or 2), require all.
+                    required_match_ratio = 0.5 if len(expected_headers_from_conf) > 2 else 1.0
+                    
+                    if (match_count / len(expected_headers_from_conf)) < required_match_ratio:
+                        print(f"⚠️ Configured header_row {header_row} for {bank_name} does not sufficiently match expected headers on the processed file.")
+                        print(f"   Headers found: {headers[:5]}. Expected: {expected_headers_from_conf[:5]}. Match ratio: {match_count / len(expected_headers_from_conf):.2f} < {required_match_ratio:.2f}.")
+                        # Do not return; fall through to auto-detection.
+                    else:
+                        print(f"   ✅ Configured header_row {header_row} matches expected headers for {bank_name}.")
+                        return {
+                            'success': True, 'header_row': header_row, 'data_start_row': csv_config['data_start_row'],
+                            'headers': headers, 'method': 'bank_config_validated', 'bank_name': bank_name
+                        }
+                # If no expected_headers in config to verify against, or if validation passed, use the configured row.
+                # This case is now handled by the 'else' in the block above if validation passes.
+                # If no expected_headers, we assume the configured header_row is correct if within bounds.
+                elif not expected_headers_from_conf: # No expected_headers to validate against
+                    print(f"   No expected_headers in config for {bank_name} to validate against row {header_row}. Assuming correct.")
+                    return {
+                        'success': True, 'header_row': header_row, 'data_start_row': csv_config['data_start_row'],
+                        'headers': headers, 'method': 'bank_config_unvalidated', 'bank_name': bank_name
+                    }
             else:
                 print(f"⚠️ Configured header row {header_row} is beyond file length {len(lines)}")
         
-        # Fallback: Auto-detect headers by looking for common patterns
-        print("🔍 Falling back to auto-detection...")
+        # Fallback: Auto-detect headers if bank-specific logic didn't return
+        print(f"🔍 Falling back to auto-detection for header row in '{os.path.basename(file_path)}'...")
         return self._auto_detect_headers(lines)
     
     def _auto_detect_headers(self, lines: List[List[str]]) -> Dict[str, Any]:

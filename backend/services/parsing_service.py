@@ -8,14 +8,17 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 try:
-    from enhanced_csv_parser import EnhancedCSVParser
+    # from enhanced_csv_parser import EnhancedCSVParser # Old import
+    from csv_parser import UnifiedCSVParser # New parser import
     from data_cleaner import DataCleaner
     from bank_detection import BankDetector, BankConfigManager
 except ImportError:
     # Fallback path for import issues
     backend_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    sys.path.insert(0, backend_path)
-    from enhanced_csv_parser import EnhancedCSVParser
+    if backend_path not in sys.path: # Ensure backend_path is added only once
+        sys.path.insert(0, backend_path)
+    # from enhanced_csv_parser import EnhancedCSVParser # Old import
+    from csv_parser import UnifiedCSVParser # New parser import
     from data_cleaner import DataCleaner
     from bank_detection import BankDetector, BankConfigManager
 
@@ -36,10 +39,11 @@ class ParsingService:
     """Service for handling single CSV file parsing operations"""
     
     def __init__(self):
-        self.enhanced_parser = EnhancedCSVParser()
+        self.unified_parser = UnifiedCSVParser() # New parser instance
         self.data_cleaner = DataCleaner()
         self.bank_config_manager = BankConfigManager()
         self.bank_detector = BankDetector(self.bank_config_manager)
+        print(f"ℹ️ [MIGRATION][ParsingService] Initialized with UnifiedCSVParser.")
     
     def parse_single_file(self, file_path: str, filename: str, config: ParseConfig):
         """
@@ -53,20 +57,33 @@ class ParsingService:
         Returns:
             dict: Parsing result with bank detection and cleaning info
         """
-        print(f"🕵️‍♂️ Parse range request for file: {filename}")
-        print(f"🧹 Data cleaning enabled: {config.enable_cleaning}")
+        print(f"ℹ️ [MIGRATION][ParsingService] parse_single_file called for: {filename}")
+        print(f"  Config: start_row={config.start_row}, end_row={config.end_row}, start_col={config.start_col}, end_col={config.end_col}, encoding={config.encoding}")
+        print(f"  Data cleaning enabled: {config.enable_cleaning}")
         
         try:
-            # Parse with enhanced parser
-            parse_result = self.enhanced_parser.parse_with_range(
-                file_path, 
-                config.start_row, 
-                config.end_row, 
-                config.start_col, 
-                config.end_col, 
-                config.encoding
-            )
+            # Determine header_row and max_rows for UnifiedCSVParser
+            # Assuming config.start_row is the 0-indexed header row
+            header_row_for_unified = config.start_row
+            max_rows_for_unified = None
+            if config.end_row is not None and config.end_row >= header_row_for_unified:
+                # max_rows is number of data rows after header
+                max_rows_for_unified = config.end_row - header_row_for_unified
             
+            if config.start_col != 0 or config.end_col is not None:
+                print(f"⚠️ [MIGRATION][ParsingService] Column range (start_col={config.start_col}, end_col={config.end_col}) is not supported by UnifiedCSVParser. All columns will be parsed.")
+
+            print(f"  UnifiedParser params: encoding='{config.encoding}', header_row={header_row_for_unified}, max_rows={max_rows_for_unified}")
+            
+            # Parse with UnifiedCSVParser
+            parse_result = self.unified_parser.parse_csv(
+                file_path,
+                encoding=config.encoding,
+                header_row=header_row_for_unified, # Pass determined header_row
+                max_rows=max_rows_for_unified     # Pass determined max_rows
+            )
+            print(f"  UnifiedParser parse_csv result success: {parse_result.get('success')}")
+
             if not parse_result['success']:
                 return {
                     'success': False,

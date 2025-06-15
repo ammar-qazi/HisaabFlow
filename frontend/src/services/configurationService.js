@@ -20,14 +20,16 @@ export class ConfigurationService {
       console.log('✅ Configurations loaded:', response.data);
       return {
         success: true,
-        configurations: response.data.configurations
+        configurations: response.data.configurations,
+        raw_bank_names: response.data.raw_bank_names || []
       };
     } catch (err) {
       console.error('❌ Failed to load configurations:', err);
       return {
         success: false,
         error: 'Failed to load bank configurations. Please check if the backend is running.',
-        configurations: []
+        configurations: [],
+        raw_bank_names: []
       };
     }
   }

@@ -45,9 +45,16 @@ class EnhancedCSVParser:
             print("⚠️  Universal Transformer not available, using legacy transformation")
             self.universal_transformer = None
     
-    def preview_csv(self, file_path: str, encoding: str = 'utf-8') -> Dict:
+    def preview_csv(self, file_path: str, encoding: str = 'utf-8',
+                        header_row: int = None, bank_name: str = None,
+                        config_manager=None) -> Dict:
         """Preview CSV file and return basic info using robust CSV reading"""
-        return self.csv_reader.preview_csv(file_path, encoding)
+        # self.csv_reader is an instance of CSVReader.
+        # We assume CSVReader.preview_csv can handle a header_row argument,
+        # similar to RobustCSVParser.preview_csv.
+        # bank_name and config_manager are accepted but not used in this minimal implementation.
+        # They are available if logic is added to this method or if CSVReader is updated.
+        return self.csv_reader.preview_csv(file_path, encoding, header_row=header_row)
     
     def detect_data_range(self, file_path: str, encoding: str = 'utf-8') -> Dict:
         """Auto-detect where the actual transaction data starts"""

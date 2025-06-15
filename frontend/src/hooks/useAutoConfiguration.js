@@ -5,22 +5,41 @@ import { useState } from 'react';
  * Handles bank detection mapping and auto-application of configurations
  */
 export const useAutoConfiguration = () => {
-  // Bank mapping configuration - maps backend bank IDs to frontend config names
-  const BANK_CONFIG_MAPPING = {
-    'nayapay': 'Nayapay Configuration',
-    'wise_usd': 'Wise_Usd Configuration', 
-    'wise_eur': 'Wise_Eur Configuration',
-    'wise_huf': 'Wise_Huf Configuration'
-  };
+  // Dynamic bank mapping - will be populated from available configurations
+  const [bankConfigMapping, setBankConfigMapping] = useState({});
 
   // Minimum confidence threshold for auto-configuration
   const CONFIDENCE_THRESHOLD = 0.5;
 
   /**
+   * Updates the bank configuration mapping from available configurations
+   * Dynamically maps backend bank names to frontend configuration display names
+   */
+  const updateBankConfigMapping = (configurations, rawBankNames) => {
+    if (!configurations || !rawBankNames || !Array.isArray(configurations) || !Array.isArray(rawBankNames)) {
+      console.log('⚠️ Missing or invalid configurations/rawBankNames for mapping update');
+      return;
+    }
+
+    const mapping = {};
+    
+    // Create mapping from raw bank names to display names
+    rawBankNames.forEach((bankName, index) => {
+      if (configurations[index]) {
+        mapping[bankName] = configurations[index];
+        console.log(`🗺️ Bank mapping: '${bankName}' → '${configurations[index]}'`);
+      }
+    });
+    
+    setBankConfigMapping(mapping);
+    console.log('🗺️ Updated bank config mapping:', mapping);
+  };
+
+  /**
    * Maps backend detected bank to frontend configuration name
    */
   const mapBankToConfiguration = (detectedBank) => {
-    return BANK_CONFIG_MAPPING[detectedBank] || null;
+    return bankConfigMapping[detectedBank] || null;
   };
 
   /**
@@ -89,7 +108,8 @@ export const useAutoConfiguration = () => {
     mapBankToConfiguration,
     shouldAutoApply,
     generateSuccessMessage,
-    BANK_CONFIG_MAPPING,
+    updateBankConfigMapping,
+    bankConfigMapping,
     CONFIDENCE_THRESHOLD
   };
 };

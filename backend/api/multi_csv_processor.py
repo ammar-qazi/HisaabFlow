@@ -8,7 +8,16 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from enhanced_csv_parser import EnhancedCSVParser
+try:
+    # from enhanced_csv_parser import EnhancedCSVParser # Old import
+    from csv_parser import UnifiedCSVParser # New parser import
+    from services.cashew_transformer import CashewTransformer # New transformer import
+except ImportError:
+    backend_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if backend_path not in sys.path: # Ensure backend_path is added only once
+        sys.path.insert(0, backend_path)
+    from csv_parser import UnifiedCSVParser
+    from services.cashew_transformer import CashewTransformer
 from data_cleaner import DataCleaner
 from .models import MultiCSVParseRequest, MultiCSVTransformRequest
 from .file_manager import FileManager
@@ -20,17 +29,20 @@ class MultiCSVProcessor:
     """Handles multi-CSV operations"""
     
     def __init__(self, file_manager: FileManager):
-        self.enhanced_parser = EnhancedCSVParser()
+        self.unified_parser = UnifiedCSVParser() # New parser instance
+        self.cashew_transformer = CashewTransformer() # New transformer instance
         self.data_cleaner = DataCleaner()
         self.file_manager = file_manager
         self.transfer_handler = TransferDetectionHandler()
         self.config_manager = ConfigManager()
+        print(f"ℹ️ [MIGRATION][MultiCSVProcessor] Initialized with UnifiedCSVParser and CashewTransformer.")
+
     
     def parse_multiple_csvs(self, request: MultiCSVParseRequest) -> Dict[str, Any]:
         """Parse multiple CSV files with individual configurations"""
         try:
-            print(f"🚀 Multi-CSV parse request received for {len(request.file_ids)} files")
-            print(f"🧹 Data cleaning enabled: {request.enable_cleaning}")
+            print(f"ℹ️ [MIGRATION][MultiCSVProcessor] parse_multiple_csvs called for {len(request.file_ids)} files.")
+            print(f"  Data cleaning enabled: {request.enable_cleaning}")
             
             # Validation
             self._validate_parse_request(request)
@@ -66,8 +78,8 @@ class MultiCSVProcessor:
     def transform_multiple_csvs(self, request: MultiCSVTransformRequest) -> Dict[str, Any]:
         """Transform multiple CSVs with enhanced transfer detection"""
         try:
-            print(f"🚀 Multi-CSV transform request received for {len(request.csv_data_list)} files")
-            print(f"👤 User: {request.user_name}, Transfer detection: {request.enable_transfer_detection}")
+            print(f"ℹ️ [MIGRATION][MultiCSVProcessor] transform_multiple_csvs called for {len(request.csv_data_list)} files.")
+            print(f"  User: {request.user_name}, Transfer detection: {request.enable_transfer_detection}")
             
             # Transform each CSV individually
             all_transformed_data, transformation_results = self._transform_all_csvs(request)
@@ -106,19 +118,30 @@ class MultiCSVProcessor:
     
     def _parse_single_file(self, file_info: Dict, file_path: str, config: Dict, enable_cleaning: bool) -> Dict:
         """Parse a single file with configuration"""
-        print(f"📄 File: {file_info['original_name']} at {file_path}")
-        print(f"🔧 Config: start_row={config.get('start_row', 0)}, encoding={config.get('encoding', 'utf-8')}")
+        print(f"ℹ️ [MIGRATION][MultiCSVProcessor] _parse_single_file: {file_info['original_name']}")
+        print(f"  Config: start_row={config.get('start_row', 0)}, end_row={config.get('end_row')}, start_col={config.get('start_col',0)}, end_col={config.get('end_col')}, encoding={config.get('encoding', 'utf-8')}")
         
         try:
-            # Parse with enhanced parser
-            parse_result = self.enhanced_parser.parse_with_range(
+            # Prepare params for UnifiedCSVParser
+            # Assuming config.get('start_row', 0) is the 0-indexed header row
+            header_row_for_unified = config.get('start_row', 0)
+            max_rows_for_unified = None
+            if config.get('end_row') is not None and config.get('end_row') >= header_row_for_unified:
+                max_rows_for_unified = config.get('end_row') - header_row_for_unified
+            
+            if config.get('start_col', 0) != 0 or config.get('end_col') is not None:
+                print(f"⚠️ [MIGRATION][MultiCSVProcessor] Column range (start_col={config.get('start_col', 0)}, end_col={config.get('end_col')}) is not supported by UnifiedCSVParser. All columns will be parsed.")
+
+            print(f"  UnifiedParser params: encoding='{config.get('encoding', 'utf-8')}', header_row={header_row_for_unified}, max_rows={max_rows_for_unified}")
+            
+            # Parse with UnifiedCSVParser
+            parse_result = self.unified_parser.parse_csv( # Use new parser
                 file_path,
-                config.get('start_row', 0),
-                config.get('end_row'),
-                config.get('start_col', 0),
-                config.get('end_col'),
-                config.get('encoding', 'utf-8')
+                encoding=config.get('encoding', 'utf-8'),
+                header_row=header_row_for_unified,
+                max_rows=max_rows_for_unified
             )
+            print(f"  UnifiedParser parse_csv result success: {parse_result.get('success')}")
             
             if not parse_result['success']:
                 raise HTTPException(status_code=400, detail=f"Failed to parse {file_info['original_name']}: {parse_result.get('error', 'Unknown error')}")
@@ -194,11 +217,12 @@ class MultiCSVProcessor:
             print(f"🔧 Using configuration-based system (template support as fallback)")
             
             print(f"🏦 Bank: {bank_name}, Rules: {len(categorization_rules)}, Rows: {len(csv_data.get('data', []))}")
+            print(f"ℹ️ [MIGRATION][MultiCSVProcessor] _transform_all_csvs: Transforming for bank {bank_name} using CashewTransformer.")
             
             # Transform data
             try:
-                transformed = self.enhanced_parser.transform_to_cashew(
-                    csv_data['data'],
+                transformed = self.cashew_transformer.transform_to_cashew( # Use new transformer
+                    csv_data.get('data', []), # Ensure data is accessed safely
                     column_mapping,
                     bank_name,
                     categorization_rules,
@@ -207,7 +231,7 @@ class MultiCSVProcessor:
                     request.bank_rules_settings
                 )
                 
-                print(f"✅ Transformed {len(transformed)} transactions for {csv_data.get('file_name')}")
+                print(f"  Transformed {len(transformed)} transactions for {csv_data.get('file_name')}")
                 
                 config_name_used = config_data.get('name', 'None')
                 print(f"🔍 DEBUG: Recording config_used = '{config_name_used}'")

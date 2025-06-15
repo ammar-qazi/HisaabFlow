@@ -8,32 +8,37 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 try:
-    from enhanced_csv_parser import EnhancedCSVParser
+    # from enhanced_csv_parser import EnhancedCSVParser # Old import
+    from csv_parser import UnifiedCSVParser # New parser import
     from data_cleaner import DataCleaner
     from bank_detection import BankDetector, BankConfigManager
+    from csv_parser import EncodingDetector # Import EncodingDetector
     from csv_preprocessing.csv_preprocessor import CSVPreprocessor
 except ImportError:
     # Fallback path for import issues
     backend_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    sys.path.insert(0, backend_path)
-    from enhanced_csv_parser import EnhancedCSVParser
+    if backend_path not in sys.path: # Ensure backend_path is added only once
+        sys.path.insert(0, backend_path)
+    # from enhanced_csv_parser import EnhancedCSVParser # Old import
+    from csv_parser import UnifiedCSVParser # New parser import
     from data_cleaner import DataCleaner
     from bank_detection import BankDetector, BankConfigManager
+    from csv_parser import EncodingDetector # Import EncodingDetector
     from csv_preprocessing.csv_preprocessor import CSVPreprocessor
-
 
 class MultiCSVService:
     """Service for handling multi-CSV parsing operations"""
     
     def __init__(self):
-        self.enhanced_parser = EnhancedCSVParser()
+        self.unified_parser = UnifiedCSVParser() # New parser instance
         self.data_cleaner = DataCleaner()
         self.bank_config_manager = BankConfigManager()
         self.bank_detector = BankDetector(self.bank_config_manager)
         self.csv_preprocessor = CSVPreprocessor()
+        self.encoding_detector = EncodingDetector() # Initialize EncodingDetector
     
     def parse_multiple_files(self, file_infos: list, parse_configs: list, 
-                           user_name: str = "Ammar Qazi", enable_cleaning: bool = True):
+                           user_name: str = "User", enable_cleaning: bool = True): # Changed default user_name for generic use
         """
         Parse multiple CSV files with preprocessing and bank detection
         
@@ -46,8 +51,8 @@ class MultiCSVService:
         Returns:
             dict: Multi-CSV parsing result
         """
-        print(f"🚀 Multi-CSV parse request for {len(file_infos)} files")
-        print(f"🧹 Data cleaning enabled: {enable_cleaning}")
+        print(f"ℹ️ [MIGRATION][MultiCSVService] parse_multiple_files called for {len(file_infos)} files.")
+        print(f"  Data cleaning enabled: {enable_cleaning}")
         
         try:
             results = []
@@ -59,29 +64,47 @@ class MultiCSVService:
                 file_path = file_info["temp_path"]
                 filename = file_info["original_name"]
                 
-                # Step 1: Generic CSV preprocessing
-                preprocessing_result = self._apply_preprocessing(file_path, config)
+                # Step 1: Determine effective encoding
+                encoding_from_config = config.get('encoding')
+                effective_encoding = encoding_from_config
                 
-                # Step 2: Bank detection and header finding
+                # If config encoding is None or a generic 'utf-8' (which might be a default), try to detect.
+                # For Forint bank files, we know 'utf-8' is often wrong.
+                if not effective_encoding or (effective_encoding.lower() == 'utf-8' and filename.startswith("11600006-")):
+                    print(f"ℹ️ [MultiCSVService] Config encoding is '{effective_encoding}'. Detecting encoding for '{filename}'.")
+                    detection_result = self.encoding_detector.detect_encoding(file_path)
+                    effective_encoding = detection_result['encoding']
+                    print(f"👍 [MultiCSVService] Detected encoding for '{filename}': {effective_encoding} (confidence: {detection_result['confidence']:.2f})")
+                
+                # Update config with the effective encoding to be used by subsequent steps
+                current_config = {**config, 'encoding': effective_encoding}
+                
+                # Step 2: Generic CSV preprocessing
+                preprocessing_result = self._apply_preprocessing(file_path, current_config)
+                
+                # Step 3: Bank detection and header finding
                 bank_detection, header_info = self._detect_bank_and_headers(
-                    preprocessing_result['file_path'], filename, config
+                    preprocessing_result['file_path'], filename, current_config,
+                    effective_encoding, # Pass effective_encoding
+                    preprocessing_result['info']['applied'] # Pass preprocessing status
                 )
                 
-                # Step 3: Parse with enhanced parser
+                # Step 4: Parse with enhanced parser
                 parse_result = self._parse_with_bank_info(
-                    preprocessing_result['file_path'], config, header_info
+                    preprocessing_result['file_path'], current_config, header_info # Pass current_config
                 )
-                
+
+
                 if not parse_result['success']:
                     raise Exception(f"Failed to parse {filename}: {parse_result.get('error', 'Unknown error')}")
                 
                 # Step 4: Final bank detection on parsed data
-                final_bank_info = self._finalize_bank_detection(
+                final_bank_info = self._finalize_bank_detection( # Renamed from Step 4 to Step 5
                     filename, parse_result, bank_detection, preprocessing_result['info']
                 )
                 
                 # Step 5: Apply data cleaning if enabled
-                final_result = self._apply_cleaning_if_enabled(
+                final_result = self._apply_cleaning_if_enabled( # Renamed from Step 5 to Step 6
                     parse_result, final_bank_info, enable_cleaning
                 )
                 
@@ -89,7 +112,7 @@ class MultiCSVService:
                     "file_id": file_info["file_id"],
                     "file_name": filename,
                     "parse_result": final_result,
-                    "config": config,
+                    "config": current_config, # Store the config that was actually used
                     "data": final_result['data'],
                     "bank_info": final_bank_info
                 })
@@ -115,10 +138,11 @@ class MultiCSVService:
         print(f"🔧 Step 1: Generic CSV preprocessing (bank-agnostic)")
         
         # Apply generic CSV preprocessing (fixes multiline fields, encoding, etc.)
+        # Ensure the preprocessor uses the provided encoding from config
         preprocessing_result = self.csv_preprocessor.preprocess_csv(
             file_path, 
             'generic',  # Bank-agnostic preprocessing
-            config.get('encoding', 'utf-8')
+            config['encoding'] # Use the effective_encoding from the config
         )
         
         # Use preprocessed file if successful, otherwise use original
@@ -143,83 +167,143 @@ class MultiCSVService:
             'info': preprocessing_info
         }
     
-    def _detect_bank_and_headers(self, file_path: str, filename: str, config: dict):
-        """Detect bank and find headers in the file"""
-        print(f"🔧 Step 2: Detecting bank for proper parsing of {filename}")
-        
-        # Detect bank on cleaned file (should be more accurate now)
-        bank_detection = self.bank_detector.detect_bank(filename, "", [])
-        header_row = None
-        data_start_row = config.get('start_row', 0)
-        
-        if bank_detection.bank_name != 'unknown' and bank_detection.confidence > 0.1:
-            print(f"🏦 Bank detected: {bank_detection.bank_name} (confidence: {bank_detection.confidence:.2f})")
-            
-            # Dynamic header detection: Find headers in preprocessed file
-            header_row, data_start_row = self._find_headers_dynamically(
-                file_path, bank_detection.bank_name, config
-            )
+    def _detect_bank_and_headers(self, file_path: str, filename: str, current_file_config: dict, file_encoding: str, preprocessing_applied: bool):
+        """Detect bank and determine effective header_row and data_start_row, considering preprocessing."""
+        print(f"🔧 Step 2: Detecting bank and headers for {filename} with encoding {file_encoding}")
+
+        user_header_row = current_file_config.get('header_row')
+        user_data_start_row = current_file_config.get('start_row') # This is the 'start_row' from the input parse_configs
+        print(f"  Initial user-provided config: header_row={user_header_row}, data_start_row={user_data_start_row}")
+
+        # Read initial content for more accurate bank detection
+        content_for_detection = ""
+        sample_headers_for_detection = []
+        try:
+            with open(file_path, 'r', encoding=file_encoding, newline='') as f:
+                raw_lines_for_detection = [next(f, '') for _ in range(20)]
+            content_for_detection = "".join(raw_lines_for_detection)
+            for line in raw_lines_for_detection:
+                if line.strip():
+                    sample_headers_for_detection = [h.strip() for h in line.split(',')] # Basic CSV split
+                    break
+        except Exception as e:
+            print(f"  ⚠️ Warning: Could not read initial lines from {file_path} for bank detection: {e}")
+
+        bank_detection_result = self.bank_detector.detect_bank(filename, content_for_detection, sample_headers_for_detection)
+
+        effective_header_row = user_header_row
+        effective_data_start_row = user_data_start_row # Placeholder, will be refined
+
+        if bank_detection_result.bank_name != 'unknown' and bank_detection_result.confidence > 0.1:
+            detected_bank_name = bank_detection_result.bank_name
+            print(f"🏦 Tentatively detected bank: {detected_bank_name} (confidence: {bank_detection_result.confidence:.2f})")
+
+            bank_csv_config = self.bank_config_manager.get_csv_config(detected_bank_name)
+            bank_config_header_row = bank_csv_config.get('header_row')
+            # 'data_start_row' from get_csv_config is guaranteed to be header_row + 1 or more
+            bank_config_data_start_row = bank_csv_config.get('data_start_row')
+
+            print(f"  Bank-specific config for {detected_bank_name}: header_row={bank_config_header_row}, data_start_row={bank_config_data_start_row}")
+
+            if user_header_row is not None:
+                effective_header_row = user_header_row
+                print(f"  Using user-provided header_row: {effective_header_row}")
+                if user_data_start_row is not None: # User also provided data_start_row
+                    effective_data_start_row = user_data_start_row
+                elif effective_header_row is not None: # User provided header_row, derive data_start_row
+                    effective_data_start_row = effective_header_row + 1
+            # If no user_header_row, proceed with detection logic
+            # Prioritize dynamic detection if preprocessing was applied or if bank config doesn't have a fixed header_row
+            elif preprocessing_applied or bank_config_header_row is None:
+                print(f"  Preprocessing applied ({preprocessing_applied}) or bank_config_header_row is None. Attempting dynamic header detection on file '{os.path.basename(file_path)}' using BankConfigManager for {detected_bank_name}.")
+                header_detection_cfg_result = self.bank_config_manager.detect_header_row(
+                    file_path, detected_bank_name, file_encoding
+                )
+                if header_detection_cfg_result['success'] and header_detection_cfg_result.get('header_row') is not None:
+                    effective_header_row = header_detection_cfg_result['header_row']
+                    effective_data_start_row = header_detection_cfg_result['data_start_row']
+                    print(f"  Dynamically detected header_row: {effective_header_row}, data_start_row: {effective_data_start_row} using BankConfigManager (method: {header_detection_cfg_result.get('method')}).")
+                # Fallback to bank_config_header_row if dynamic detection failed but a config value exists
+                elif bank_config_header_row is not None:
+                    effective_header_row = bank_config_header_row
+                    effective_data_start_row = bank_config_data_start_row
+                    print(f"  Dynamic detection failed. Using header_row {effective_header_row} from {detected_bank_name} config as fallback.")
+                else:
+                    print(f"  ⚠️ Dynamic header detection using BankConfigManager failed for {detected_bank_name}. Error: {header_detection_cfg_result.get('error')}")
+                    # effective_header_row remains None or its previous value
+            elif bank_config_header_row is not None: # No user override, no preprocessing (or preproc didn't trigger dynamic), but bank_config_header_row exists
+                effective_header_row = bank_config_header_row
+                effective_data_start_row = bank_config_data_start_row
+                print(f"  Using header_row {effective_header_row} from {detected_bank_name} config (preprocessing_applied={preprocessing_applied}).")
+
+            # If user_data_start_row was explicitly provided, it should override any derived data_start_row,
+            # unless user_header_row was also provided (handled above).
+            if user_data_start_row is not None and user_header_row is None:
+                effective_data_start_row = user_data_start_row
+                print(f"  Applying user-provided data_start_row: {effective_data_start_row} (as user_header_row was not set).")
+
         else:
-            print(f"📝 Using manual config for unknown bank")
+            print(f"📝 No specific bank detected with sufficient confidence, or bank is 'unknown'. Using user-provided or default header/data start rows.")
+            # If user_header_row or user_data_start_row were provided, they are already set in effective_header_row/effective_data_start_row
+
+        # Final adjustments for data_start_row if it's still not sensible
+        if effective_header_row is not None:
+            # If effective_data_start_row is still None or not after header, set it to header_row + 1
+            if effective_data_start_row is None or effective_data_start_row <= effective_header_row:
+                effective_data_start_row = effective_header_row + 1
+                print(f"  Adjusted data_start_row to {effective_data_start_row} (as header_row + 1).")
+        elif effective_data_start_row is None: # Header is None, data_start_row is None
+            effective_data_start_row = 1 # Default to 1 (assuming header is 0 for parser)
+            print(f"  Defaulting data_start_row to {effective_data_start_row} as header_row is unknown.")
         
-        return bank_detection, {
-            'header_row': header_row,
-            'data_start_row': data_start_row
+        print(f"  Final effective settings for parsing: header_row={effective_header_row}, data_start_row={effective_data_start_row}")
+        return bank_detection_result, {
+            'header_row': effective_header_row,
+            'data_start_row': effective_data_start_row
         }
     
     def _find_headers_dynamically(self, file_path: str, bank_name: str, config: dict):
-        """Find headers dynamically in preprocessed file"""
-        print(f"🔧 Finding headers dynamically in preprocessed file")
-        
-        header_row = None
-        data_start_row = config.get('start_row', 0)
-        
-        try:
-            with open(file_path, 'r', encoding='utf-8-sig') as f:
-                lines = f.readlines()
-            
-            # Look for the characteristic headers based on bank type
-            header_patterns = {
-                'nayapay': ['TIMESTAMP', 'TYPE', 'DESCRIPTION'],
-                'wise_usd': ['Date', 'Amount', 'Description'],
-                'wise_eur': ['Date', 'Amount', 'Description'],
-                'wise_huf': ['Date', 'Amount', 'Description']
-            }
-            
-            patterns = header_patterns.get(bank_name, ['Date', 'Amount'])
-            
-            for i, line in enumerate(lines):
-                line_upper = line.upper()
-                if all(pattern.upper() in line_upper for pattern in patterns):
-                    header_row = i
-                    data_start_row = i + 1
-                    print(f"🔧 Found headers at row {header_row} in preprocessed file")
-                    print(f"🔧 Headers: {line.strip()}")
-                    break
-            
-            if header_row is None:
-                print(f"⚠️ Could not find headers in preprocessed file, using manual config")
-                
-        except Exception as e:
-            print(f"⚠️ Header detection failed: {e}")
-        
-        return header_row, data_start_row
+        """DEPRECATED: Find headers dynamically. BankConfigManager.detect_header_row is preferred."""
+        print(f"⚠️ [MultiCSVService] _find_headers_dynamically is deprecated and should not be called directly. Using BankConfigManager.detect_header_row instead.")
+        # Fallback to BankConfigManager's method if somehow called.
+        header_detection_result = self.bank_config_manager.detect_header_row(file_path, bank_name, config.get('encoding', 'utf-8'))
+        if header_detection_result['success']:
+            return header_detection_result['header_row'], header_detection_result['data_start_row']
+        return config.get('header_row'), config.get('start_row', config.get('header_row', 0) + 1 if config.get('header_row') is not None else 1)
     
     def _parse_with_bank_info(self, file_path: str, config: dict, header_info: dict):
         """Parse file with enhanced parser using bank-detected info"""
-        print(f"🔧 Step 3: Parsing with enhanced parser")
+        print(f"ℹ️ [MIGRATION][MultiCSVService] _parse_with_bank_info using UnifiedCSVParser.")
+        print(f"  Config: end_row={config.get('end_row')}, start_col={config.get('start_col', 0)}, end_col={config.get('end_col')}, encoding={config['encoding']}")
+        print(f"  Header info: data_start_row={header_info['data_start_row']}, header_row={header_info['header_row']}")
+
+        header_row_for_unified = header_info['header_row']
+        max_rows_for_unified = None
+        if config.get('end_row') is not None and header_row_for_unified is not None and config.get('end_row') >= header_row_for_unified:
+             # max_rows is number of data rows after header
+            max_rows_for_unified = config.get('end_row') - header_row_for_unified
         
-        # Parse with enhanced parser using proper header/data separation
-        parse_result = self.enhanced_parser.parse_with_range(
-            file_path,  # Use preprocessed file
-            header_info['data_start_row'],  # Use bank-detected data start row
-            config.get('end_row'),
-            config.get('start_col', 0),
-            config.get('end_col'),
-            config.get('encoding', 'utf-8'),
-            header_info['header_row']  # Pass separate header row
+        if config.get('start_col', 0) != 0 or config.get('end_col') is not None:
+            print(f"⚠️ [MIGRATION][MultiCSVService] Column range (start_col={config.get('start_col', 0)}, end_col={config.get('end_col')}) is not supported by UnifiedCSVParser. All columns will be parsed.")
+
+        print(f"  UnifiedParser params: encoding='{config['encoding']}', header_row={header_row_for_unified}, max_rows={max_rows_for_unified}")
+
+        # Parse with UnifiedCSVParser
+        parse_result = self.unified_parser.parse_csv(
+            file_path,
+            encoding=config['encoding'],
+            header_row=header_row_for_unified,
+            max_rows=max_rows_for_unified
         )
-        
+        print(f"  UnifiedParser parse_csv result success: {parse_result.get('success')}")
+
+        if parse_result.get('success'):
+            parsed_headers = parse_result.get('headers', [])
+            print(f"  [MultiCSVService] Headers parsed by UnifiedCSVParser: {parsed_headers}")
+            
+        else:
+            print(f"  [MultiCSVService] UnifiedCSVParser failed. Error: {parse_result.get('error')}")
+
         return parse_result
     
     def _finalize_bank_detection(self, filename: str, parse_result: dict, 
@@ -255,9 +339,11 @@ class MultiCSVService:
             bank_cleaning_config = None
             if bank_info['detected_bank'] != 'unknown':
                 bank_column_mapping = self.bank_config_manager.get_column_mapping(bank_info['detected_bank'])
+                bank_csv_cfg = self.bank_config_manager.get_csv_config(bank_info['detected_bank'])
                 bank_cleaning_config = {
                     'column_mapping': bank_column_mapping,
-                    'bank_name': bank_info['detected_bank']
+                    'bank_name': bank_info['detected_bank'],
+                    'expected_headers': bank_csv_cfg.get('expected_headers', []) # Pass expected_headers
                 }
                 print(f"🗺️ Using bank-specific cleaning config for {bank_info['detected_bank']}: {bank_cleaning_config}")
             

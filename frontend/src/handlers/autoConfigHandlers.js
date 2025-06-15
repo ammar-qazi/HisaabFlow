@@ -9,7 +9,7 @@ const API_BASE = 'http://127.0.0.1:8000';
 /**
  * Auto-configures a file based on bank detection results
  */
-export const autoConfigureFile = async (fileId, bankDetection, previewData, setUploadedFiles, setSuccess, setError) => {
+export const autoConfigureFile = async (fileId, bankDetection, previewData, setUploadedFiles, setSuccess, setError, dynamicBankMapping = null) => {
   console.log(`🔧 DEBUG: autoConfigureFile called for fileId: ${fileId}`);
   console.log(`🔧 DEBUG: bankDetection:`, bankDetection);
   console.log(`🔧 DEBUG: previewData headers:`, previewData.column_names);
@@ -19,18 +19,22 @@ export const autoConfigureFile = async (fileId, bankDetection, previewData, setU
   const suggestedHeaderRow = previewData.suggested_header_row || 0;
   const suggestedDataRow = previewData.suggested_data_start_row || 0;
   
-  // Map backend bank names to configuration names
-  const bankToConfigMap = {
+  // Use dynamic mapping if provided, otherwise fallback to static mapping
+  const bankToConfigMap = dynamicBankMapping || {
     'nayapay': 'Nayapay Configuration',
+    'forint_bank': 'Forint_Bank Configuration',
     'wise_usd': 'Wise_Usd Configuration', 
     'wise_eur': 'Wise_Eur Configuration',
-    'wise_huf': 'Wise_Huf Configuration'
+    'wise_huf': 'Wise_Huf Configuration',
+    'wise_family': 'Wise_Family Configuration'
   };
   
   const configName = bankToConfigMap[detectedBank];
   
   if (!configName || confidence < 0.1) {
     console.log(`🔧 DEBUG: Skipping auto-configuration - no config or low confidence`);
+    console.log(`🔧 DEBUG: configName: ${configName}, confidence: ${confidence}, detectedBank: ${detectedBank}`);
+    console.log(`🔧 DEBUG: Available mappings:`, bankToConfigMap);
     return;
   }
   
@@ -110,7 +114,7 @@ export const generateAutoColumnMapping = (headers) => {
 /**
  * Triggers auto-detection and configuration for newly uploaded files
  */
-export const triggerAutoDetection = async (newFiles, setUploadedFiles, setSuccess, setError) => {
+export const triggerAutoDetection = async (newFiles, setUploadedFiles, setSuccess, setError, dynamicBankMapping = null) => {
   console.log(`🔧 DEBUG: Starting auto-detection for ${newFiles.length} newly uploaded files`);
   
   for (let i = 0; i < newFiles.length; i++) {
@@ -126,8 +130,8 @@ export const triggerAutoDetection = async (newFiles, setUploadedFiles, setSucces
       if (backendDetection && backendDetection.detected_bank !== 'unknown') {
         console.log(`🏦 DEBUG: Bank detected: ${backendDetection.detected_bank} (confidence: ${backendDetection.confidence})`);
         
-        // Auto-configure the file
-        await autoConfigureFile(newFile.fileId, backendDetection, detectionResponse.data, setUploadedFiles, setSuccess, setError);
+        // Auto-configure the file with dynamic mapping
+        await autoConfigureFile(newFile.fileId, backendDetection, detectionResponse.data, setUploadedFiles, setSuccess, setError, dynamicBankMapping);
       }
     } catch (error) {
       console.error(`❌ DEBUG: Auto-detection failed for ${newFile.fileName}:`, error);

@@ -22,7 +22,8 @@ export const createFileHandlers = (state) => {
     setSuccess, 
     setError, 
     setLoading, 
-    setCurrentStep 
+    setCurrentStep,
+    dynamicBankMapping  // Add this to get access to dynamic mapping
   } = state;
 
   const handleFileSelect = async (selectedFiles) => {
@@ -86,7 +87,7 @@ export const createFileHandlers = (state) => {
         
         // Trigger auto-detection after a short delay
         setTimeout(() => {
-          triggerAutoDetection(newFiles, setUploadedFiles, setSuccess, setError);
+          triggerAutoDetection(newFiles, setUploadedFiles, setSuccess, setError, dynamicBankMapping);
         }, 1000);
         
         return updated;

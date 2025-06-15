@@ -10,25 +10,28 @@ import json
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 try:
-    from enhanced_csv_parser import EnhancedCSVParser
+    # from enhanced_csv_parser import EnhancedCSVParser # Old import
+    from services.cashew_transformer import CashewTransformer # New import for transformation
     from bank_detection import BankDetector, BankConfigManager
     from transfer_detection.main_detector import TransferDetector
     from transfer_detection.config_manager import ConfigurationManager
 except ImportError:
     # Fallback path for import issues
     backend_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if backend_path not in sys.path: # Ensure backend_path is added only once
+        sys.path.insert(0, backend_path)
     sys.path.insert(0, backend_path)
-    from enhanced_csv_parser import EnhancedCSVParser
+    # from enhanced_csv_parser import EnhancedCSVParser # Old import
+    from services.cashew_transformer import CashewTransformer # New import for transformation
     from bank_detection import BankDetector, BankConfigManager
     from transfer_detection.main_detector import TransferDetector
     from transfer_detection.config_manager import ConfigurationManager
-
 
 class TransformationService:
     """Service for transforming data to Cashew format"""
     
     def __init__(self):
-        self.enhanced_parser = EnhancedCSVParser()
+        self.transformer = CashewTransformer() # New transformer instance
         self.bank_config_manager = BankConfigManager()
         self.bank_detector = BankDetector(self.bank_config_manager)
 
@@ -43,12 +46,13 @@ class TransformationService:
 
         # Create a single, shared ConfigurationManager instance for transfer detection logic
         self.shared_transfer_config = ConfigurationManager(config_dir=config_dir_path_str)
+        print(f"ℹ️ [MIGRATION][TransformationService] Initialized with CashewTransformer.")
         
         self.transfer_detector = TransferDetector(config_manager=self.shared_transfer_config)
     
     def transform_single_data(self, data: list, column_mapping: dict, bank_name: str = "", 
                             categorization_rules: list = None, default_category_rules: dict = None,
-                            account_mapping: dict = None):
+                            account_mapping: dict = None, config: dict = None):
         """
         Transform single dataset to Cashew format
         
@@ -59,25 +63,29 @@ class TransformationService:
             categorization_rules: Optional categorization rules
             default_category_rules: Optional default category rules
             account_mapping: Optional account mapping
+            config: Bank configuration for fallback logic
             
         Returns:
             dict: Transformation result
         """
+        print(f"ℹ️ [MIGRATION][TransformationService] transform_single_data called for bank: {bank_name}")
         try:
             if categorization_rules or default_category_rules:
-                result = self.enhanced_parser.transform_to_cashew(
+                result = self.transformer.transform_to_cashew( # Use new transformer
                     data, 
                     column_mapping, 
                     bank_name,
                     categorization_rules,
                     default_category_rules,
-                    account_mapping
+                    account_mapping,
+                    config=config
                 )
             else:
-                result = self.enhanced_parser.transform_to_cashew(
+                result = self.transformer.transform_to_cashew( # Use new transformer
                     data, 
                     column_mapping, 
-                    bank_name
+                    bank_name,
+                    config=config
                 )
             
             return {
@@ -122,23 +130,28 @@ class TransformationService:
             if data:
                 print(f"📄 Sample data (first row): {data[0] if data else 'none'}")
             
+            # Get bank configs for fallback logic
+            bank_configs = self._get_bank_configs_for_data(raw_data)
+            
             # Transform data
             if categorization_rules or default_category_rules:
-                print(f"📋 Using enhanced transformation with categorization rules")
-                result = self.enhanced_parser.transform_to_cashew(
+                print(f"ℹ️ [MIGRATION][TransformationService] transform_multi_csv_data: Using transformation with categorization rules.")
+                result = self.transformer.transform_to_cashew( # Use new transformer
                     data, 
                     column_mapping, 
                     bank_name,
                     categorization_rules,
                     default_category_rules,
-                    account_mapping
+                    account_mapping,
+                    config=bank_configs
                 )
             else:
-                print(f"📋 Using basic transformation")
-                result = self.enhanced_parser.transform_to_cashew(
+                print(f"ℹ️ [MIGRATION][TransformationService] transform_multi_csv_data: Using basic transformation.")
+                result = self.transformer.transform_to_cashew( # Use new transformer
                     data, 
                     column_mapping, 
-                    bank_name
+                    bank_name,
+                    config=bank_configs
                 )
             
             print(f"✅ Transformation successful: {len(result)} rows transformed")
@@ -289,6 +302,30 @@ class TransformationService:
         combined_bank_name = 'multi_bank_combined'
         
         return all_transformed_data, combined_column_mapping, combined_bank_name
+    
+    def _get_bank_configs_for_data(self, raw_data: dict):
+        """Get bank configurations for fallback logic"""
+        csv_data_list = raw_data.get('csv_data_list', [])
+        configs = {}
+        
+        for csv_data in csv_data_list:
+            bank_info = csv_data.get('bank_info', {})
+            detected_bank = bank_info.get('detected_bank')
+            
+            if detected_bank and detected_bank != 'unknown':
+                try:
+                    bank_config = self.bank_config_manager.get_bank_config(detected_bank)
+                    if bank_config:
+                        # Convert ConfigParser to dict for easier access
+                        config_dict = {}
+                        for section in bank_config.sections():
+                            config_dict[section] = dict(bank_config.items(section))
+                        configs[detected_bank] = config_dict
+                        print(f"   🔧 Loaded config for {detected_bank}")
+                except Exception as e:
+                    print(f"   ⚠️  Error loading config for {detected_bank}: {e}")
+        
+        return configs
     
     def _get_detected_bank(self, bank_info: dict):
         """Extract detected bank from bank info"""
