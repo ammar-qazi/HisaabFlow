@@ -1,28 +1,28 @@
-# FlowParser
+# HisaabFlow
 
-We all want to track our expenses, but life gets in the way. A day passes, then a week, then a month - and suddenly you're staring at a pile of bank statements from different accounts, currencies, and formats that would take hours to organize manually.
+Many of us want to track our expenses, but life gets in the way. A day passes, then a week, then a month, and suddenly you're staring at a pile of bank statements from different accounts, currencies, and formats that would take hours to organize manually.
 
-I built FlowParser because I got tired of spending more time wrestling with CSV files than I did traveling. Now I just upload, click, and get back to the important stuff.
+I built HisaabFlow because I got tired of spending more time wrestling with CSV files than I did traveling. Now I just upload, click, and get back to the important stuff.
 
 ## What It Does
 
-FlowParser takes whatever messy CSV your bank gives you and converts it into clean, organized data. No more copying and pasting between spreadsheets or trying to remember if that €50 charge was groceries or dining.
+HisaabFlow takes whatever messy CSV your bank gives you and converts it into clean, organized data. No more copying and pasting between spreadsheets or trying to remember if that $50 charge was groceries or dining.
 
 Right now it converts everything to work with Cashew (the expense tracker I use), but the whole system is built around simple configuration files.
 
 ## Features
 
 - **🎯 Smart Bank Detection**: Recognizes your bank from the CSV filename
-- **⚙️ Configuration-Based**: No hardcoded bank rules - everything's customizable through simple .conf files
+- **⚙️ Configuration-Based**: No hardcoded bank rules, everything's customizable through simple .conf files
 - **🔄 Transfer Detection**: Finds matching transfers between different accounts (like Wise to NayaPay)
 - **🏷️ Auto-Categorization**: Your groceries stay groceries, your rent stays rent
 - **💱 Multi-Currency Support**: Handles different Wise currency pockets separately
 - **📋 Reusable Configs**: Set up once per bank, use forever
-- **🖥️ Desktop App**: Runs locally - your financial data never leaves your computer
+- **🖥️ Desktop App**: Runs locally; your financial data never leaves your computer
 
 ## Target Format (Cashew)
 
-FlowParser converts everything to this clean, standardized format:
+HisaabFlow converts everything to this clean, standardized format:
 
 ```csv
 Date,Amount,Category,Title,Note,Account
@@ -46,7 +46,7 @@ Six simple columns that work with most personal finance tools, spreadsheets, or 
 ./start_app.sh
 ```
 
-That's it! The script handles installing dependencies and starting both the backend and desktop app. The first time takes a minute while everything installs and loads.
+That's it. The script handles installing dependencies and starting both the backend and desktop app. The first time takes a minute while everything installs and loads.
 
 ## How to Use It
 
@@ -115,7 +115,7 @@ Start with a basic template:
 name = your_bank_name
 file_patterns = yourbank,your_bank  # Keywords that appear in CSV filenames
 currency_primary = USD
-cashew_account = Your Bank Name
+cashew_account = Your Bank Name # Account name in Cashew
 
 [csv_config]
 delimiter = ,
@@ -126,8 +126,7 @@ date_format = %Y-%m-%d
 Date = Date
 Amount = Amount  
 Title = Description
-Note = Type
-Account = your_bank_name
+Note = Payment Reference # Or Note
 ```
 
 ### 2. Map Your CSV Columns
@@ -137,8 +136,8 @@ Look at your bank's CSV file and map the columns:
 - **Date**: Whatever column has the transaction date
 - **Amount**: The money column (positive/negative values)
 - **Title**: Transaction description 
-- **Note**: Transaction type or category
-- **Account**: Just use your bank's name
+- **Note**: Payment reference or similar
+- **Account**: (Optional to use for currency comparions)
 
 ### 3. Add Your Merchants
 
@@ -154,12 +153,12 @@ Your Landlord = Rent
 
 Upload a CSV file and see if the detection and categorization work. Tweak the patterns as needed.
 
-The configuration system is forgiving - you can adjust things as you learn how your bank formats their data.
+The configuration system is forgiving. You can adjust things as you learn how your bank formats their data. You can also ask any of the LLMs to help with it since they can understand .conf files. 
 
 ## Project Structure
 
 ```
-flowparser/
+HisaabFlow/
 ├── backend/                 # Python FastAPI backend
 │   ├── main.py             # Main server
 │   ├── api/                # Modular API endpoints
@@ -178,20 +177,20 @@ The configuration files live in `configs/` and contain all the bank-specific rul
 
 ## Supported Banks
 
-FlowParser includes templates for:
+HisaabFlow includes templates for:
 
 - **Wise** (USD, EUR, HUF, PKR currency pockets)
 - **NayaPay** (Pakistani digital wallet)
 - **Erste Bank** (Hungarian bank)
 
-But the power is in the configuration system - you can add any bank by creating a simple `.conf` file.
+But the power is in the configuration system. You can add any bank by creating a simple `.conf` file.
 
 ## Future Plans
 
 Here's what's coming next:
 
 ### Near Term
-- **Revolut support** (high demand)
+- **Revolut support**
 - **PDF parsing** for banks that don't provide CSV exports
 - **More output formats** beyond Cashew
 - **Date range filtering** for partial exports
@@ -204,7 +203,7 @@ Here's what's coming next:
 
 ## Contributing
 
-Want to help make FlowParser better? Here are the best ways:
+Want to help make HisaabFlow better? Here are the best ways:
 
 ### 🐛 Bug Reports
 Found something broken? Open an issue with:
@@ -214,7 +213,7 @@ Found something broken? Open an issue with:
 
 ### 🏦 Bank Statement Contributions
 
-This is the most valuable contribution! If you want FlowParser to support your bank:
+This is the most valuable contribution. If you want HisaabFlow to support your bank:
 
 1. **Download a CSV statement** from your bank
 2. **Anonymize it** by replacing:
@@ -236,7 +235,7 @@ The codebase is modular and well-documented. Feel free to:
 
 ## Privacy & Security
 
-Your financial data never leaves your computer. FlowParser runs entirely locally:
+Your financial data never leaves your computer. HisaabFlow runs entirely locally:
 
 - **No cloud processing**: Everything happens on your machine
 - **No data transmission**: CSV files stay in your local folders
@@ -261,8 +260,8 @@ The only thing that gets shared publicly are the anonymized `.conf.template` fil
 - Test with the included sample data first
 - Open a GitHub issue for bugs or feature requests
 
-The configuration system is flexible - most issues can be solved by tweaking a `.conf` file rather than changing code.
+The configuration system is flexible. Most issues can be solved by tweaking a `.conf` file rather than changing code.
 
 ---
 
-FlowParser turns the tedious job of organizing bank statements into a one-click process. Set it up once, use it forever, and never categorize transactions by hand again.
+HisaabFlow turns the tedious job of organizing bank statements into a one-click process. Set it up once, use it forever, and never categorize transactions by hand again.
