@@ -106,9 +106,10 @@ start_backend() {
     source backend/venv/bin/activate
     
     # Check if requirements are installed
-    if ! python -c "import fastapi" 2>/dev/null; then
+    if ! $PYTHON_CMD -c "import fastapi" 2>/dev/null; then
         echo "📦 Installing backend dependencies..."
-        pip install -r backend/requirements.txt
+        # Make sure we're using the virtual environment's pip
+        $PYTHON_CMD -m pip install -r backend/requirements.txt
         if [ $? -ne 0 ]; then
             echo "   ❌ Failed to install backend dependencies!"
             exit 1
@@ -119,7 +120,7 @@ start_backend() {
     cd backend
     echo "   Backend starting on http://127.0.0.1:8000"
     echo "   Using modular configuration-based system"
-    python main.py &
+    $PYTHON_CMD main.py &
     BACKEND_PID=$!
     cd ..
     

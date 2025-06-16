@@ -15,18 +15,13 @@ encoding = utf-8
 expected_headers = Booking Date,Amount,Currency,Partner Name
 
 # Column mapping for Forint Bank CSV format
-# Headers: Booking Date | Amount | Currency | Partner Name | Partner IBAN | Partner Account Number | Bank code
 [column_mapping]
-# Primary mappings
-Date = Transaction Date Time
-Title = Partner Name
+Date = Date
 Amount = Amount
-Currency = Currency
-Note = Transaction Type
-# Optional fallback mappings (any bank can use)
-BackupDate = Booking Date
-BackupTitle = Transaction Type
-# Can add backup for any field
+Title = Description
+Note = Type
+Balance = Balance
+Reference = Reference
 
 # Account mapping
 [account_mapping]
@@ -71,139 +66,28 @@ pharmacy_cleanup = (Sample Pharmacy.*)|Pharmacy
 # These patterns match the anonymized sample data
 [categorization]
 
-# === INCOME ===
-SAMPLE TECHNOLOGIES SAMPLE CITY TEL = Income
-
-# === GROCERIES ===
-ALDI 142.SZ = Groceries
-SPAR 8251 = Groceries
-CBA PRI'MA JO'ZSEF KRT = Groceries
-Grocery Store 108 Sample City = Groceries
-
-# === DINING & FOOD ===
-# Fast Food
-BURGER KING CORVIN = Dining
-KFC AIRPORT = Dining
-
-# Pizza & Italian
-TRIO PIZZA FORNETTI = Dining
-
-# Work Dining
-Sample Workplace Food = Dining
-SAMPLE TECHNOLOGIES RESTAURANT = Dining
-
-# Cafes & Desserts
-Fruitisimo Westend = Dining
-GELARTO ROSA GRANDE = Dining
-Sample Cafe - Sample City = Dining
-Sample Ice Cream Shop Sample City = Dining
-Expresso Cafe- Bank = Dining
-
-# Restaurants & Food
-SAMPLE RESTAURANT = Dining
-LAFFA = Dining
-PE'K A'LLOMA'S = Dining
-Market Point Supermark = Dining
-NYX*AloisDallmayrAutom = Dining
-
-# === SHOPPING ===
-# Fashion & Clothing
-HU0311 H&M = Shopping
-SHEIN.COM = Shopping
-SINSAY SAMPLE CITY = Shopping
-TAKKO SAMPLE CITY = Shopping
-
-# Department Stores
-DECATHLON-CORVIN = Shopping
-TEDi-HU 3128 = Shopping
-KIK 5544 = Shopping
-DEPARTMENT STORE 150075 SAMPLE CITY 2 = Shopping
-ROSSMANN 355 = Shopping
-
-# === BILLS & FEES ===
-Sample Telecom Provider = Bills & Fees
-Sample Transport = Bills & Fees
-Sample Government Office = Bills & Fees
-
-# === HEALTH ===
-Sample Pharmacy = Health
-Pharmacy = Health
-
-# === TRAVEL ===
-Hotel at Booking.com = Travel
-Travel.com SAMPLE - CITY = Travel
-GetYourGuide = Travel
-FLIXBUS.COM = Travel
-Sample Taxi Driver = Travel
-VOLANBUSZ_AUTOBUSZ = Travel
-
-# === RENT ===
+# Sample data merchants - exactly matching the CSV
+Coffee Shop Purchase = Dining
+Monthly Salary = Income
+Grocery Store = Groceries
+Public Transport = Travel
+Online Shopping = Shopping
+Restaurant = Dining
+Freelance Payment = Income
 Rent Payment = Rent
-Sample Residence = Rent
 
-# === TRANSFERS & FINANCIAL ===
-TransferWise = Transfer
-PaymentCard\*\*2984\* = Transfer
-HELOPAY\*SAMPLE PAYMENT = Transfer
+# Generic patterns that might appear
+Coffee Shop = Dining
+Salary = Income
+Groceries = Groceries
+Transport = Travel
+Shopping = Shopping
+Dining = Dining
+Income = Income
+Rent = Rent
 
-# === PERSONAL SERVICES ===
-# Examples matching anonymized sample data
-Sample Service Provider = Expense
-Jane Doe = Expense
-Alex Johnson = Expense
-Sample Local Service = Expense
-
-# === TRANSFER PATTERNS ===
-# Names matching sample data for transfer detection
-Jane Doe.* = Transfer
-John Smith.* = Transfer
-Emily Davis.* = Transfer
-Alex Johnson.* = Transfer
-
-# === GENERIC FALLBACK PATTERNS ===
-# Grocery patterns
-ALDI = Groceries
-SPAR = Groceries
-LIDL = Groceries
-CBA = Groceries
-TESCO = Groceries
-PENNY = Groceries
-AUCHAN = Groceries
-
-# Food patterns
-BURGER KING = Dining
-KFC = Dining
-McDonald = Dining
-Pizza = Dining
-Fagyizo = Dining
-Étterem = Dining
-
-# Shopping patterns
-H&M = Shopping
-SHEIN = Shopping
-SINSAY = Shopping
-TAKKO = Shopping
-DECATHLON = Shopping
-TEDi = Shopping
-KIK = Shopping
-PEPCO = Shopping
-ROSSMANN = Shopping
-
-# Transport/Bills patterns
-MAV = Bills & Fees
-Bank = Bills & Fees
-
-# Health patterns
-Patika = Health
-Gyógyszertár = Health
-
-# Travel patterns
-Booking.com = Travel
-FLIXBUS = Travel
-VOLANBUSZ = Travel
-Taxi = Travel
-Hotel = Travel
-
-# Transfer patterns
-Revolut = Transfer
-PaymentCard = Transfer
+# Transfer patterns for people names
+John Smith = Transfer
+Jane Doe = Transfer
+Alex Johnson = Transfer
+Emily Davis = Transfer

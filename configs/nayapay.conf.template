@@ -42,8 +42,9 @@ default_currency = PKR
 [transfer_patterns]
 incoming_transfer = Incoming fund transfer from {name}
 outgoing_transfer = Outgoing fund transfer to {name}
-peer_to_peer_out = Money sent to {name}
-peer_to_peer_in = Received money from {name}
+raast_in = Incoming fund transfer from {name}
+raast_out = Outgoing fund transfer to {name}
+ibft_in = Incoming fund transfer from {name}
 
 # Bank-specific description cleaning rules matching anonymized sample data
 [description_cleaning]
@@ -68,39 +69,60 @@ set_description = Ride Hailing Services
 
 # Merchant categorization matching anonymized sample data
 [categorization]
-# Generic merchant patterns
-Sample Store = Groceries
-Generic Market = Groceries
-Sample Restaurant = Dining
+# Sample data merchants - matching real NayaPay format
+Coffee Shop Downtown = Dining
+Grocery Store Main Street = Groceries
+Restaurant Plaza = Dining
+Gas Station Highway = Travel
+Netflix Subscription = Entertainment
+Pharmacy Main Road = Health
+Bookstore Central = Shopping
+Electronics Store = Shopping
+Taxi Service = Travel
+Online Course Subscription = Education
+Flower Shop Valentine = Shopping
+Cinema Tickets = Entertainment
+Sports Store = Shopping
+Hair Salon = Health
+Music Streaming Subscription = Entertainment
 Fast Food Chain = Dining
-Online Marketplace = Shopping
-E-commerce Site = Shopping
-Shopping Platform = Shopping
+Clothing Store = Shopping
+Pet Store = Shopping
+Cloud Storage Subscription = Bills & Fees
 Department Store = Shopping
-Sample Grocery = Groceries
-Sample Payment = Transfer
-Sample Service = Bills & Fees
-Mobile Service.* = Bills & Fees
-Ride Hailing Services = Travel
-Transport Service = Travel
 
-# Transfer patterns for anonymized names
-John Smith = Transfer
+# Sample data people - for transfer detection (real NayaPay format)
 Jane Doe = Transfer
-Emily Davis = Transfer
-Alex Johnson = Transfer
-Bob Johnson = Transfer
-Mike Wilson = Transfer
-Sample Person.* = Transfer
+Mike Johnson = Transfer
+Sarah Wilson = Transfer
+Tom Brown = Transfer
+Alex Kumar = Transfer
+Lisa Davis = Transfer
+Emma Clark = Transfer
+David Lee = Transfer
+Rachel Green = Transfer
+Robert Wilson = Transfer
+Sophie Davis = Transfer
 
-# Generic patterns
-salary = Income
-income = Income
-wage = Income
-atm = Cash
-Mobile topup.* = Bills & Fees
-education = Bills & Fees
-payment_service = Travel
+# Bank name patterns for transfer detection
+Askari Bank = Transfer
+Bank AlFalah = Transfer
+Meezan Bank = Transfer
+HBL Bank = Transfer
+UBL Bank = Transfer
+Standard Chartered = Transfer
+MCB Bank = Transfer
+Faysal Bank = Transfer
+NBP Bank = Transfer
+Habib Bank = Transfer
+Allied Bank = Transfer
+
+# Transaction types
+Raast In = Transfer
+Raast Out = Transfer
+IBFT In = Transfer
+Card Payment = Expense
+Online Payment = Bills & Fees
 
 # Default categorization logic
 [default_category_rules]

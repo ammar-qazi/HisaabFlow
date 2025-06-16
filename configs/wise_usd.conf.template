@@ -49,7 +49,8 @@ strip_bom_characters = true
 [transfer_patterns]
 outgoing_transfer = Sent money to {name}
 incoming_transfer = Received money from {name}
-transfer_to = Transfer to {name}
+salary_transfer = Salary Transfer
+gift_transfer = Gift Money
 
 [incoming_patterns]
 received_money = Received money from {user_name}
@@ -63,26 +64,83 @@ sample_company_pattern = Received money from Sample Company LLC.*|Sample Company
 
 # USD-specific categorization overrides matching anonymized sample data
 [categorization]
-# Income patterns matching sample data
-Online Marketplace Payment = Income
-Sample Company Payment = Income
-ONLINE-MARKETPLACE INC.* = Income
-Sample Company LLC* = Income
+# Sample data merchants - exactly matching the CSV
+Coffee Shop = Dining
+Coffee Bean Cafe = Dining
+Grocery Shopping = Groceries
+FreshMart Groceries = Groceries
+Restaurant Bill = Dining
+Pasta Palace = Dining
+Gas Station = Travel
+Shell Station = Travel
+Online Shopping = Shopping
+Amazon Purchase = Shopping
+Pharmacy = Health
+HealthPlus Pharmacy = Health
+Bookstore = Shopping
+Campus Books = Shopping
+Gym Membership = Health
+FitLife Gym = Health
+Fast Food = Dining
+Burger Palace = Dining
+Car Maintenance = Travel
+AutoCare Service = Travel
+Entertainment = Entertainment
+Movie Theater = Entertainment
+Clothing = Shopping
+Fashion Store = Shopping
+Pet Supplies = Shopping
+Pet World = Shopping
+Subscription = Bills & Fees
+Streaming Service = Entertainment
+Home Supplies = Shopping
+Home Depot = Shopping
+Electronics = Shopping
+Tech Store = Shopping
+Health & Beauty = Health
+Beauty Shop = Health
+Travel Expenses = Travel
+Airport Parking = Travel
+Office Supplies = Shopping
+Staples Store = Shopping
+Insurance Payment = Bills & Fees
+Insurance Company = Bills & Fees
+Charity Donation = Bills & Fees
+Local Food Bank = Bills & Fees
+Garden Supplies = Shopping
+Garden Center = Shopping
+Professional Services = Bills & Fees
+Legal Consultation = Bills & Fees
+Home Repair = Shopping
+Hardware Store = Shopping
+Monthly Subscription = Bills & Fees
+Software License = Bills & Fees
 
-# Government/Official payments
-Sample Government Office* = Bills & Fees
+# Income types
+Salary Transfer = Income
+Freelance Payment = Income
+Side Gig Payment = Income
+Bonus Payment = Income
+Tax Refund = Income
+Cashback Reward = Income
+Survey Payments = Income
+Investment Return = Income
+Gift Money = Transfer
 
-# Travel services
-Travel.com* = Travel
-MobileData* = Travel
-Airlines* = Travel
+# Sample data people - for transfer detection
+John Smith = Transfer
+Jane Doe = Transfer
+Mike Johnson = Transfer
+Sarah Wilson = Transfer
+Tech Solutions LLC = Income
+Credit Card Company = Income
+Employer Inc = Income
+Design Agency = Income
+Research Company = Income
+Investment Firm = Income
 
-# Payment services
-PaymentCard* = Transfer
-TechStore* = Shopping
-
-# Generic transfer patterns for anonymized names
-John Smith* = Transfer
-Jane Doe* = Transfer
-Emily Davis* = Transfer
-Mike Johnson* = Transfer
+# Utility payments
+Rent Utilities = Bills & Fees
+Electric Company = Bills & Fees
+Transportation = Travel
+Metro Transit = Travel
