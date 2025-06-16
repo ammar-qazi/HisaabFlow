@@ -27,8 +27,6 @@ Account = Currency
 ExchangeToAmount = Exchange To Amount
 ExchangeToCurrency = Exchange To
 
-
-
 # Account mapping
 [account_mapping]
 HUF = Hungarian
@@ -58,43 +56,70 @@ received_money = Received money from {user_name}
 
 # HUF-specific description cleaning rules (inherits from wise_family.conf)
 [description_cleaning]
-# Add HUF-specific overrides here if needed
-pharmacy_cleanup = (To:mo:rke'ny Gyo'gysze.*)|Pharmacy
+# Add HUF-specific overrides here if needed - replace with your merchants
+sample_pharmacy_cleanup = (Sample Pharmacy.*)|Pharmacy
 
 # HUF-specific categorization overrides
+# These are example Hungarian merchant patterns - replace with your own
 [categorization]
+# Generic Hungarian chains (commonly found)
 Tesco = Groceries
 Spar = Groceries
 CBA = Groceries
-OTP = Banking
-KBSZ = Banking
-McDonald = Food
-KFC = Food
-BKK = Transport
-MÁV = Transport
-Yettel = Bills & Fees
+LIDL = Groceries
+ALDI = Groceries
+
+# Banking & Financial
+OTP = Bills & Fees
+Sample Bank = Bills & Fees
+Hungarian Bank = Bills & Fees
+
+# Food & Dining
+McDonald = Dining
+KFC = Dining
+Sample Hungarian Restaurant = Dining
+
+# Transport (Hungarian public transport)
+BKK = Travel
+MÁV = Travel
+Sample Transport = Travel
+
+# Telecom & Bills
+Sample Telecom = Bills & Fees
+Sample Hungarian Provider = Bills & Fees
+
+# Health
 Pharmacy = Health
+Sample Pharmacy = Health
 
-# === NEW HUNGARIAN PATTERNS FROM YOUR DATA ===
-# Hungarian Dining & Food
-Princess Koki.* = Dining
-HELOPAY.*LA CASA VERDE.* = Dining
-Infineon Food = Dining
+# === EXAMPLE HUNGARIAN PATTERNS ===
+# Replace these with your actual Hungarian merchants
 
-# Hungarian Shopping
-Rossmann.* = Shopping
+# Hungarian Dining & Food examples
+Sample Hungarian Cafe.* = Dining
+Sample Food Service.* = Dining
+Sample Workplace Food = Dining
 
-# Hungarian Travel
-Kiwi\.com = Travel
+# Hungarian Shopping examples
+Sample Hungarian Store.* = Shopping
 
-# Hungarian Transfers & Personal
+# Hungarian Travel examples
+Sample Travel Service = Travel
+
+# Hungarian Transfers & Personal (matching anonymized sample data)
+John Smith.* = Transfer
+Jane Doe.* = Transfer
+Emily Davis.* = Transfer
 Sample Person.* = Transfer
 Sample Family.* = Transfer
 
-# Hungarian Transport
-MAV.* = Transport
+# Hungarian Transport examples
+Sample Hungarian Transport.* = Travel
 
-# Hungarian Bills & Banking
-ING Bank.* = Bills & Fees
+# Hungarian Bills & Banking examples
+Sample Hungarian Bank.* = Bills & Fees
 
-# Add other HUF-specific overrides here if needed
+# Generic patterns that work across Hungary
+Grocery Store.* = Groceries
+Department Store.* = Shopping
+Sample City.* = Shopping

@@ -4,37 +4,31 @@ __pycache__/
 *$py.class
 *.so
 .Python
-env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
 venv/
+env/
 ENV/
+env.bak/
+venv.bak/
+.venv/
 backend/venv/
-.venv
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Node.js
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-frontend/node_modules/
-frontend/build/
-frontend/dist/
-
-# Temporary files
-*.tmp
-tmp*
-.DS_Store
-.vscode/
-.idea/
-
-# CSV files (except samples)
-*.csv
-!cashew_import.csv
-!nayapay_statement.csv
-
-# Logs
-*.log
 
 # Environment variables
 .env
@@ -43,16 +37,78 @@ tmp*
 .env.test.local
 .env.production.local
 
-# Electron
-frontend/dist/
-frontend/out/
+# Personal Data & Testing
+sample_data_personal/
+test_data_personal/
+personal_*.csv
+real_*.csv
+*_personal.csv
 
-# System files
+# Configuration files with personal data
+configs/app.conf
+configs/*.conf
+!configs/*.conf.template
+!configs/wise_family.conf
+
+# IDE & Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
 Thumbs.db
-ehthumbs.db
-Desktop.ini
-$RECYCLE.BIN/
 
-# Temporary uploads
-/tmp/
-temp/
+# Node.js (Frontend)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+
+# React build
+frontend/build/
+frontend/dist/
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# Archive & Backup
+archive/
+backup/
+*.backup
+*.bak
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# PyCharm
+.idea/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pytest
+.pytest_cache/
+.coverage
+
+# Git
+*.orig
+
+# MCP specific
+codemcp.toml.bak
+
+# Development files (local only)
+*.desktop
+LAUNCHERS_README.md
+start_display.sh
+start_app.bat

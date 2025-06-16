@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# Bank Statement Parser - Easy Launcher
-# This script starts both backend and frontend automatically
+# Bank Statement Parser - One-Command Launcher
+# This script handles complete setup and starts both backend and frontend automatically
 
-echo "🏦 Bank Statement Parser - Starting Application..."
-echo "=================================================="
+echo "🏦 Bank Statement Parser - One-Command Setup & Launch"
+echo "====================================================="
 
 # Get the script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -47,31 +47,78 @@ cleanup_ports() {
     sleep 2
 }
 
+# Function to setup configuration files
+setup_configuration() {
+    echo "🔧 Setting up configuration files..."
+    
+    # Check if app.conf exists
+    if [ ! -f "configs/app.conf" ]; then
+        if [ -f "configs/app.conf.template" ]; then
+            echo "   Creating configs/app.conf from template..."
+            cp configs/app.conf.template configs/app.conf
+            echo "   ⚠️  Please edit configs/app.conf to set your actual name for transfer detection"
+        else
+            echo "   ❌ configs/app.conf.template not found!"
+            echo "   Creating basic app.conf..."
+            mkdir -p configs
+            cat > configs/app.conf << EOF
+[general]
+date_tolerance_hours = 72
+user_name = Your Name Here
+
+[transfer_detection]
+confidence_threshold = 0.7
+
+[transfer_categorization]
+default_pair_category = Balance Correction
+EOF
+        fi
+    else
+        echo "   ✅ configs/app.conf already exists"
+    fi
+}
+
+# Function to setup Python virtual environment
+setup_python_env() {
+    echo "🐍 Setting up Python environment..."
+    
+    # Check if virtual environment exists in backend directory
+    if [ ! -d "backend/venv" ]; then
+        echo "   Creating Python virtual environment..."
+        cd backend
+        $PYTHON_CMD -m venv venv
+        if [ $? -ne 0 ]; then
+            echo "   ❌ Failed to create virtual environment!"
+            echo "   Please ensure Python 3 and venv module are properly installed"
+            exit 1
+        fi
+        cd ..
+        echo "   ✅ Virtual environment created successfully"
+    else
+        echo "   ✅ Virtual environment already exists"
+    fi
+}
 # Function to start backend
 start_backend() {
     echo "🚀 Starting Backend Server..."
     
-    # Check if virtual environment exists in root directory
-    if [ ! -d "venv" ]; then
-        echo "❌ Virtual environment not found in root directory!"
-        echo "   Please run: python3 -m venv venv && source venv/bin/activate && pip install -r backend/requirements.txt"
-        exit 1
-    fi
-    
-    # Activate virtual environment from root directory
-    source venv/bin/activate
+    # Activate virtual environment from backend directory
+    source backend/venv/bin/activate
     
     # Check if requirements are installed
     if ! python -c "import fastapi" 2>/dev/null; then
         echo "📦 Installing backend dependencies..."
         pip install -r backend/requirements.txt
+        if [ $? -ne 0 ]; then
+            echo "   ❌ Failed to install backend dependencies!"
+            exit 1
+        fi
     fi
     
     # Change to backend directory and start server
     cd backend
     echo "   Backend starting on http://127.0.0.1:8000"
-    echo "   Using modular configuration-based system (v3.0.0)"
-    echo "   Main file: main.py (clean modular version - 94 lines)"
+    echo "   Using modular configuration-based system"
     python main.py &
     BACKEND_PID=$!
     cd ..
@@ -173,6 +220,8 @@ cleanup_and_exit() {
     cleanup_ports
     
     echo "✅ Application stopped successfully!"
+    echo ""
+    echo "🔄 To run again, simply execute: ./start_app.sh"
     echo "   Thank you for using Bank Statement Parser! 🏦"
     exit 0
 }
@@ -206,6 +255,12 @@ main() {
     fi
     
     echo ""
+    
+    # Setup configuration files
+    setup_configuration
+    
+    # Setup Python environment
+    setup_python_env
     
     # Clean up any existing processes
     cleanup_ports

@@ -9,7 +9,6 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 try:
-    # from enhanced_csv_parser import EnhancedCSVParser # Old import
     from csv_parser import UnifiedCSVParser # New parser import
     from services.cashew_transformer import CashewTransformer # New transformer import
 except ImportError:
@@ -79,7 +78,7 @@ class MultiCSVProcessor:
         """Transform multiple CSVs with enhanced transfer detection"""
         try:
             print(f"ℹ️ [MIGRATION][MultiCSVProcessor] transform_multiple_csvs called for {len(request.csv_data_list)} files.")
-            print(f"  User: {request.user_name}, Transfer detection: {request.enable_transfer_detection}")
+            print(f"  Transfer detection: {request.enable_transfer_detection}")
             
             # Transform each CSV individually
             all_transformed_data, transformation_results = self._transform_all_csvs(request)
@@ -227,8 +226,7 @@ class MultiCSVProcessor:
                     bank_name,
                     categorization_rules,
                     default_category_rules,
-                    account_mapping,
-                    request.bank_rules_settings
+                    account_mapping
                 )
                 
                 print(f"  Transformed {len(transformed)} transactions for {csv_data.get('file_name')}")

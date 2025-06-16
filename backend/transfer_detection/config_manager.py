@@ -136,6 +136,10 @@ class ConfigurationManager:
         """Get date tolerance in hours"""
         return self.app_config.getint('general', 'date_tolerance_hours', fallback=72)
     
+    def get_user_name(self) -> str:
+        """Get user name for transfer detection"""
+        return self.app_config.get('general', 'user_name', fallback='Your Name Here')
+    
     def get_confidence_threshold(self) -> float:
         """Get minimum confidence threshold"""
         return self.app_config.getfloat('transfer_detection', 'confidence_threshold', fallback=0.7)

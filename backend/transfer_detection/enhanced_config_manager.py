@@ -25,7 +25,7 @@ class EnhancedConfigurationManager:
     
     def get_user_name(self) -> str:
         """Get configured user name"""
-        return self.app_config.get('general', 'user_name', fallback='Ammar Qazi')
+        return self.app_config.get('general', 'user_name', fallback='Your Name Here')
     
     def get_date_tolerance(self) -> int:
         """Get date tolerance in hours"""

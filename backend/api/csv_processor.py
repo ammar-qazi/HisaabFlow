@@ -8,7 +8,6 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# from enhanced_csv_parser import EnhancedCSVParser # Old parser
 from csv_parser import UnifiedCSVParser # New parser import
 from data_cleaner import DataCleaner
 from .models import ParseRangeRequest
@@ -17,7 +16,6 @@ class CSVProcessor:
     """Handles CSV parsing operations"""
     
     def __init__(self):
-        # self.enhanced_parser = EnhancedCSVParser() # Old parser
         self.unified_parser = UnifiedCSVParser() # New parser instance
         self.data_cleaner = DataCleaner()
         print(f"ℹ️ [MIGRATION][CSVProcessor] Initialized with UnifiedCSVParser.")

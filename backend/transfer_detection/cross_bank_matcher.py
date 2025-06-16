@@ -453,7 +453,7 @@ class CrossBankMatcher:
             # Check if the outgoing transaction has enough info to imply the incoming amount in its currency
             # This is where "Sent money to X, which was YYY PKR" would be useful if ExchangeAnalyzer could get YYY PKR.
             # For now, ExchangeAnalyzer primarily looks for "Exchange To Amount" and "Exchange To Currency" columns.
-            # If the outgoing Wise transaction for "Sent money to Ammar Qazi" has "Exchange To Amount" (e.g., 50000)
+            # If the outgoing Wise transaction for "Sent money to USER" has "Exchange To Amount" (e.g., 50000)
             # and "Exchange To Currency" (e.g., PKR), then `exchange_amount` and `exchange_currency` would be set.
             # This case is already handled by Strategy 1.
             

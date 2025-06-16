@@ -1,0 +1,88 @@
+[bank_info]
+name = wise_usd
+file_patterns = wise,transferwise,wise_usd
+filename_regex_patterns = ^statement_\d+_USD_\d{4}-\d{2}-\d{2}_\d{4}-\d{2}-\d{2}\.csv$,^wise.*usd.*\.csv$,^transferwise.*\.csv$
+detection_content_signatures = TransferwiseId,Payment Reference,Exchange From,Exchange To
+use_regex = true
+currency_primary = USD
+cashew_account = TransferWise
+
+# CSV parsing configuration
+[csv_config]
+has_header = true
+skip_rows = 0
+date_format = %%Y-%%m-%%d
+encoding = utf-8
+expected_headers = Date,Amount,Currency,Description
+
+# Column mapping (FIXED: Corrected to match actual Wise CSV headers)
+[column_mapping]
+Date = Date
+Amount = Amount
+Title = Description
+Note = Payment Reference
+Account = Currency
+
+# ... other mappings ...
+ExchangeToAmount = Exchange To Amount
+ExchangeToCurrency = Exchange To
+
+# Account mapping
+[account_mapping]
+HUF = Hungarian
+USD = TransferWise
+EUR = EURO Wise
+PKR = Wise_Pkr
+
+# Data cleaning configuration
+[data_cleaning]
+enable_currency_addition = false
+multi_currency = true
+numeric_amount_conversion = true
+date_standardization = true
+remove_invalid_rows = true
+default_currency = USD
+# BOM handling enabled by default (handled in data_cleaner.py)
+strip_bom_characters = true
+
+# Transfer detection patterns with flexible name matching
+[transfer_patterns]
+outgoing_transfer = Sent money to {name}
+incoming_transfer = Received money from {name}
+transfer_to = Transfer to {name}
+
+[incoming_patterns]
+received_money = Received money from {user_name}
+
+# USD-specific description cleaning rules (inherits from wise_family.conf)
+# These patterns match the anonymized sample data
+[description_cleaning]
+# Replace company payments with generic equivalents
+company_payment_pattern = Received money from ONLINE-MARKETPLACE.*|Online Marketplace Payment
+sample_company_pattern = Received money from Sample Company LLC.*|Sample Company Payment
+
+# USD-specific categorization overrides matching anonymized sample data
+[categorization]
+# Income patterns matching sample data
+Online Marketplace Payment = Income
+Sample Company Payment = Income
+ONLINE-MARKETPLACE INC.* = Income
+Sample Company LLC* = Income
+
+# Government/Official payments
+Sample Government Office* = Bills & Fees
+
+# Travel services
+Travel.com* = Travel
+MobileData* = Travel
+Airlines* = Travel
+
+# Payment services
+PaymentCard* = Transfer
+TechStore* = Shopping
+
+# Generic transfer patterns for anonymized names
+John Smith* = Transfer
+Jane Doe* = Transfer
+Emily Davis* = Transfer
+Mike Johnson* = Transfer

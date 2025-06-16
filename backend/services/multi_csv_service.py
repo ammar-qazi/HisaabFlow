@@ -8,23 +8,23 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 try:
-    # from enhanced_csv_parser import EnhancedCSVParser # Old import
     from csv_parser import UnifiedCSVParser # New parser import
     from data_cleaner import DataCleaner
     from bank_detection import BankDetector, BankConfigManager
     from csv_parser import EncodingDetector # Import EncodingDetector
     from csv_preprocessing.csv_preprocessor import CSVPreprocessor
+    from transfer_detection.config_manager import ConfigurationManager
 except ImportError:
     # Fallback path for import issues
     backend_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     if backend_path not in sys.path: # Ensure backend_path is added only once
         sys.path.insert(0, backend_path)
-    # from enhanced_csv_parser import EnhancedCSVParser # Old import
     from csv_parser import UnifiedCSVParser # New parser import
     from data_cleaner import DataCleaner
     from bank_detection import BankDetector, BankConfigManager
     from csv_parser import EncodingDetector # Import EncodingDetector
     from csv_preprocessing.csv_preprocessor import CSVPreprocessor
+    from transfer_detection.config_manager import ConfigurationManager
 
 class MultiCSVService:
     """Service for handling multi-CSV parsing operations"""
@@ -36,22 +36,31 @@ class MultiCSVService:
         self.bank_detector = BankDetector(self.bank_config_manager)
         self.csv_preprocessor = CSVPreprocessor()
         self.encoding_detector = EncodingDetector() # Initialize EncodingDetector
+        
+        # Initialize configuration manager for getting user_name from config
+        from pathlib import Path
+        current_file_dir = Path(__file__).resolve().parent
+        project_root = current_file_dir.parent.parent 
+        config_dir_path = project_root / "configs"
+        self.config_manager = ConfigurationManager(config_dir=str(config_dir_path))
     
     def parse_multiple_files(self, file_infos: list, parse_configs: list, 
-                           user_name: str = "User", enable_cleaning: bool = True): # Changed default user_name for generic use
+                           enable_cleaning: bool = True):
         """
         Parse multiple CSV files with preprocessing and bank detection
         
         Args:
             file_infos: List of file info dictionaries
             parse_configs: List of parsing configurations
-            user_name: User name for processing
             enable_cleaning: Whether to enable data cleaning
             
         Returns:
             dict: Multi-CSV parsing result
         """
+        # Get user_name from config instead of parameter
+        user_name = self.config_manager.get_user_name()
         print(f"ℹ️ [MIGRATION][MultiCSVService] parse_multiple_files called for {len(file_infos)} files.")
+        print(f"  User name from config: {user_name}")
         print(f"  Data cleaning enabled: {enable_cleaning}")
         
         try:

@@ -32,17 +32,12 @@ class TransformRequest(BaseModel):
 class MultiCSVParseRequest(BaseModel):
     file_ids: List[str]
     parse_configs: List[Dict[str, Any]]
-    user_name: str = "Ammar Qazi"
-    date_tolerance_hours: int = 24
     enable_cleaning: bool = True
 
 
 class MultiCSVTransformRequest(BaseModel):
     csv_data_list: List[Dict[str, Any]]
-    user_name: str = "Ammar Qazi"
     enable_transfer_detection: bool = True
-    date_tolerance_hours: int = 24
-    bank_rules_settings: Optional[Dict[str, bool]] = None
 
 
 class SaveTemplateRequest(BaseModel):

@@ -10,7 +10,6 @@ import json
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 try:
-    # from enhanced_csv_parser import EnhancedCSVParser # Old import
     from services.cashew_transformer import CashewTransformer # New import for transformation
     from bank_detection import BankDetector, BankConfigManager
     from transfer_detection.main_detector import TransferDetector
@@ -21,7 +20,6 @@ except ImportError:
     if backend_path not in sys.path: # Ensure backend_path is added only once
         sys.path.insert(0, backend_path)
     sys.path.insert(0, backend_path)
-    # from enhanced_csv_parser import EnhancedCSVParser # Old import
     from services.cashew_transformer import CashewTransformer # New import for transformation
     from bank_detection import BankDetector, BankConfigManager
     from transfer_detection.main_detector import TransferDetector
@@ -261,43 +259,16 @@ class TransformationService:
         
         print(f"\n📈 Combined data from all CSVs: {len(all_transformed_data)} total rows")
         
-        # Build a more comprehensive mapping to guide transform_to_cashew.
-        # Data in all_transformed_data is already standardized from the /parse endpoint's cleaning.
-        # This mapping tells transform_to_cashew which fields to prioritize and keep.
-        combined_column_mapping = {
-            # Core Cashew fields
-            'Date': 'Date',
-            'Amount': 'Amount',
-            'Title': 'Title',
-            'Note': 'Note',
-            'Account': 'Account',
-            'Category': 'Category' # Ensure Category is handled/created
-        }
-        
-        # Add other known standardized fields that should be preserved,
-        # especially those needed for transfer detection.
-        # These fields are already present with these names in all_transformed_data
-        # if they came from the cleaning step during parsing.
-        fields_to_preserve_if_exist = [
-            'ExchangeToAmount', 
-            'ExchangeToCurrency', 
-            'Balance', # Will be dropped by export_service anyway, but keep for internal processing
-            'Currency', # Original currency if different from Account (e.g. Wise files)
-            # Add other potentially useful standardized fields if needed by transfer detection:
-            # 'TransferwiseId', 'RunningBalance', 'TotalFees' 
-        ]
-        if all_transformed_data: # Check if there's any data to inspect
-            # Instead of only checking first row, check ALL fields across ALL rows
-            all_fields_present_in_data = set()
-            for row in all_transformed_data:
-                all_fields_present_in_data.update(row.keys())
-
-            # Preserve fields from fields_to_preserve_if_exist if they exist anywhere in the data
-            for field in fields_to_preserve_if_exist:
-                if field in all_fields_present_in_data:
-                    # Add to mapping if not already a core Cashew field (to avoid accidental overwrite, though unlikely here)
-                    if field not in combined_column_mapping:
-                        combined_column_mapping[field] = field # Map to itself to preserve
+        # Pass ALL cleaned data fields to transformer - no filtering
+        # This ensures backup fields (BackupDate, BackupTitle) and any other
+        # bank-specific fields are preserved for the transformation
+        if all_transformed_data:
+            # Create identity mapping for all existing fields
+            sample_row = all_transformed_data[0]
+            combined_column_mapping = {field: field for field in sample_row.keys()}
+        else:
+            # Fallback if no data
+            combined_column_mapping = {}
         
         combined_bank_name = 'multi_bank_combined'
         

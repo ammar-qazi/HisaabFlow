@@ -7,10 +7,6 @@ export const createProcessingHandlers = (state) => {
   const { 
     uploadedFiles, 
     setUploadedFiles, 
-    userName, 
-    dateTolerance, 
-    enableTransferDetection, 
-    bankRulesSettings,
     setLoading, 
     setError, 
     setSuccess,
@@ -54,9 +50,7 @@ export const createProcessingHandlers = (state) => {
       
       const response = await axios.post(`${API_BASE}/multi-csv/parse`, {
         file_ids: fileIds,
-        parse_configs: parseConfigs,
-        user_name: userName,
-        date_tolerance_hours: dateTolerance
+        parse_configs: parseConfigs
       });
       
       console.log('Parse response:', response.data);
@@ -193,11 +187,7 @@ export const createProcessingHandlers = (state) => {
       }));
       
       const response = await axios.post(`${API_BASE}/multi-csv/transform`, {
-        csv_data_list: csvDataList,
-        user_name: userName,
-        enable_transfer_detection: enableTransferDetection,
-        date_tolerance_hours: dateTolerance,
-        bank_rules_settings: bankRulesSettings
+        csv_data_list: csvDataList
       });
       
       setTransformedData(response.data.transformed_data);

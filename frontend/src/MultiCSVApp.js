@@ -2,8 +2,6 @@ import React, { useState, useRef } from 'react';
 import './index.css';
 
 // Import modular components
-import UserSettings from './components/multi/UserSettings';
-import BankRulesSettings from './components/multi/BankRulesSettings';
 import FileUploadStep from './components/multi/FileUploadStep';
 import FileConfigurationStep from './components/multi/FileConfigurationStep';
 import DataReviewStep from './components/multi/DataReviewStep';
@@ -27,18 +25,6 @@ function MultiCSVApp() {
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [activeTab, setActiveTab] = useState(0);
   const [currentStep, setCurrentStep] = useState(1);
-  
-  // User settings
-  const [userName, setUserName] = useState('Ammar Qazi');
-  const [dateTolerance, setDateTolerance] = useState(24);
-  const [enableTransferDetection, setEnableTransferDetection] = useState(true);
-  
-  // Bank-specific rules settings
-  const [bankRulesSettings, setBankRulesSettings] = useState({
-    enableNayaPayRules: true,
-    enableTransferwiseRules: true,
-    enableUniversalRules: true
-  });
   
   // Processing state
   const [loading, setLoading] = useState(false);
@@ -121,10 +107,6 @@ function MultiCSVApp() {
   const handlerState = {
     uploadedFiles,
     setUploadedFiles,
-    userName,
-    dateTolerance,
-    enableTransferDetection,
-    bankRulesSettings,
     setLoading,
     setError,
     setSuccess,
@@ -170,22 +152,6 @@ function MultiCSVApp() {
           {error && <div className="error">{error}</div>}
           {success && <div className="success">{success}</div>}
 
-          {/* User Settings */}
-          <UserSettings
-            userName={userName}
-            setUserName={setUserName}
-            dateTolerance={dateTolerance}
-            setDateTolerance={setDateTolerance}
-            enableTransferDetection={enableTransferDetection}
-            setEnableTransferDetection={setEnableTransferDetection}
-          />
-          
-          {/* Bank Rules Settings */}
-          <BankRulesSettings
-            bankRulesSettings={bankRulesSettings}
-            setBankRulesSettings={setBankRulesSettings}
-          />
-          
           {/* File Upload Step */}
           <FileUploadStep
             fileInputRef={fileInputRef}

@@ -1,0 +1,209 @@
+[bank_info]
+name = Erste
+file_patterns = Erste, Erste_Bank
+filename_regex_patterns = ^\d{8}-\d{8}-\d{8}_\d{4}-\d{2}-\d{2}_\d{4}-\d{2}-\d{2}\.csv$
+use_regex = true
+currency_primary = HUF
+cashew_account = Forint Bank
+
+# CSV parsing configuration
+[csv_config]
+has_header = true
+skip_rows = 0
+date_format = %%Y.%%m.%%d
+encoding = utf-8
+expected_headers = Booking Date,Amount,Currency,Partner Name
+
+# Column mapping for Forint Bank CSV format
+# Headers: Booking Date | Amount | Currency | Partner Name | Partner IBAN | Partner Account Number | Bank code
+[column_mapping]
+# Primary mappings
+Date = Transaction Date Time
+Title = Partner Name
+Amount = Amount
+Currency = Currency
+Note = Transaction Type
+# Optional fallback mappings (any bank can use)
+BackupDate = Booking Date
+BackupTitle = Transaction Type
+# Can add backup for any field
+
+# Account mapping
+[account_mapping]
+HUF = Forint Bank
+
+# Data cleaning configuration
+[data_cleaning]
+enable_currency_addition = false
+multi_currency = false
+numeric_amount_conversion = true
+date_standardization = true
+remove_invalid_rows = true
+default_currency = HUF
+strip_bom_characters = true
+
+# Transfer detection patterns
+[transfer_patterns]
+outgoing_transfer = TransferWise
+incoming_transfer = Transfer from {name}
+transfer_to = Payment to {name}
+transfer_from = Payment from {name}
+
+[incoming_patterns]
+received_money = Received from {user_name}
+incoming_transfer = Transfer from {user_name}
+
+# Hungarian bank specific description cleaning rules
+[description_cleaning]
+# Clean up common Hungarian banking terms
+bank_transfer = (Bankátutalás|Bank transfer|Átutalás)
+card_payment = (Kártya|Card|Bankkártya)
+atm_withdrawal = (ATM|Készpénzfelvétel|Cash withdrawal)
+standing_order = (Állandó megbízás|Standing order)
+direct_debit = (Csoportos beszedés|Direct debit)
+workplace_meal = SAMPLE TECHNOLOGIES SAMPLE CITY TEL.*|Sample Workplace Food
+telecom_provider = .*SAMPLE TELECOM.*|Sample Telecom
+transport_pattern = .*SAMPLE TRANSPORT.*|Sample Transport
+rent_payment = Sample Landlord| Rent Payment
+pharmacy_cleanup = (Sample Pharmacy.*)|Pharmacy
+
+# COMPREHENSIVE CATEGORIZATION RULES
+# These patterns match the anonymized sample data
+[categorization]
+
+# === INCOME ===
+SAMPLE TECHNOLOGIES SAMPLE CITY TEL = Income
+
+# === GROCERIES ===
+ALDI 142.SZ = Groceries
+SPAR 8251 = Groceries
+CBA PRI'MA JO'ZSEF KRT = Groceries
+Grocery Store 108 Sample City = Groceries
+
+# === DINING & FOOD ===
+# Fast Food
+BURGER KING CORVIN = Dining
+KFC AIRPORT = Dining
+
+# Pizza & Italian
+TRIO PIZZA FORNETTI = Dining
+
+# Work Dining
+Sample Workplace Food = Dining
+SAMPLE TECHNOLOGIES RESTAURANT = Dining
+
+# Cafes & Desserts
+Fruitisimo Westend = Dining
+GELARTO ROSA GRANDE = Dining
+Sample Cafe - Sample City = Dining
+Sample Ice Cream Shop Sample City = Dining
+Expresso Cafe- Bank = Dining
+
+# Restaurants & Food
+SAMPLE RESTAURANT = Dining
+LAFFA = Dining
+PE'K A'LLOMA'S = Dining
+Market Point Supermark = Dining
+NYX*AloisDallmayrAutom = Dining
+
+# === SHOPPING ===
+# Fashion & Clothing
+HU0311 H&M = Shopping
+SHEIN.COM = Shopping
+SINSAY SAMPLE CITY = Shopping
+TAKKO SAMPLE CITY = Shopping
+
+# Department Stores
+DECATHLON-CORVIN = Shopping
+TEDi-HU 3128 = Shopping
+KIK 5544 = Shopping
+DEPARTMENT STORE 150075 SAMPLE CITY 2 = Shopping
+ROSSMANN 355 = Shopping
+
+# === BILLS & FEES ===
+Sample Telecom Provider = Bills & Fees
+Sample Transport = Bills & Fees
+Sample Government Office = Bills & Fees
+
+# === HEALTH ===
+Sample Pharmacy = Health
+Pharmacy = Health
+
+# === TRAVEL ===
+Hotel at Booking.com = Travel
+Travel.com SAMPLE - CITY = Travel
+GetYourGuide = Travel
+FLIXBUS.COM = Travel
+Sample Taxi Driver = Travel
+VOLANBUSZ_AUTOBUSZ = Travel
+
+# === RENT ===
+Rent Payment = Rent
+Sample Residence = Rent
+
+# === TRANSFERS & FINANCIAL ===
+TransferWise = Transfer
+PaymentCard\*\*2984\* = Transfer
+HELOPAY\*SAMPLE PAYMENT = Transfer
+
+# === PERSONAL SERVICES ===
+# Examples matching anonymized sample data
+Sample Service Provider = Expense
+Jane Doe = Expense
+Alex Johnson = Expense
+Sample Local Service = Expense
+
+# === TRANSFER PATTERNS ===
+# Names matching sample data for transfer detection
+Jane Doe.* = Transfer
+John Smith.* = Transfer
+Emily Davis.* = Transfer
+Alex Johnson.* = Transfer
+
+# === GENERIC FALLBACK PATTERNS ===
+# Grocery patterns
+ALDI = Groceries
+SPAR = Groceries
+LIDL = Groceries
+CBA = Groceries
+TESCO = Groceries
+PENNY = Groceries
+AUCHAN = Groceries
+
+# Food patterns
+BURGER KING = Dining
+KFC = Dining
+McDonald = Dining
+Pizza = Dining
+Fagyizo = Dining
+Étterem = Dining
+
+# Shopping patterns
+H&M = Shopping
+SHEIN = Shopping
+SINSAY = Shopping
+TAKKO = Shopping
+DECATHLON = Shopping
+TEDi = Shopping
+KIK = Shopping
+PEPCO = Shopping
+ROSSMANN = Shopping
+
+# Transport/Bills patterns
+MAV = Bills & Fees
+Bank = Bills & Fees
+
+# Health patterns
+Patika = Health
+Gyógyszertár = Health
+
+# Travel patterns
+Booking.com = Travel
+FLIXBUS = Travel
+VOLANBUSZ = Travel
+Taxi = Travel
+Hotel = Travel
+
+# Transfer patterns
+Revolut = Transfer
+PaymentCard = Transfer

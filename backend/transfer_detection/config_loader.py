@@ -27,7 +27,7 @@ class ConfigLoader:
             # Default configuration if file missing
             print("⚠️  app.conf not found. Using defaults")
             config['general'] = {
-                'user_name': 'Ammar Qazi',
+                'user_name': 'Your Name Here',
                 'date_tolerance_hours': '72'
             }
             config['transfer_detection'] = {

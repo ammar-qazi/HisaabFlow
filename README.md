@@ -1,203 +1,268 @@
-# Bank Statement Parser
+# FlowParser
 
-A desktop application for parsing and converting bank statement CSVs to a standardized format.
+We all want to track our expenses, but life gets in the way. A day passes, then a week, then a month - and suddenly you're staring at a pile of bank statements from different accounts, currencies, and formats that would take hours to organize manually.
+
+I built FlowParser because I got tired of spending more time wrestling with CSV files than I did traveling. Now I just upload, click, and get back to the important stuff.
+
+## What It Does
+
+FlowParser takes whatever messy CSV your bank gives you and converts it into clean, organized data. No more copying and pasting between spreadsheets or trying to remember if that €50 charge was groceries or dining.
+
+Right now it converts everything to work with Cashew (the expense tracker I use), but the whole system is built around simple configuration files.
 
 ## Features
 
-- 📁 **File Upload**: Drag & drop or click to upload CSV files
-- 👀 **Preview**: View your CSV structure before processing
-- 🎯 **Range Selection**: Define exactly where your data starts and ends
-- 🔗 **Column Mapping**: Map your bank's columns to standard format
-- 💾 **Templates**: Save configurations for reuse with same bank
-- 📊 **Live Preview**: See transformations in real-time
-- 📥 **Export**: Download converted data in Cashew format
+- **🎯 Smart Bank Detection**: Recognizes your bank from the CSV filename
+- **⚙️ Configuration-Based**: No hardcoded bank rules - everything's customizable through simple .conf files
+- **🔄 Transfer Detection**: Finds matching transfers between different accounts (like Wise to NayaPay)
+- **🏷️ Auto-Categorization**: Your groceries stay groceries, your rent stays rent
+- **💱 Multi-Currency Support**: Handles different Wise currency pockets separately
+- **📋 Reusable Configs**: Set up once per bank, use forever
+- **🖥️ Desktop App**: Runs locally - your financial data never leaves your computer
 
 ## Target Format (Cashew)
 
-The app converts bank statements to this standardized format:
+FlowParser converts everything to this clean, standardized format:
+
 ```csv
 Date,Amount,Category,Title,Note,Account
 2025-06-01 08:08:35,-50,Groceries,Fruits and Vegetables,Paid with cash,NayaPay
+2025-06-01 12:30:00,2500,Income,Salary Transfer,Monthly salary,Wise USD
 ```
+
+Six simple columns that work with most personal finance tools, spreadsheets, or whatever system you prefer.
 
 ## Quick Start
 
-### Backend Setup (Python + FastAPI)
+### What You Need
 
-1. **Navigate to backend directory**:
+- Python 3.8+ (for the backend)
+- Node.js 14+ (for the desktop app)
+- A few minutes to set up your bank configurations
+
+### Start the App
+
+```bash
+./start_app.sh
+```
+
+That's it! The script handles installing dependencies and starting both the backend and desktop app. The first time takes a minute while everything installs and loads.
+
+## How to Use It
+
+### First Time: Set Up Your Banks
+
+1. **Copy the configuration templates:**
    ```bash
-   cd backend
+   cp configs/app.conf.template configs/app.conf
+   cp configs/wise_usd.conf.template configs/wise_usd.conf
+   # Copy templates for any banks you use
    ```
 
-2. **Install Python dependencies**:
-   ```bash
-   pip install -r requirements.txt
+2. **Edit your personal info in `configs/app.conf`:**
+   ```ini
+   [general]
+   user_name = Your Name  # Used for transfer detection
    ```
 
-3. **Start the backend server**:
-   ```bash
-   python main.py
-   ```
-   
-   The API will be available at: `http://127.0.0.1:8000`
-
-### Frontend Setup (Electron + React)
-
-1. **Navigate to frontend directory**:
-   ```bash
-   cd frontend
+3. **Update bank configs with your real merchants:**
+   ```ini
+   [categorization]
+   # Replace template examples with YOUR merchants
+   Amazon.com = Shopping
+   Your Local Grocery = Groceries
+   Your Workplace = Income
    ```
 
-2. **Install Node.js dependencies**:
-   ```bash
-   npm install
-   ```
+### Daily Use: Convert Your Statements
 
-3. **Start the development server**:
-   ```bash
-   npm run electron-dev
-   ```
+1. **Upload your CSV**: Drag and drop or click to upload
+2. **Preview and confirm**: The app shows what it detected
+3. **Export**: Download your clean, categorized data
 
-This will start both the React development server and the Electron app.
+That's it. The configuration you set up once handles everything on its own.
 
-## How to Use
+### Example: Setting Up NayaPay
 
-### Step 1: Upload CSV File
-- Click or drag & drop your bank statement CSV file
-- The app will automatically preview the file structure
+If you use NayaPay, copy the template and customize it:
 
-### Step 2: Define Data Range
-- **Start Row**: Row where your data headers begin (auto-detected)
-- **End Row**: Last row with data (optional, defaults to end of file)
-- **Start/End Column**: Define column range if needed
+```bash
+cp configs/nayapay.conf.template configs/nayapay.conf
+```
 
-### Step 3: Map Columns
-- Map your bank's column names to the standard format:
-  - **Date**: Transaction date/timestamp
-  - **Amount**: Transaction amount (positive or negative)
-  - **Title**: Transaction description
-  - **Note**: Transaction type or additional info
-  - **Category**: Transaction category (optional)
-  - **Account**: Bank/account name
+Then edit the categorization section with your actual merchants:
 
-### Step 4: Save Template (Optional)
-- Save your configuration as a template
-- Reuse for future files from the same bank
+```ini
+[categorization]
+# Your real merchants, not the template examples
+Careem = Transportation
+Al-Fatah = Groceries
+Dominos = Dining
+```
 
-### Step 5: Export
-- Review the converted data
-- Download as CSV file
+Now every NayaPay CSV you upload will categorize these merchants correctly.
 
-## Example: NayaPay Statement
+## How to Add Your Own .conf File
 
-For the included NayaPay sample:
-1. **Data starts at row 13** (headers: TIMESTAMP, TYPE, DESCRIPTION, AMOUNT, BALANCE)
-2. **Column mapping**:
-   - Date ← TIMESTAMP
-   - Amount ← AMOUNT
-   - Title ← DESCRIPTION
-   - Note ← TYPE
-3. **Save as template**: "NayaPay_Format" for future use
+Got a bank that's not supported yet? Here's how to add it:
+
+### 1. Create the Configuration File
+
+Start with a basic template:
+
+```ini
+[bank_info]
+name = your_bank_name
+file_patterns = yourbank,your_bank  # Keywords that appear in CSV filenames
+currency_primary = USD
+cashew_account = Your Bank Name
+
+[csv_config]
+delimiter = ,
+has_header = true
+date_format = %Y-%m-%d
+
+[column_mapping]
+Date = Date
+Amount = Amount  
+Title = Description
+Note = Type
+Account = your_bank_name
+```
+
+### 2. Map Your CSV Columns
+
+Look at your bank's CSV file and map the columns:
+
+- **Date**: Whatever column has the transaction date
+- **Amount**: The money column (positive/negative values)
+- **Title**: Transaction description 
+- **Note**: Transaction type or category
+- **Account**: Just use your bank's name
+
+### 3. Add Your Merchants
+
+```ini
+[categorization]
+Your Grocery Store = Groceries
+Your Favorite Restaurant = Dining
+Your Workplace = Income
+Your Landlord = Rent
+```
+
+### 4. Test It
+
+Upload a CSV file and see if the detection and categorization work. Tweak the patterns as needed.
+
+The configuration system is forgiving - you can adjust things as you learn how your bank formats their data.
 
 ## Project Structure
 
 ```
-bank_statement_parser/
+flowparser/
 ├── backend/                 # Python FastAPI backend
-│   ├── main.py             # Main FastAPI application
-│   ├── csv_parser.py       # Core parsing logic
-│   ├── test_parser.py      # Test script
+│   ├── main.py             # Main server
+│   ├── api/                # Modular API endpoints
 │   └── requirements.txt    # Python dependencies
-├── frontend/               # Electron + React frontend
-│   ├── src/
-│   │   ├── App.js          # Main React component
-│   │   ├── index.js        # React entry point
-│   │   └── index.css       # Styles
-│   ├── public/
-│   │   ├── electron.js     # Electron main process
-│   │   └── index.html      # HTML template
-│   └── package.json        # Node.js dependencies
-├── templates/              # Saved parsing templates
-├── cashew_import.csv       # Target format example
-└── nayapay_statement.csv   # Sample bank statement
+├── frontend/               # Electron + React desktop app
+│   ├── src/App.js          # Main interface
+│   ├── public/electron.js  # Desktop app wrapper
+│   └── package.json        # Node dependencies
+├── configs/                # Bank configurations
+│   ├── *.conf.template     # Public templates
+│   └── *.conf              # Your personal configs (git-ignored)
+└── sample_data/            # Example CSV files for testing
 ```
 
-## API Endpoints
+The configuration files live in `configs/` and contain all the bank-specific rules. Your personal `.conf` files are ignored by git, so your real merchant data stays private.
 
-The backend provides these REST API endpoints:
+## Supported Banks
 
-- `POST /upload` - Upload CSV file
-- `GET /preview/{file_id}` - Preview file structure
-- `GET /detect-range/{file_id}` - Auto-detect data range
-- `POST /parse-range/{file_id}` - Parse specific range
-- `POST /transform` - Transform to Cashew format
-- `POST /export` - Export as CSV
-- `POST /save-template` - Save parsing template
-- `GET /templates` - List saved templates
-- `GET /template/{name}` - Load specific template
+FlowParser includes templates for:
 
-## Building for Production
+- **Wise** (USD, EUR, HUF, PKR currency pockets)
+- **NayaPay** (Pakistani digital wallet)
+- **Erste Bank** (Hungarian bank)
 
-### Backend
-```bash
-cd backend
-pip install -r requirements.txt
-python main.py
-```
+But the power is in the configuration system - you can add any bank by creating a simple `.conf` file.
 
-### Frontend
-```bash
-cd frontend
-npm run build
-npm run electron-pack
-```
+## Future Plans
 
-This creates a distributable desktop app in the `dist/` folder.
+Here's what's coming next:
 
-## Adding New Bank Formats
+### Near Term
+- **Revolut support** (high demand)
+- **PDF parsing** for banks that don't provide CSV exports
+- **More output formats** beyond Cashew
+- **Date range filtering** for partial exports
 
-1. **Upload a sample CSV** from the new bank
-2. **Use the app** to define the data range and column mapping
-3. **Save as a template** with a descriptive name (e.g., "Chase_Checking")
-4. **Share the template** by copying the JSON file from `templates/` folder
-
-## Troubleshooting
-
-### Common Issues
-
-**Backend won't start**:
-- Check Python version (3.8+ required)
-- Install dependencies: `pip install -r requirements.txt`
-- Check port 8000 is available
-
-**Frontend won't start**:
-- Check Node.js version (14+ required)
-- Install dependencies: `npm install`
-- Check port 3000 is available
-
-**File upload fails**:
-- Ensure CSV file is properly formatted
-- Check file size (large files may need chunking)
-- Verify backend is running
-
-**Date parsing issues**:
-- Check date format in your CSV
-- Modify date parsing logic in `csv_parser.py` if needed
-
-### Need Help?
-
-1. Check the console for error messages
-2. Verify both backend and frontend are running
-3. Test with the included NayaPay sample file first
-4. Check the `templates/` folder for saved configurations
+### Longer Term  
+- **Improved frontend** with better UX
+- **More modular codebase** for easier contributions
+- **Bank detection** from CSV content
+- **Rule suggestions** based on transaction patterns
 
 ## Contributing
 
-Feel free to:
-- Add support for new bank formats
-- Improve date/amount parsing
-- Enhance the UI/UX
-- Add new export formats
-- Optimize performance
+Want to help make FlowParser better? Here are the best ways:
 
-The codebase is modular and well-documented for easy extension.
+### 🐛 Bug Reports
+Found something broken? Open an issue with:
+- What you were trying to do
+- What happened instead
+- Your bank/CSV format if relevant
+
+### 🏦 Bank Statement Contributions
+
+This is the most valuable contribution! If you want FlowParser to support your bank:
+
+1. **Download a CSV statement** from your bank
+2. **Anonymize it** by replacing:
+   - Your real name with "John Smith"
+   - Real merchant names with generic ones ("Local Grocery", "Coffee Shop", etc.)
+   - Account numbers with fake ones
+   - Keep the structure and formatting identical
+3. **Share it** via GitHub issue or email
+
+I'll create the `.conf` file and template so other users with your bank can benefit right away.
+
+### 💻 Code Contributions
+
+The codebase is modular and well-documented. Feel free to:
+- Add new features to the configuration system
+- Improve the desktop app interface  
+- Optimize parsing performance
+- Add new export formats
+
+## Privacy & Security
+
+Your financial data never leaves your computer. FlowParser runs entirely locally:
+
+- **No cloud processing**: Everything happens on your machine
+- **No data transmission**: CSV files stay in your local folders
+- **Private configurations**: Your `.conf` files with real merchant names are git-ignored
+- **Open source**: You can audit exactly what the code does
+
+The only thing that gets shared publicly are the anonymized `.conf.template` files that help other users set up their banks.
+
+## Need Help?
+
+### Common Issues
+
+**"Unknown bank type" error**: Create a `.conf` file for your bank or check that the `file_patterns` match your CSV filename.
+
+**Transfers not detected**: Make sure your `user_name` in `app.conf` matches exactly how it appears in your bank statements.
+
+**Wrong categorization**: Add or update the merchant names in your bank's `.conf` file.
+
+### Getting Support
+
+- Check the sample configurations in `configs/` for examples
+- Test with the included sample data first
+- Open a GitHub issue for bugs or feature requests
+
+The configuration system is flexible - most issues can be solved by tweaking a `.conf` file rather than changing code.
+
+---
+
+FlowParser turns the tedious job of organizing bank statements into a one-click process. Set it up once, use it forever, and never categorize transactions by hand again.

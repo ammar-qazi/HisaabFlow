@@ -1,0 +1,15 @@
+[general]
+# Date tolerance for transfer detection (in hours)
+date_tolerance_hours = 72
+
+# User name for transfer detection matching
+# Replace with your actual name for better transfer detection
+user_name = Your Name Here
+
+[transfer_detection]
+# Minimum confidence threshold for transfer pair detection
+confidence_threshold = 0.7
+
+[transfer_categorization]
+# Default category to apply to both sides of a detected transfer pair.
+default_pair_category = Balance Correction

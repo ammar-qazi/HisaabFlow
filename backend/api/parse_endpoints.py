@@ -33,6 +33,9 @@ except ImportError:
         # This will be populated by file_endpoints when it loads
         return None
 
+# Import models from centralized location
+from .models import MultiCSVParseRequest
+
 parse_router = APIRouter()
 
 # Initialize services
@@ -47,14 +50,6 @@ class ParseRangeRequest(BaseModel):
     start_col: int = 0
     end_col: Optional[int] = None
     encoding: str = "utf-8"
-    enable_cleaning: bool = True
-
-
-class MultiCSVParseRequest(BaseModel):
-    file_ids: List[str]
-    parse_configs: List[Dict[str, Any]]
-    user_name: str = "Ammar Qazi"
-    date_tolerance_hours: int = 24
     enable_cleaning: bool = True
 
 
@@ -155,7 +150,6 @@ async def parse_multiple_csvs(request: MultiCSVParseRequest):
         result = multi_csv_service.parse_multiple_files(
             file_infos=file_infos,
             parse_configs=request.parse_configs,
-            user_name=request.user_name,
             enable_cleaning=request.enable_cleaning
         )
         
