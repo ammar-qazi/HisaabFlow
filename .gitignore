@@ -112,3 +112,7 @@ codemcp.toml.bak
 LAUNCHERS_README.md
 start_display.sh
 start_app.bat
+
+# Development and AI assistance files
+ai_assistance/
+codemcp.toml
