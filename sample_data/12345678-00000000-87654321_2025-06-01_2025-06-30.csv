@@ -1,0 +1,15 @@
+Account Number,12345678-00000000-87654321
+Account Holder,John Smith
+Period From,2025-06-01
+Period To,2025-06-30
+Generated,2025-06-16
+
+Date,Amount,Currency,Description,Type,Balance,Reference
+2025-06-01,-15.50,HUF,Coffee Shop Purchase,Card Payment,12450.50,REF001234
+2025-06-02,50000.00,HUF,Monthly Salary,Transfer In,62450.50,SAL202506
+2025-06-03,-8500.00,HUF,Grocery Store,Card Payment,53950.50,REF001235
+2025-06-04,-25.00,HUF,Public Transport,Card Payment,53925.50,REF001236
+2025-06-05,-1200.00,HUF,Online Shopping,Card Payment,52725.50,REF001237
+2025-06-08,-450.00,HUF,Restaurant,Card Payment,52275.50,REF001238
+2025-06-10,5000.00,HUF,Freelance Payment,Transfer In,57275.50,PAY202506
+2025-06-12,-12000.00,HUF,Rent Payment,Transfer Out,45275.50,RENT0625

@@ -1,0 +1,32 @@
+TIMESTAMP,TYPE,DESCRIPTION,AMOUNT,BALANCE
+2025-02-01 08:15:23,Received money from John Smith,Salary transfer,85000,145000
+2025-02-01 12:30:45,Card Payment,Coffee Shop Downtown,-250,144750
+2025-02-02 09:45:12,Transfer,Sent to Jane Doe for dinner,-3500,141250
+2025-02-02 14:20:33,Card Payment,Grocery Store Main St,-12500,128750
+2025-02-03 16:45:21,Received money from Mike Johnson,Freelance project payment,25000,153750
+2025-02-04 10:15:44,Card Payment,Gas Station Highway,-4500,149250
+2025-02-05 11:30:22,Online Payment,Netflix subscription,-1500,147750
+2025-02-05 13:45:11,Card Payment,Restaurant Plaza,-8500,139250
+2025-02-06 09:20:15,Transfer,Received from Sarah Wilson,Split bill payment,2750,142000
+2025-02-07 15:35:44,Card Payment,Pharmacy Main Road,-1200,140800
+2025-02-08 08:45:33,Card Payment,Bookstore Central,-3200,137600
+2025-02-09 12:15:22,Received money from Tom Brown,Rent share,15000,152600
+2025-02-10 14:30:11,Card Payment,Electronics Store,-25000,127600
+2025-02-11 16:45:55,Transfer,Sent to Lisa Davis for gifts,-4500,123100
+2025-02-12 10:20:33,Card Payment,Taxi Service,-1800,121300
+2025-02-13 11:45:22,Online Payment,Online course subscription,-5000,116300
+2025-02-14 13:30:44,Card Payment,Flower Shop Valentine,-2500,113800
+2025-02-15 09:15:11,Received money from Alex Kumar,Project bonus,30000,143800
+2025-02-16 15:45:33,Card Payment,Cinema Tickets,-1200,142600
+2025-02-17 12:30:22,Transfer,Utility bill payment,-8500,134100
+2025-02-18 14:15:44,Card Payment,Sports Store,-15000,119100
+2025-02-19 16:30:11,Received money from Emma Clark,Birthday gift money,5000,124100
+2025-02-20 10:45:55,Card Payment,Hair Salon,-3500,120600
+2025-02-21 12:20:33,Online Payment,Music streaming subscription,-800,119800
+2025-02-22 14:45:22,Card Payment,Fast Food Chain,-1500,118300
+2025-02-23 08:30:44,Transfer,Sent to David Lee for travel,-12000,106300
+2025-02-24 11:15:11,Card Payment,Clothing Store,-8500,97800
+2025-02-25 13:45:33,Received money from Rachel Green,Loan repayment,20000,117800
+2025-02-26 15:30:22,Card Payment,Pet Store,-2200,115600
+2025-02-27 09:45:44,Online Payment,Cloud storage subscription,-1000,114600
+2025-02-28 17:20:11,Card Payment,Department Store,-6500,108100
