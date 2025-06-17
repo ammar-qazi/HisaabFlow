@@ -84,7 +84,7 @@ export const createProcessingHandlers = (state) => {
       
       setParsedResults(results);
       setSuccess(`Successfully parsed ${results.length} CSV files`);
-      setCurrentStep(3);
+      setCurrentStep(2); // Advance to Review step after successful parsing
       
     } catch (err) {
       console.error('Parse error:', err);
@@ -193,7 +193,7 @@ export const createProcessingHandlers = (state) => {
       setTransformedData(response.data.transformed_data);
       setTransferAnalysis(response.data.transfer_analysis);
       setSuccess(`Transformation complete! ${response.data.transformation_summary.total_transactions} transactions processed`);
-      setCurrentStep(4);
+      setCurrentStep(3); // Advance to Review step after successful transformation
       
     } catch (err) {
       setError(`Transformation failed: ${err.response?.data?.detail || err.message}`);

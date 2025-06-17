@@ -94,7 +94,7 @@ export const createFileHandlers = (state) => {
       });
       
       setSuccess(`Successfully uploaded ${selectedFiles.length} file(s) with bank auto-detection`);
-      setCurrentStep(2);
+      // Note: Removed auto-progression - users must click "Continue to Configuration" button
       
     } catch (err) {
       console.error(`❌ DEBUG: Upload error:`, err);

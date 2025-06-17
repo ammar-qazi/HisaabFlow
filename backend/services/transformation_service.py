@@ -551,6 +551,14 @@ class TransformationService:
             print(f"   📄 Sample row keys: {list(data[0].keys())}")
             print(f"   📄 Sample row: {data[0]}")
         
+        # DEBUG: Show actual transaction descriptions for pattern matching
+        print(f"   🔍 DEBUG: Sample transaction descriptions for pattern matching:")
+        for i, row in enumerate(data[:10]):  # Show first 10 transactions
+            title = row.get('Title', '')
+            amount = row.get('Amount', '')
+            account = row.get('Account', '')
+            print(f"      {i+1}. Account='{account}', Amount='{amount}', Title='{title}'")
+        
         # Convert data to the format expected by transfer detector
         csv_data_list = []
         
@@ -573,6 +581,14 @@ class TransformationService:
             }
             csv_data_list.append(csv_data)
             print(f"      📁 Account '{account}': {len(rows)} transactions")
+            
+            # DEBUG: Show sample transactions from each account
+            print(f"         Sample transactions from {account}:")
+            for j, row in enumerate(rows[:3]):  # Show first 3 transactions per account
+                title = row.get('Title', '')
+                amount = row.get('Amount', '')
+                date = row.get('Date', '')
+                print(f"           {j+1}. Date='{date}', Amount='{amount}', Title='{title}'")
         
         print(f"   📂 Prepared {len(csv_data_list)} CSV data items for transfer detection")
         

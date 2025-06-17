@@ -308,6 +308,11 @@ body {
   100% { transform: rotate(360deg); }
 }
 
+/* Global spin animation for components */
+.spin {
+  animation: spin 1s linear infinite;
+}
+
 @keyframes pulse {
   0%, 100% {
     opacity: 1;

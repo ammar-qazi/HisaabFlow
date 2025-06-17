@@ -1,0 +1,126 @@
+import React, { useEffect } from 'react';
+import { useTheme } from '../../../theme/ThemeProvider';
+import { Card } from '../../ui';
+
+function AutoParseHandler({ 
+  uploadedFiles,
+  parseAllFiles,
+  autoParseResults,
+  setShowAdvancedConfig,
+  loading
+}) {
+  const theme = useTheme();
+
+  // Auto-parse when component mounts or files change
+  useEffect(() => {
+    if (uploadedFiles.length > 0 && (!autoParseResults || autoParseResults.length === 0)) {
+      console.log('🚀 Auto-parsing files with smart defaults...');
+      parseAllFilesWithDefaults();
+    }
+  }, [uploadedFiles]);
+
+  // Check for advanced config needs when we get results
+  useEffect(() => {
+    if (autoParseResults && autoParseResults.length > 0) {
+      const needsConfig = autoParseResults.some(result => {
+        const confidence = result.bank_info?.confidence || 0;
+        const hasData = result.parse_result?.row_count > 0;
+        return confidence < 0.8 || !hasData;
+      });
+      
+      console.log('📊 Checking parsed results for config needs:', autoParseResults.length, 'files');
+      console.log('📊 AutoParseResults content:', autoParseResults);
+      console.log('⚙️ Needs manual config:', needsConfig);
+      setShowAdvancedConfig(needsConfig);
+    } else {
+      console.log('📊 No autoParseResults yet, current value:', autoParseResults);
+    }
+  }, [autoParseResults]);
+
+  const parseAllFilesWithDefaults = async () => {
+    try {
+      // Call parseAllFiles - it will update parsedResults in parent state
+      await parseAllFiles();
+      console.log('📊 Auto-parse call completed');
+      
+    } catch (error) {
+      console.error('❌ Auto-parse failed:', error);
+      setShowAdvancedConfig(true); // Show config panel on error
+    }
+  };
+
+  // Step Header with loading state
+  return (
+    <Card padding="lg" elevated>
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        marginBottom: theme.spacing.lg,
+        gap: theme.spacing.md 
+      }}>
+        <div style={{
+          width: '32px',
+          height: '32px',
+          backgroundColor: theme.colors.primary,
+          color: 'white',
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '16px',
+          fontWeight: '600',
+        }}>
+          2
+        </div>
+        <div>
+          <h2 style={{
+            margin: 0,
+            fontSize: '24px',
+            fontWeight: '600',
+            color: theme.colors.text.primary,
+            marginBottom: '4px',
+          }}>
+            {autoParseResults ? 'Review Your Financial Data' : 'Processing Files...'}
+          </h2>
+          <p style={{
+            margin: 0,
+            fontSize: '14px',
+            color: theme.colors.text.secondary,
+          }}>
+            {autoParseResults ? 
+              'Verify data accuracy and review important transactions before processing' :
+              'Auto-parsing files with smart defaults...'
+            }
+          </p>
+        </div>
+      </div>
+
+      {/* Show loading state while parsing OR when we have no results yet */}
+      {(loading || (!autoParseResults || autoParseResults.length === 0)) && (
+        <div style={{
+          padding: theme.spacing.xl,
+          textAlign: 'center',
+          color: theme.colors.text.secondary,
+        }}>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            border: `4px solid ${theme.colors.border}`,
+            borderTop: `4px solid ${theme.colors.primary}`,
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto 16px',
+          }} />
+          <div>
+            {loading ? 
+              `Parsing ${uploadedFiles.length} files with smart defaults...` :
+              'Waiting for parsing results...'
+            }
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+export default AutoParseHandler;

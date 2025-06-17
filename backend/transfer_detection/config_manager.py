@@ -126,6 +126,12 @@ class ConfigurationManager:
                 
                 bank_configs[bank_name] = bank_config
                 print(f"✅ Loaded {bank_name} config")
+                # DEBUG: Show transfer patterns loaded
+                print(f"   📤 Outgoing patterns: {list(outgoing_patterns.values())}")
+                print(f"   📥 Incoming patterns: {list(incoming_patterns.values())}")
+                print(f"   🏷️ Categorization rules count: {len(bank_config.categorization_rules)}")
+                print(f"   🧹 Description cleaning rules count: {len(bank_config.description_cleaning_rules)}")
+                print(f"   🧠 Conditional overrides count: {len(bank_config.conditional_description_overrides)}")
                 
             except Exception as e:
                 print(f"❌ Error loading {bank_name}.conf: {e}")
