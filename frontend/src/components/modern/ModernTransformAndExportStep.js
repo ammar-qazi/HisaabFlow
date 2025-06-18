@@ -7,6 +7,7 @@ import { ChevronLeft, RefreshCw } from '../ui/Icons'; // Assuming icons exist
 import TransformationProgress from './transform-export/TransformationProgress';
 import TransformationResults from './transform-export/TransformationResults';
 import TransferAnalysisPanel from './transform-export/TransferAnalysisPanel';
+import InteractiveDataTable from './transform-export/InteractiveDataTable';
 import ExportOptions from './transform-export/ExportOptions';
 
 function ModernTransformAndExportStep({
@@ -112,6 +113,9 @@ function ModernTransformAndExportStep({
           />
           <TransferAnalysisPanel
             transferAnalysis={transferAnalysis}
+          />
+          <InteractiveDataTable
+            transformedData={transformedData}
           />
           <ExportOptions
             transformedData={transformedData}

@@ -117,10 +117,25 @@ export const Minus = (props) => (
   </IconWrapper>
 );
 
+// Additional utility icons
+export const Search = (props) => (
+  <IconWrapper {...props}>
+    <circle cx="11" cy="11" r="8" />
+    <path d="m21 21-4.35-4.35" />
+  </IconWrapper>
+);
+
+export const Filter = (props) => (
+  <IconWrapper {...props}>
+    <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46 22,3" />
+  </IconWrapper>
+);
+
 export default {
   Building, CreditCard, DollarSign, TrendingUp, TrendingDown,
   ArrowLeftRight, RefreshCw,
   BarChart, PieChart,
   Tag, Folder,
   Plus, Minus,
+  Search, Filter,
 };
