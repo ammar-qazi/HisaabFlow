@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useTheme } from '../../theme/ThemeProvider';
+import toast from 'react-hot-toast';
 import ContentArea from './ContentArea';
 import ModernTransformAndExportStep from './ModernTransformAndExportStep';
 import ModernFileUploadStep from './ModernFileUploadStep';
@@ -17,7 +18,6 @@ function ModernAppLogic({ currentStep, setCurrentStep }) {
   const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
   const [parsedResults, setParsedResults] = useState([]);
   const [transformedData, setTransformedData] = useState(null);
   const [transferAnalysis, setTransferAnalysis] = useState(null);
@@ -26,7 +26,7 @@ function ModernAppLogic({ currentStep, setCurrentStep }) {
   const fileInputRef = useRef(null);
   const autoConfigHook = useAutoConfiguration();
 
-  const clearMessages = () => { setError(null); setSuccess(null); };
+  const clearMessages = () => { setError(null); };
 
   React.useEffect(() => {
     const loadConfigurations = async () => {
@@ -43,7 +43,7 @@ function ModernAppLogic({ currentStep, setCurrentStep }) {
     loadConfigurations();
   }, []);
 
-  const applyTemplate = async (fileIndex, configName) => {
+  const applyTemplate = async (fileIndex, configName, showNotification = true) => {
     const result = await ConfigurationService.loadConfiguration(configName);
     if (result.success && result.config) {
       const processedConfig = ConfigurationService.processConfigurationForFile(result.config, uploadedFiles[fileIndex]?.fileName);
@@ -52,19 +52,21 @@ function ModernAppLogic({ currentStep, setCurrentStep }) {
         updated[fileIndex] = { ...updated[fileIndex], selectedConfiguration: configName, ...processedConfig };
         return updated;
       });
-      setSuccess(`Configuration "${configName}" applied to ${uploadedFiles[fileIndex].fileName}`);
+      if (showNotification) {
+        toast.success(`Configuration "${configName}" applied to ${uploadedFiles[fileIndex].fileName}`);
+      }
     } else if (result.error) {
       setError(result.error);
     }
   };
 
   const { previewFile, previewFileById } = usePreviewHandlers(
-    uploadedFiles, setUploadedFiles, setLoading, setError, setSuccess,
+    uploadedFiles, setUploadedFiles, setLoading, setError,
     applyTemplate, autoConfigHook.processDetectionResult, autoConfigHook.generateSuccessMessage
   );
 
   const handlerState = {
-    uploadedFiles, setUploadedFiles, setLoading, setError, setSuccess,
+    uploadedFiles, setUploadedFiles, setLoading, setError,
     setParsedResults, setTransformedData, setTransferAnalysis, setCurrentStep,
     applyTemplate, previewFile, previewFileById, dynamicBankMapping: autoConfigHook.bankConfigMapping
   };
@@ -88,15 +90,7 @@ function ModernAppLogic({ currentStep, setCurrentStep }) {
   const handleStartOver = () => {
     setCurrentStep(1); setUploadedFiles([]); setParsedResults([]);
     setTransformedData(null); setTransferAnalysis(null); setActiveTab(0); clearMessages();
-  };
-  const handleExport = () => exportData(transformedData, setSuccess, setError);
-
-  React.useEffect(() => {
-    if (currentStep === 3 && !transformedData && success) {
-      console.log('🧹 Clearing success message when entering step 3 without transformed data');
-      setSuccess(null);
-    }
-  }, [currentStep, transformedData, success]);
+  };  const handleExport = () => exportData(transformedData, toast.success, setError);
 
   const messageStyles = {
     error: {
@@ -104,11 +98,6 @@ function ModernAppLogic({ currentStep, setCurrentStep }) {
       border: `1px solid ${theme.colors.error}`, borderRadius: theme.borderRadius.md,
       padding: theme.spacing.md, marginBottom: theme.spacing.md, fontSize: '14px'
     },
-    success: {
-      backgroundColor: theme.colors.success + '20', color: theme.colors.success,
-      border: `1px solid ${theme.colors.success}`, borderRadius: theme.borderRadius.md,
-      padding: theme.spacing.md, marginBottom: theme.spacing.md, fontSize: '14px'
-    }
   };
 
   const getStepInfo = () => {
@@ -124,8 +113,6 @@ function ModernAppLogic({ currentStep, setCurrentStep }) {
 
   return (
     <ContentArea title={stepInfo.title} subtitle={stepInfo.subtitle} padding="lg">
-      {error && <div style={messageStyles.error}>{error}</div>}
-      {success && <div style={messageStyles.success}>{success}</div>}
 
       {currentStep === 1 && (
         <ModernFileUploadStep

@@ -10,7 +10,7 @@ const API_V1_BASE = `${API_BASE}/api/v1`;
 /**
  * Exports transformed data as CSV file
  */
-export const exportData = async (transformedData, setSuccess, setError) => {
+export const exportData = async (transformedData, setError) => {
   if (!transformedData) return;
   
   try {
@@ -26,8 +26,6 @@ export const exportData = async (transformedData, setSuccess, setError) => {
     link.click();
     link.remove();
     window.URL.revokeObjectURL(url);
-    
-    setSuccess('Multi-CSV export completed successfully');
     
   } catch (err) {
     setError(`Export failed: ${err.response?.data?.detail || err.message}`);

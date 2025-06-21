@@ -10,7 +10,6 @@ export const createProcessingHandlers = (state) => {
     setUploadedFiles, 
     setLoading, 
     setError, 
-    setSuccess,
     setParsedResults,
     setTransformedData,
     setTransferAnalysis,
@@ -22,7 +21,6 @@ export const createProcessingHandlers = (state) => {
     if (uploadedFiles.length === 0) return;
     
     setError(null);
-    setSuccess(null);
     setLoading(true);
     
     try {
@@ -58,7 +56,6 @@ export const createProcessingHandlers = (state) => {
       });
       
       setParsedResults(results);
-      setSuccess(`Successfully parsed ${results.length} CSV files`);
       setCurrentStep(2);
       
     } catch (err) {
@@ -72,19 +69,18 @@ export const createProcessingHandlers = (state) => {
     if (uploadedFiles.length === 0) return;
     
     setError(null);
-    setSuccess(null);
     setLoading(true);
     
     try {
-      // **FIX:** Filter for files with valid parsedData and include bank detection from preview
+      // **FIX:** Filter for files with valid parsedData and construct the list safely.
       const csvDataList = uploadedFiles
         .filter(file => file.parsedData && file.parsedData.success)
         .map(file => ({
           filename: file.fileName,
           data: file.parsedData.data,
           headers: file.parsedData.headers,
-          // **KEY FIX:** Use bank detection from preview instead of parsedData
-          bank_info: file.preview?.bank_detection || file.parsedData.bank_info || {},
+          bank_info: file.parsedData.bank_info || {},
+          // Add other necessary fields if the backend needs them
         }));
 
       if (csvDataList.length === 0) {
@@ -99,7 +95,6 @@ export const createProcessingHandlers = (state) => {
       
       setTransformedData(response.data.transformed_data);
       setTransferAnalysis(response.data.transfer_analysis);
-      setSuccess(`Transformation complete! ${response.data.transformation_summary.total_transactions} transactions processed`);
       setCurrentStep(3);
       
     } catch (err) {

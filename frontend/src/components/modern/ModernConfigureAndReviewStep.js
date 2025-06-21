@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from '../../theme/ThemeProvider';
 import { Card, Button } from '../ui';
 import { ChevronLeft, ChevronRight } from '../ui/Icons';
+import toast from 'react-hot-toast';
 
 // Import modular components
 import AutoParseHandler from './configure-review/AutoParseHandler';
@@ -27,22 +28,46 @@ function ModernConfigureAndReviewStep({
 }) {
   const theme = useTheme();
   const [showAdvancedConfig, setShowAdvancedConfig] = useState(false);
+  // Add this ref to track which files have been sent for processing
+  const processedFileIds = useRef(new Set());
 
-  // Add this new useEffect hook
   useEffect(() => {
-    // DEBUG: Log to confirm the effect runs and see the state of uploadedFiles.
-    console.log('⚙️ Configure step effect running. Checking files for auto-preview.', uploadedFiles);
-    // Automatically run bank detection for any file that hasn't been previewed yet
-    uploadedFiles.forEach((file, index) => {
-      // DEBUG: Log the state of each file to see why preview might be skipped.
-      // CORRECTED LOGIC: Check for the specific 'confidence' property, not just 'preview'.
-      console.log(`🔎 Checking file ${index}: ${file.fileName}`, { hasConfidence: file.confidence !== undefined, fileObject: file });
-      if (file.confidence === undefined) { // If confidence isn't set, we need to run the full preview handler.
-        console.log(`🤖 Triggering preview for ${file.fileName} because confidence score is missing.`);
-        previewFile(index);
+    // This function will run all previews and then show a single toast.
+    const runAllPreviews = async (filesToProcess) => {
+      // 1. Create a list of preview promises for the new files.
+      const previewPromises = filesToProcess.map((file, index) => 
+        previewFile(uploadedFiles.findIndex(f => f.fileId === file.fileId))
+      );
+
+      // 2. Wait for all the new previews to complete.
+      if (previewPromises.length > 0) {
+        const results = await Promise.all(previewPromises);
+        
+        // 3. Count successes.
+        const successfulConfigCount = results.filter(msg => msg !== null).length;
+
+        // 4. Show a single, consolidated toast notification.
+        if (successfulConfigCount > 0) {
+          toast.success(
+            `Successfully applied configurations to ${successfulConfigCount} file(s) based on bank detection.`
+          );
+        }
       }
-    });
-  }, [uploadedFiles, previewFile]); // Add dependencies to avoid stale closures. The `if` condition prevents re-running on already previewed files.
+    };
+
+    // Find files that are new and haven't been processed yet.
+    const filesToProcess = uploadedFiles.filter(
+      file => !processedFileIds.current.has(file.fileId)
+    );
+
+    // If there are new files to process, run the logic.
+    if (filesToProcess.length > 0) {
+      // Immediately add their IDs to our ref to "lock" them and prevent re-processing.
+      filesToProcess.forEach(file => processedFileIds.current.add(file.fileId));
+      runAllPreviews(filesToProcess);
+    }
+
+  }, [uploadedFiles, previewFile]);
 
   if (currentStep < 2 || uploadedFiles.length === 0) return null;
 

@@ -22,7 +22,7 @@ export const createFileHandlers = (state) => {
     setUploadedFiles, 
     setSuccess, 
     setError, 
-    setLoading, 
+    setLoading,
     setCurrentStep,
     dynamicBankMapping
   } = state;
@@ -36,7 +36,6 @@ export const createFileHandlers = (state) => {
     }
     
     setError(null);
-    setSuccess(null);
     setLoading(true);
     
     try {
@@ -88,7 +87,7 @@ export const createFileHandlers = (state) => {
         console.log(`🔍 DEBUG: setUploadedFiles callback - new length: ${updated.length}`);
         
         setTimeout(() => {
-          triggerAutoDetection(newFiles, setUploadedFiles, setSuccess, setError, dynamicBankMapping);
+          triggerAutoDetection(newFiles, setUploadedFiles, setError, dynamicBankMapping); // setSuccess removed
         }, 1000);
         
         return updated;

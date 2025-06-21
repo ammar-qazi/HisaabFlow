@@ -9,7 +9,7 @@ const API_BASE = 'http://127.0.0.1:8000';
 /**
  * Auto-configures a file based on bank detection results
  */
-export const autoConfigureFile = async (fileId, bankDetection, previewData, setUploadedFiles, setSuccess, setError, dynamicBankMapping = null) => {
+export const autoConfigureFile = async (fileId, bankDetection, previewData, setUploadedFiles, setError, dynamicBankMapping = null) => {
   console.log(`🔧 DEBUG: autoConfigureFile called for fileId: ${fileId}`);
   console.log(`🔧 DEBUG: bankDetection:`, bankDetection);
   console.log(`🔧 DEBUG: previewData headers:`, previewData.column_names);
@@ -79,8 +79,6 @@ export const autoConfigureFile = async (fileId, bankDetection, previewData, setU
       return updated;
     });
     
-    setSuccess(`✅ Auto-configured: ${detectedBank} detected (${Math.round(confidence * 100)}% confidence). Configuration "${configName}" applied with auto-mapped columns.`);
-    
   } catch (error) {
     console.error(`❌ DEBUG: Auto-configuration failed:`, error);
     setError(`Auto-configuration failed for ${detectedBank}: ${error.message}`);
@@ -114,7 +112,7 @@ export const generateAutoColumnMapping = (headers) => {
 /**
  * Triggers auto-detection and configuration for newly uploaded files
  */
-export const triggerAutoDetection = async (newFiles, setUploadedFiles, setSuccess, setError, dynamicBankMapping = null) => {
+export const triggerAutoDetection = async (newFiles, setUploadedFiles, setError, dynamicBankMapping = null) => {
   console.log(`🔧 DEBUG: Starting auto-detection for ${newFiles.length} newly uploaded files`);
   
   for (let i = 0; i < newFiles.length; i++) {
@@ -131,7 +129,7 @@ export const triggerAutoDetection = async (newFiles, setUploadedFiles, setSucces
         console.log(`🏦 DEBUG: Bank detected: ${backendDetection.detected_bank} (confidence: ${backendDetection.confidence})`);
         
         // Auto-configure the file with dynamic mapping
-        await autoConfigureFile(newFile.fileId, backendDetection, detectionResponse.data, setUploadedFiles, setSuccess, setError, dynamicBankMapping);
+        await autoConfigureFile(newFile.fileId, backendDetection, detectionResponse.data, setUploadedFiles, setError, dynamicBankMapping);
       }
     } catch (error) {
       console.error(`❌ DEBUG: Auto-detection failed for ${newFile.fileName}:`, error);

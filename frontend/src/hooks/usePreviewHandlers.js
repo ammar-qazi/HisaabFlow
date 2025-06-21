@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import axios from 'axios';
+import toast from 'react-hot-toast';
 
 const API_BASE = 'http://localhost:8000';
 const API_V1_BASE = `${API_BASE}/api/v1`;
@@ -13,7 +14,6 @@ export const usePreviewHandlers = (
   setUploadedFiles,
   setLoading,
   setError,
-  setSuccess,
   applyTemplate,
   processDetectionResult,
   generateSuccessMessage
@@ -72,17 +72,17 @@ export const usePreviewHandlers = (
           });
           
           setTimeout(() => {
-            applyTemplate(fileIndex, configName);
+            applyTemplate(fileIndex, configName, false); // Pass false to suppress the toast
           }, 500);
           
           const successMessage = generateSuccessMessage(detectedBank, confidence, configName, headerRow, dataRow);
-          setSuccess(successMessage);
+          return successMessage; // <-- Add this line
           
         } else {
-          setSuccess(autoConfigResult.message || `Preview loaded for ${fileData.fileName} - using manual configuration`);
+          // This case will not return a message for the consolidated toast
         }
       } else {
-        setSuccess(`Preview loaded for ${fileData.fileName} - no bank detection available`);
+        // This case will not return a message for the consolidated toast
       }
       
     } catch (err) {
@@ -91,7 +91,10 @@ export const usePreviewHandlers = (
     } finally {
       setLoading(false);
     }
-  }, [uploadedFiles, setUploadedFiles, setLoading, setError, setSuccess, applyTemplate, processDetectionResult, generateSuccessMessage]);
+    // Ensure a return value even if no success message is generated for auto-config
+    // This allows Promise.all to resolve without errors for all files
+    return null;
+  }, [uploadedFiles, setUploadedFiles, setLoading, setError, applyTemplate, processDetectionResult, generateSuccessMessage]);
 
   const previewFileById = useCallback(async (fileId) => {
     const fileIndex = uploadedFiles.findIndex(f => f.fileId === fileId);
