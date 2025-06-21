@@ -20,7 +20,6 @@ function TransformationResults({ transformedData, transferAnalysis }) {
     total_transactions: 0,
     categorized_transactions: 0,
     transfer_pairs_found: 0,
-    avg_confidence_score: 0
   };
 
   let hasData = false;
@@ -33,14 +32,6 @@ function TransformationResults({ transformedData, transferAnalysis }) {
         t.Category && t.Category !== 'Uncategorized' && t.Category !== '' && t.Category !== 'Other'
       ).length;
       hasData = transformedData.length > 0;
-      
-      // Calculate average confidence if available
-      const confidenceScores = transformedData
-        .map(t => t.confidence_score || t.confidence || 0)
-        .filter(score => score > 0);
-      summary.avg_confidence_score = confidenceScores.length > 0 
-        ? confidenceScores.reduce((a, b) => a + b, 0) / confidenceScores.length 
-        : 0;
     }
     // Case 2: transformedData has a processed_transactions property
     else if (transformedData.processed_transactions) {
@@ -48,7 +39,6 @@ function TransformationResults({ transformedData, transferAnalysis }) {
       summary.categorized_transactions = transformedData.processed_transactions.filter(t => 
         t.Category && t.Category !== 'Uncategorized' && t.Category !== '' && t.Category !== 'Other'
       ).length;
-      summary.avg_confidence_score = transformedData.categorization_confidence_avg || 0;
       hasData = transformedData.processed_transactions.length > 0;
     }
     // Case 3: transformedData has a transformation_summary property
@@ -94,7 +84,7 @@ function TransformationResults({ transformedData, transferAnalysis }) {
           color: theme.colors.text.primary, 
           margin: 0 
         }}>
-          AI Processing Complete!
+          Processing Complete!
         </h3>
       </div>
       
@@ -158,23 +148,6 @@ function TransformationResults({ transformedData, transferAnalysis }) {
             </p>
           </div>
 
-          <div style={{ 
-            padding: theme.spacing.lg, 
-            backgroundColor: theme.colors.background.default, 
-            borderRadius: theme.borderRadius.lg, 
-            border: `1px solid ${theme.colors.border}`,
-            textAlign: 'center'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: theme.spacing.sm, marginBottom: theme.spacing.sm }}>
-              <CheckCircle size={20} color={theme.colors.warning} />
-              <h4 style={{ ...theme.typography.h6, color: theme.colors.text.secondary, margin: 0 }}>
-                Avg. Confidence
-              </h4>
-            </div>
-            <p style={{ ...theme.typography.h3, color: theme.colors.text.primary, margin: 0 }}>
-              {(summary.avg_confidence_score * 100).toFixed(1)}%
-            </p>
-          </div>
         </div>
       ) : (
         <p style={{ ...theme.typography.body1, color: theme.colors.text.secondary, textAlign: 'center' }}>

@@ -7,7 +7,6 @@ import { ChevronLeft, ChevronRight } from '../ui/Icons';
 import AutoParseHandler from './configure-review/AutoParseHandler';
 import ConfidenceDashboard from './configure-review/ConfidenceDashboard';
 import AdvancedConfigPanel from './configure-review/AdvancedConfigPanel';
-import ValidationChecklist from './configure-review/ValidationChecklist';
 import TransactionReview from './configure-review/TransactionReview';
 
 function ModernConfigureAndReviewStep({ 
@@ -28,12 +27,6 @@ function ModernConfigureAndReviewStep({
 }) {
   const theme = useTheme();
   const [showAdvancedConfig, setShowAdvancedConfig] = useState(false);
-  const [validationChecklist, setValidationChecklist] = useState({
-    largeTransactions: false,
-    dateRange: false,
-    categories: false,
-    dataQuality: false
-  });
 
   // Add this new useEffect hook
   useEffect(() => {
@@ -59,18 +52,6 @@ function ModernConfigureAndReviewStep({
   // Debug logging
   console.log('🔍 ModernConfigureAndReviewStep - parsedResults:', parsedResults);
   console.log('🔍 ModernConfigureAndReviewStep - autoParseResults:', autoParseResults);
-
-  // Calculate validation progress
-  const validationProgress = Object.values(validationChecklist).filter(Boolean).length / 
-    Object.keys(validationChecklist).length * 100;
-  const allValidated = validationProgress === 100;
-
-  const updateValidationItem = (item, checked) => {
-    setValidationChecklist(prev => ({
-      ...prev,
-      [item]: checked
-    }));
-  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing.lg }}>
@@ -106,16 +87,6 @@ function ModernConfigureAndReviewStep({
         />
       )}
 
-      {/* Validation Checklist - Interactive validation tracking */}
-      {autoParseResults && (
-        <ValidationChecklist
-          validationChecklist={validationChecklist}
-          updateValidationItem={updateValidationItem}
-          validationProgress={validationProgress}
-          autoParseResults={autoParseResults}
-        />
-      )}
-
       {/* Transaction Review - Data viewing with multiple modes */}
       {autoParseResults && (
         <TransactionReview
@@ -145,7 +116,7 @@ function ModernConfigureAndReviewStep({
         <Button
           variant="primary"
           size="large"
-          disabled={loading || !allValidated}
+          disabled={loading}
           onClick={transformAllFiles}
           rightIcon={loading ? null : <ChevronRight size={18} />}
           loading={loading}

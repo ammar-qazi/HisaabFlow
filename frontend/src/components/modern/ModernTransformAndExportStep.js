@@ -80,7 +80,7 @@ function ModernTransformAndExportStep({
               color: theme.colors.text.primary, 
               marginBottom: theme.spacing.md 
             }}>
-              Ready for AI Processing
+              Ready for Processing
             </h3>
             <p style={{ 
               ...theme.typography.body1, 

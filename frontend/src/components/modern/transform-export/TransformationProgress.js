@@ -49,7 +49,7 @@ function TransformationProgress({ loading, currentStage = 'idle' }) {
           color: theme.colors.text.primary, 
           margin: 0 
         }}>
-          {loading ? 'AI Processing in Progress' : 'Processing Complete!'}
+          {loading ? 'Processing in Progress' : 'Processing Complete!'}
         </h3>
       </div>
       
