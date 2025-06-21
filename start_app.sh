@@ -136,9 +136,9 @@ start_backend() {
     echo "✅ Backend running successfully!"
 }
 
-# Function to start frontend
+# Function to start frontend (Electron desktop app)
 start_frontend() {
-    echo "🎨 Starting Frontend Application..."
+    echo "🎨 Starting Frontend Application (Desktop)..."
     cd frontend
     
     # Check if node_modules exists
@@ -155,36 +155,28 @@ start_frontend() {
         fi
     fi
     
-    echo "   Frontend starting on http://localhost:3000"
+    echo "   Launching Electron desktop application..."
+    echo "   React dev server will start on http://localhost:3000 (internal)"
     if command_exists npm; then
-        npm start &
+        npm run electron-dev &
     elif command_exists yarn; then
-        yarn start &
+        yarn run electron-dev &
     fi
     FRONTEND_PID=$!
     cd ..
     
     # Wait for frontend to start
-    echo "   Waiting for frontend to initialize..."
-    sleep 5
+    echo "   Waiting for Electron app to initialize..."
+    sleep 8
     
-    echo "✅ Frontend running successfully!"
+    echo "✅ Electron desktop app running successfully!"
 }
 
-# Function to open browser
-open_browser() {
-    echo "🌐 Opening application in browser..."
-    sleep 2
-    
-    if command_exists xdg-open; then
-        xdg-open http://localhost:3000 2>/dev/null
-    elif command_exists open; then
-        open http://localhost:3000 2>/dev/null
-    elif command_exists start; then
-        start http://localhost:3000 2>/dev/null
-    else
-        echo "   Please open http://localhost:3000 in your browser"
-    fi
+# Function to handle desktop app launch (no browser needed)
+handle_desktop_launch() {
+    echo "🖥️  Desktop application launched successfully!"
+    echo "   Note: App will open in a separate desktop window"
+    echo "   (No browser window needed for desktop mode)"
 }
 
 # Function to wait for user input to stop
@@ -192,7 +184,7 @@ wait_for_stop() {
     echo ""
     echo "🎯 Application is running!"
     echo "   📡 Backend API: http://127.0.0.1:8000"
-    echo "   🎨 Frontend:    http://localhost:3000"
+    echo "   🖥️  Desktop App: Running in separate window"
     echo "   📋 API Docs:    http://127.0.0.1:8000/docs"
     echo ""
     echo "Press [CTRL+C] or [Enter] to stop the application..."
@@ -269,7 +261,7 @@ main() {
     # Start services
     start_backend
     start_frontend
-    open_browser
+    handle_desktop_launch
     wait_for_stop
 }
 
