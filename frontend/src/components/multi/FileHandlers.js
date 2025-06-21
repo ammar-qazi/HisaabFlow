@@ -3,6 +3,7 @@
  * Main file upload and management functionality
  */
 import axios from 'axios';
+import toast from 'react-hot-toast';
 
 // Import utilities and handlers
 import { detectBankFromFilename } from '../../utils/bankDetection';
@@ -20,7 +21,6 @@ export const createFileHandlers = (state) => {
   const { 
     uploadedFiles, 
     setUploadedFiles, 
-    setSuccess, 
     setError, 
     setLoading,
     setCurrentStep,
@@ -93,8 +93,7 @@ export const createFileHandlers = (state) => {
         return updated;
       });
       
-      setSuccess(`Successfully uploaded ${selectedFiles.length} file(s) with bank auto-detection`);
-      
+      toast.success(`Successfully uploaded ${selectedFiles.length} file(s).`);
     } catch (err) {
       console.error(`❌ DEBUG: Upload error:`, err);
       setError(`Upload failed: ${err.response?.data?.detail || err.message}`);

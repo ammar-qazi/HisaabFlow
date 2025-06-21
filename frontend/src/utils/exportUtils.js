@@ -3,6 +3,7 @@
  * Handles data export functionality
  */
 import axios from 'axios';
+import toast from 'react-hot-toast';
 
 const API_BASE = 'http://127.0.0.1:8000';
 const API_V1_BASE = `${API_BASE}/api/v1`;
@@ -26,6 +27,8 @@ export const exportData = async (transformedData, setError) => {
     link.click();
     link.remove();
     window.URL.revokeObjectURL(url);
+    
+    toast.success('Export completed successfully!');
     
   } catch (err) {
     setError(`Export failed: ${err.response?.data?.detail || err.message}`);

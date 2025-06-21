@@ -1,4 +1,5 @@
 import axios from 'axios';
+import toast from 'react-hot-toast';
 
 const API_BASE = 'http://127.0.0.1:8000';
 const API_V1_BASE = `${API_BASE}/api/v1`;
@@ -95,6 +96,7 @@ export const createProcessingHandlers = (state) => {
       
       setTransformedData(response.data.transformed_data);
       setTransferAnalysis(response.data.transfer_analysis);
+      toast.success(`Transformation complete! ${response.data.transformation_summary.total_transactions} transactions processed.`);
       setCurrentStep(3);
       
     } catch (err) {
