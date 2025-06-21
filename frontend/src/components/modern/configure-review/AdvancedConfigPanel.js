@@ -32,6 +32,11 @@ function AdvancedConfigPanel({
     new Map(autoParseResults?.map(r => [r.filename, r]) || [])
   , [autoParseResults]);
 
+  const LOW_CONFIDENCE_THRESHOLD = 0.8;
+  const hasLowConfidenceFile = uploadedFiles.some(
+    file => (file.confidence || 0) < LOW_CONFIDENCE_THRESHOLD
+  );
+
   return (
     <Card padding="lg" elevated>
       <div style={{
@@ -49,9 +54,11 @@ function AdvancedConfigPanel({
         }}>
           Advanced Configuration
         </h3>
-        <Badge variant="warning" size="small">
-          Low Confidence Detected
-        </Badge>
+        {hasLowConfidenceFile && (
+          <Badge variant="warning" size="small">
+            Low Confidence Detected
+          </Badge>
+        )}
       </div>
 
       {/* File Configuration Grid */}
