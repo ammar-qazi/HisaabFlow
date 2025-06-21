@@ -35,6 +35,22 @@ function ModernConfigureAndReviewStep({
     dataQuality: false
   });
 
+  // Add this new useEffect hook
+  useEffect(() => {
+    // DEBUG: Log to confirm the effect runs and see the state of uploadedFiles.
+    console.log('⚙️ Configure step effect running. Checking files for auto-preview.', uploadedFiles);
+    // Automatically run bank detection for any file that hasn't been previewed yet
+    uploadedFiles.forEach((file, index) => {
+      // DEBUG: Log the state of each file to see why preview might be skipped.
+      // CORRECTED LOGIC: Check for the specific 'confidence' property, not just 'preview'.
+      console.log(`🔎 Checking file ${index}: ${file.fileName}`, { hasConfidence: file.confidence !== undefined, fileObject: file });
+      if (file.confidence === undefined) { // If confidence isn't set, we need to run the full preview handler.
+        console.log(`🤖 Triggering preview for ${file.fileName} because confidence score is missing.`);
+        previewFile(index);
+      }
+    });
+  }, [uploadedFiles, previewFile]); // Add dependencies to avoid stale closures. The `if` condition prevents re-running on already previewed files.
+
   if (currentStep < 2 || uploadedFiles.length === 0) return null;
 
   // Use parsedResults from parent state instead of local autoParseResults
@@ -78,10 +94,9 @@ function ModernConfigureAndReviewStep({
       )}
 
       {/* Advanced Configuration Panel - Conditional low-confidence config */}
-      {showAdvancedConfig && autoParseResults && (
+      {showAdvancedConfig && (
         <AdvancedConfigPanel
           uploadedFiles={uploadedFiles}
-          autoParseResults={autoParseResults}
           templates={templates}
           updateFileConfig={updateFileConfig}
           applyTemplate={applyTemplate}

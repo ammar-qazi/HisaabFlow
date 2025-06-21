@@ -64,7 +64,9 @@ export const usePreviewHandlers = (
             const updated = [...prev];
             updated[fileIndex] = {
               ...updated[fileIndex],
-              selectedConfiguration: configName
+              selectedConfiguration: configName,
+              confidence: confidence, // Add this line
+              detectedBank: detectedBank,   // Add this line
             };
             return updated;
           });

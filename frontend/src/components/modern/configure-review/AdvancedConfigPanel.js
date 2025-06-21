@@ -2,10 +2,8 @@ import React from 'react';
 import { useTheme } from '../../../theme/ThemeProvider';
 import { Card, Button, Badge } from '../../ui';
 import { Settings, FileText, AlertCircle, CheckCircle } from '../../ui/Icons';
-
 function AdvancedConfigPanel({
   uploadedFiles,
-  autoParseResults,
   templates,
   updateFileConfig,
   applyTemplate,
@@ -59,8 +57,7 @@ function AdvancedConfigPanel({
         {uploadedFiles.map((file, index) => {
           const fileStatus = getFileStatus(file);
           const StatusIcon = fileStatus.icon;
-          const parseResult = autoParseResults?.find(r => r.file_name === file.fileName);
-          const confidence = parseResult?.bank_info?.confidence || 0;
+          const confidence = file.confidence || 0;
           
           return (
             <div key={index} style={{
@@ -133,7 +130,7 @@ function AdvancedConfigPanel({
               </div>
 
               {/* Bank Detection Info */}
-              {parseResult?.bank_info && (
+              {file.detectedBank && (
                 <div style={{
                   fontSize: '12px',
                   color: theme.colors.text.secondary,
@@ -141,8 +138,8 @@ function AdvancedConfigPanel({
                   padding: theme.spacing.xs,
                   borderRadius: theme.borderRadius.sm,
                 }}>
-                  Detected: {parseResult.bank_info.detected_bank} | 
-                  Rows: {parseResult.parse_result?.row_count || 0}
+                  Detected: {file.detectedBank} | 
+                  Rows: {file.preview?.parse_result?.row_count || 0}
                 </div>
               )}
             </div>
