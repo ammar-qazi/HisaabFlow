@@ -90,7 +90,7 @@ function ModernConfigureAndReviewStep({
       />
 
       {/* Confidence Dashboard - Shows parsed results metrics */}
-      {autoParseResults && (
+      {autoParseResults && autoParseResults.length > 0 && (
         <ConfidenceDashboard
           autoParseResults={autoParseResults}
           uploadedFiles={uploadedFiles}
@@ -113,7 +113,7 @@ function ModernConfigureAndReviewStep({
       )}
 
       {/* Transaction Review - Data viewing with multiple modes */}
-      {autoParseResults && (
+      {autoParseResults && autoParseResults.length > 0 && (
         <TransactionReview
         autoParseResults={autoParseResults}
         uploadedFiles={uploadedFiles} // Add this prop

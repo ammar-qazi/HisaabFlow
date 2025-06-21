@@ -3,28 +3,36 @@ import { useTheme } from '../../../theme/ThemeProvider';
 import { Card, Button } from '../../ui';
 import { Search, Filter, ChevronUp, ChevronDown, Download } from '../../ui/Icons';
 
-function InteractiveDataTable({ transformedData = [] }) {
+function InteractiveDataTable({ 
+  data: rawData = [], 
+  isReviewMode = false,
+  showToolbar = true,
+  showPagination = true,
+  defaultItemsPerPage = 25
+}) {
   const theme = useTheme();
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const [filterCategory, setFilterCategory] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(25);
+  const [itemsPerPage] = useState(isReviewMode ? 10 : defaultItemsPerPage);
 
   console.log('🔍 InteractiveDataTable Debug:', {
-    transformedData,
-    transformedDataType: Array.isArray(transformedData) ? 'array' : typeof transformedData,
-    transformedDataLength: Array.isArray(transformedData) ? transformedData.length : 'not array'
+    rawData,
+    isReviewMode,
   });
 
   // Ensure we have valid array data
   const data = useMemo(() => {
-    if (Array.isArray(transformedData)) {
-      return transformedData;
+    if (Array.isArray(rawData)) {
+      return rawData;
+    }
+    if (rawData && Array.isArray(rawData.processed_transactions)) {
+      return rawData.processed_transactions;
     }
     console.log('⚠️ TransformedData is not an array, using empty array');
     return [];
-  }, [transformedData]);
+  }, [rawData]);
 
   // Get unique categories for filter dropdown
   const categories = useMemo(() => {
@@ -115,6 +123,11 @@ function InteractiveDataTable({ transformedData = [] }) {
       Object.keys(item).forEach(key => allKeys.add(key));
     });
 
+    // In review mode, just show all keys as is.
+    if (isReviewMode) {
+      return Array.from(allKeys).filter(key => !key.startsWith('_'));
+    }
+
     // Define preferred column order
     const preferredOrder = ['Date', 'Title', 'Amount', 'Category', 'Account', 'Note'];
     const otherKeys = Array.from(allKeys).filter(key => 
@@ -122,7 +135,7 @@ function InteractiveDataTable({ transformedData = [] }) {
     );
 
     return [...preferredOrder.filter(key => allKeys.has(key)), ...otherKeys];
-  }, [data]);
+  }, [data, isReviewMode]);
 
   // Export filtered data
   const exportData = () => {
@@ -156,7 +169,7 @@ function InteractiveDataTable({ transformedData = [] }) {
   }
 
   return (
-    <Card style={{ padding: theme.spacing.xl, marginBottom: theme.spacing.lg }}>
+    <Card style={{ padding: isReviewMode ? 0 : theme.spacing.xl, marginBottom: theme.spacing.lg, backgroundColor: isReviewMode ? 'transparent' : undefined, boxShadow: isReviewMode ? 'none' : undefined, border: isReviewMode ? 'none' : undefined }}>
       <div style={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
@@ -166,7 +179,7 @@ function InteractiveDataTable({ transformedData = [] }) {
         <h3 style={{ ...theme.typography.h5, color: theme.colors.text.primary, margin: 0 }}>
           Transaction Data Table
         </h3>
-        <Button 
+        {showToolbar && <Button 
           onClick={exportData}
           style={{ 
             display: 'flex', 
@@ -182,10 +195,10 @@ function InteractiveDataTable({ transformedData = [] }) {
         >
           <Download size={16} />
           Export Filtered Data
-        </Button>
+        </Button>}
       </div>
 
-      {/* Filters and Search */}
+      {showToolbar && (
       <div style={{ 
         display: 'grid', 
         gridTemplateColumns: '1fr auto auto', 
@@ -248,12 +261,12 @@ function InteractiveDataTable({ transformedData = [] }) {
         <div style={{ ...theme.typography.body2, color: theme.colors.text.secondary }}>
           Showing {paginatedData.length} of {sortedData.length} transactions
         </div>
-      </div>
+      </div>)}
 
       {/* Table */}
       <div style={{ 
         overflowX: 'auto',
-        border: `1px solid ${theme.colors.border}`,
+        border: isReviewMode ? `1px solid ${theme.colors.border}` : `1px solid ${theme.colors.border}`,
         borderRadius: theme.borderRadius.md
       }}>
         <table style={{ 
@@ -261,7 +274,7 @@ function InteractiveDataTable({ transformedData = [] }) {
           borderCollapse: 'collapse',
           backgroundColor: theme.colors.background.paper
         }}>
-          <thead style={{ backgroundColor: theme.colors.background.default }}>
+          <thead style={{ backgroundColor: isReviewMode ? theme.colors.background.paper : theme.colors.background.default }}>
             <tr>
               {columns.map(column => (
                 <th
@@ -273,7 +286,7 @@ function InteractiveDataTable({ transformedData = [] }) {
                     borderBottom: `1px solid ${theme.colors.border}`,
                     cursor: 'pointer',
                     userSelect: 'none',
-                    position: 'relative',
+                    position: 'relative', // for sort icons
                     ...theme.typography.body2,
                     fontWeight: 600,
                     color: theme.colors.text.primary
@@ -304,7 +317,7 @@ function InteractiveDataTable({ transformedData = [] }) {
                   <td
                     key={column}
                     style={{
-                      padding: theme.spacing.md,
+                      padding: isReviewMode ? theme.spacing.sm : theme.spacing.md,
                       ...theme.typography.body2,
                       color: theme.colors.text.primary,
                       maxWidth: '200px',
@@ -315,7 +328,7 @@ function InteractiveDataTable({ transformedData = [] }) {
                     title={String(row[column] || '')} // Show full value on hover
                   >
                     {/* Special formatting for certain columns */}
-                    {column === 'Amount' && (
+                    {column === 'Amount' && !isReviewMode && (
                       <span style={{ 
                         color: parseFloat(String(row[column]).replace(/[^-\d.]/g, '')) >= 0 
                           ? theme.colors.success 
@@ -325,7 +338,7 @@ function InteractiveDataTable({ transformedData = [] }) {
                         {row[column]}
                       </span>
                     )}
-                    {column === 'Category' && (
+                    {column === 'Category' && !isReviewMode && (
                       <span style={{
                         padding: `2px 8px`,
                         backgroundColor: theme.colors.background.default,
@@ -336,7 +349,7 @@ function InteractiveDataTable({ transformedData = [] }) {
                         {row[column] || 'Uncategorized'}
                       </span>
                     )}
-                    {column !== 'Amount' && column !== 'Category' && (
+                    {(isReviewMode || (column !== 'Amount' && column !== 'Category')) && (
                       String(row[column] || '')
                     )}
                   </td>
@@ -347,8 +360,19 @@ function InteractiveDataTable({ transformedData = [] }) {
         </table>
       </div>
 
+      {isReviewMode && sortedData.length > itemsPerPage && (
+        <div style={{
+          textAlign: 'center',
+          padding: theme.spacing.md,
+          fontSize: '12px',
+          color: theme.colors.text.secondary,
+        }}>
+          Showing {itemsPerPage} of {sortedData.length} transactions
+        </div>
+      )}
+
       {/* Pagination */}
-      {totalPages > 1 && (
+      {showPagination && totalPages > 1 && (
         <div style={{ 
           display: 'flex', 
           justifyContent: 'center', 

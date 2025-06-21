@@ -173,14 +173,27 @@
 - [ ] **End-to-end testing**: Verify complete workflow integrity
 
 ## 📝 Last Updated
-**Date:** 2025-06-21  
-**Session:** 🚀 **Frontend Modernization Complete + Critical Fixes**
+**Date:** 2025-06-22  
+**Session:** 🔍 **Bug Investigation + UI/UX Design Planning**
 
-**🎯 MAJOR ACHIEVEMENTS:**
-1. ✅ **Frontend completely modernized** - 1,225+ lines of technical debt eliminated
-2. ✅ **Critical data flow bugs fixed** - Bank detection and export endpoints working
-3. ✅ **UI simplified** - Single modern implementation, no more toggle complexity
-4. ✅ **Notification system** - Added react-hot-toast for better UX
-5. ✅ **Clean foundation** - Ready for continued backend optimization
+**🎯 SESSION ACHIEVEMENTS:**
+1. ✅ **Bank Detection Bug FIXED** - Restored `file.preview?.bank_detection` fallback in ProcessingHandlers.js
+2. ✅ **TransactionReview Component REBUILT** - Simplified from 322 lines to 130 lines (60% reduction)
+3. ✅ **UI Consistency IMPROVED** - Updated TransferAnalysisPanel styling for theme compliance
+4. ✅ **Calendar Icon ADDED** - Enhanced CoreIcons.js with new Calendar component
+5. ✅ **Component Reuse IMPLEMENTED** - TransactionReview now leverages InteractiveDataTable
+6. ✅ **Expert Panel Recommendations EXECUTED** - All UI/UX improvements implemented
 
-**Status:** ✅ **Production-Ready Frontend** - Modern, clean, and fully functional. Focus can now shift to backend technical debt reduction.
+**🐛 CRITICAL BUG RESOLUTION:**
+- **Issue:** Bank names falling back to filename (e.g., "M 02 2025" instead of "nayapay")
+- **Root Cause:** ProcessingHandlers.js missing `file.preview?.bank_detection` fallback
+- **Fix Applied:** Restored bank detection priority chain in line 80
+- **Status:** ✅ **RESOLVED** - Bank detection data flow fully restored
+
+**🎨 UI/UX IMPROVEMENTS COMPLETED:**
+- **TransactionReview Redesign:** ✅ Single-view interface with expandable data tables
+- **Transfer Detection Styling:** ✅ Theme-consistent background colors applied
+- **Component Architecture:** ✅ Leveraged existing InteractiveDataTable for consistency
+- **Code Simplification:** ✅ 322 → 130 lines (60% reduction in complexity)
+
+**Status:** ✅ **ALL IMPROVEMENTS IMPLEMENTED** - Bug fixed, UI enhanced, and codebase simplified.

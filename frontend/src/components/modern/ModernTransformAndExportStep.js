@@ -115,7 +115,7 @@ function ModernTransformAndExportStep({
             transferAnalysis={transferAnalysis}
           />
           <InteractiveDataTable
-            transformedData={transformedData}
+            data={transformedData}
           />
           <ExportOptions
             transformedData={transformedData}
