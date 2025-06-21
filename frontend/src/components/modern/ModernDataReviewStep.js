@@ -93,7 +93,7 @@ function ModernDataReviewStep({
       if (largeTransactions.length > 0) {
         items.push({
           type: 'large-transactions',
-          file: result.file_name,
+          file: result.filename,
           fileIndex,
           count: largeTransactions.length,
           data: largeTransactions.slice(0, 3),
@@ -104,7 +104,7 @@ function ModernDataReviewStep({
       if (recentTransactions.length > 0) {
         items.push({
           type: 'recent-activity',
-          file: result.file_name,
+          file: result.filename,
           fileIndex,
           count: recentTransactions.length,
           data: recentTransactions.slice(0, 3),
@@ -116,7 +116,7 @@ function ModernDataReviewStep({
       if (result.parse_result?.cleaning_summary?.issues_fixed > 0) {
         items.push({
           type: 'data-quality',
-          file: result.file_name,
+          file: result.filename,
           fileIndex,
           count: result.parse_result.cleaning_summary.issues_fixed,
           importance: 'low'
@@ -435,7 +435,7 @@ function ModernDataReviewStep({
                       fontWeight: '500',
                       color: theme.colors.text.primary,
                     }}>
-                      {result.file_name}
+                      {result.filename}
                     </div>
                     <div style={{
                       fontSize: '12px',
@@ -542,7 +542,7 @@ function ModernDataReviewStep({
                       fontWeight: '500',
                       color: theme.colors.text.primary,
                     }}>
-                      {result.file_name}
+                      {result.filename}
                     </div>
                     <div style={{
                       fontSize: '12px',

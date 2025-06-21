@@ -5,7 +5,7 @@ import {
   Eye, Minus, CheckCircle, DollarSign, TrendingUp, AlertCircle
 } from '../../ui/Icons';
 
-function TransactionReview({ autoParseResults }) {
+function TransactionReview({ autoParseResults, uploadedFiles }) {
   const theme = useTheme();
   const [viewMode, setViewMode] = useState('summary'); // 'summary' | 'highlights' | 'full'
   const [expandedFiles, setExpandedFiles] = useState(new Set());
@@ -37,7 +37,7 @@ function TransactionReview({ autoParseResults }) {
       if (largeTransactions.length > 0) {
         items.push({
           type: 'large-transactions',
-          file: result.file_name,
+          file: result.filename,
           fileIndex,
           count: largeTransactions.length,
           data: largeTransactions.slice(0, 3),
@@ -48,7 +48,7 @@ function TransactionReview({ autoParseResults }) {
       if (recentTransactions.length > 0) {
         items.push({
           type: 'recent-activity',
-          file: result.file_name,
+          file: result.filename,
           fileIndex,
           count: recentTransactions.length,
           data: recentTransactions.slice(0, 3),
@@ -60,7 +60,7 @@ function TransactionReview({ autoParseResults }) {
       if (result.parse_result?.cleaning_summary?.issues_fixed > 0) {
         items.push({
           type: 'data-quality',
-          file: result.file_name,
+          file: result.filename,
           fileIndex,
           count: result.parse_result.cleaning_summary.issues_fixed,
           importance: 'low'
@@ -137,13 +137,13 @@ function TransactionReview({ autoParseResults }) {
                     fontWeight: '500',
                     color: theme.colors.text.primary,
                   }}>
-                    {result.file_name}
+                    {result.filename}
                   </div>
                   <div style={{
                     fontSize: '12px',
                     color: theme.colors.text.secondary,
                   }}>
-                    {result.bank_info?.detected_bank || 'Unknown Bank'} • 
+                    {(uploadedFiles.find(f => f.fileName === result.filename)?.detectedBank) || 'Unknown Bank'} •
                     {result.parse_result?.row_count || 0} transactions
                   </div>
                 </div>
@@ -244,7 +244,7 @@ function TransactionReview({ autoParseResults }) {
                     fontWeight: '500',
                     color: theme.colors.text.primary,
                   }}>
-                    {result.file_name}
+                    {result.filename}
                   </div>
                   <div style={{
                     fontSize: '12px',

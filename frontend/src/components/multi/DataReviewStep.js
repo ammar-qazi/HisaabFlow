@@ -8,7 +8,7 @@ function ParsedDataSummary({ parsedResults }) {
         <div className="summary-grid">
           {parsedResults.map((result, index) => (
             <div key={index} className="summary-card">
-              <h5>{result.file_name}</h5>
+              <h5>{result.filename}</h5>
               {result.parse_result ? (
                 <>
                   <p>✅ {result.parse_result.row_count || 0} transactions</p>
@@ -35,7 +35,7 @@ function ParsedDataTabs({ parsedResults, activeTab }) {
     <div className="parsed-data-tabs">
       {parsedResults.map((result, index) => (
         <div key={index} className={`parsed-tab ${activeTab === index ? 'active' : 'hidden'}`}>
-          <h5>📋 {result.file_name} - Parsed Data</h5>
+          <h5>📋 {result.filename} - Parsed Data</h5>
           {result.parse_result && result.parse_result.headers && result.parse_result.data ? (
             <table className="data-table">
               <thead>

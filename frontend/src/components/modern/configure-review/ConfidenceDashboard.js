@@ -33,8 +33,8 @@ function ConfidenceDashboard({
     const successfulFiles = autoParseResults.filter(result => 
       result.parse_result?.success && result.parse_result?.row_count > 0).length;
     
-    const bankDetectionConfidence = autoParseResults.reduce((sum, result) => 
-      sum + (result.bank_info?.confidence || 0), 0) / autoParseResults.length;
+    const bankDetectionConfidence = uploadedFiles.reduce((sum, file) => 
+      sum + (file.confidence || 0), 0) / uploadedFiles.length;
 
     const cleaningApplied = autoParseResults.filter(result => 
       result.parse_result?.cleaning_applied).length;
@@ -44,7 +44,7 @@ function ConfidenceDashboard({
     autoParseResults.forEach(result => {
       if (result.parse_result?.data) {
         result.parse_result.data.forEach(row => { // row here is a CSVRow object if use_pydantic=true
-          const date = row.date; // Access the 'date' field from the CSVRow Pydantic model
+          const date = row.Date; // Access the 'date' field from the CSVRow Pydantic model
           if (date) allDates.push(new Date(date));
         });
       }

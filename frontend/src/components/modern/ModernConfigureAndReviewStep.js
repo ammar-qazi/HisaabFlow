@@ -119,7 +119,8 @@ function ModernConfigureAndReviewStep({
       {/* Transaction Review - Data viewing with multiple modes */}
       {autoParseResults && (
         <TransactionReview
-          autoParseResults={autoParseResults}
+        autoParseResults={autoParseResults}
+        uploadedFiles={uploadedFiles} // Add this prop
         />
       )}
 

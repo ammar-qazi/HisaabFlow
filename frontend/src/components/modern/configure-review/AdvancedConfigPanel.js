@@ -1,5 +1,5 @@
-import React from 'react';
-import { useTheme } from '../../../theme/ThemeProvider';
+import React, { useMemo } from 'react';
+import { useTheme } from '../../../theme/ThemeProvider'; // Ensure useMemo is imported
 import { Card, Button, Badge } from '../../ui';
 import { Settings, FileText, AlertCircle, CheckCircle } from '../../ui/Icons';
 function AdvancedConfigPanel({
@@ -26,6 +26,11 @@ function AdvancedConfigPanel({
     }
     return { status: 'pending', label: 'Needs Setup', variant: 'error', icon: AlertCircle };
   };
+
+  // Step 1: Create a Results Map for efficient lookups
+  const resultsMap = useMemo(() =>
+    new Map(autoParseResults?.map(r => [r.filename, r]) || [])
+  , [autoParseResults]);
 
   return (
     <Card padding="lg" elevated>
@@ -61,7 +66,7 @@ function AdvancedConfigPanel({
           const confidence = file.confidence || 0;
 
           // Find the full parse result for this file to get the accurate row count
-          const resultForFile = autoParseResults?.find(r => r.filename === file.fileName);
+          const resultForFile = resultsMap.get(file.fileName); // Step 2: Use the Map for Lookups
           const finalRowCount = resultForFile?.parse_result?.row_count;
           const displayRowCount = finalRowCount ?? file.preview?.total_rows ?? 0;
           
