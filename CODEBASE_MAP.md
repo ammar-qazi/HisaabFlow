@@ -1,24 +1,27 @@
 # Codebase Map & File Inventory
 
-## 🧹 CLEAN BASELINE AFTER STRATEGIC ROLLBACK
-**Status:** Fresh foundation with preserved documentation
-**Rollback Date:** 2025-06-21
-**Baseline Commit:** 933a04c (Consolidate memory documents)
-**Strategy:** Clean slate for constraint-aware development
+## ✅ PHASE 1 COMPLETE - TYPE SAFETY FOUNDATION
 
-## 📊 File Status Overview - POST-ROLLBACK
 
-| Path | Lines | Purpose | Status | Notes |
-|------|-------|---------|--------|-------|
-| **📚 PRESERVED DOCUMENTATION** | | | | |
-| AI_WORKFLOW.md | ~120 | Development guidelines | ✅ Preserved | **Guides constraint-aware development** |
-| CURRENT_STATE.md | ~150 | Project state tracking | ✅ Updated | **Fresh start status** |
-| DATA_STANDARDS.md | ~180 | Data format specs | ✅ Preserved | **Format guidelines** |
-| SYSTEM_DESIGN.md | ~200 | Architecture docs | ✅ Preserved | **System overview** |
-| CODEBASE_MAP.md | ~250 | File inventory | ✅ Updated | **This document** |
-| **🚨 BACKEND CONSTRAINT VIOLATIONS** | | | | |
-| backend/services/transformation_service.py | 688 | Transform services | 🚨 Over Limit | **CRITICAL - 244% over!** |
-| backend/transfer_detection/cross_bank_matcher.py | 533 | Transfer matching | 🚨 Over Limit | **CRITICAL - 167% over!** |
+**Status:** Pydantic models, type conversion, and API versioning implemented.
+**Completion Date:** 2025-06-22
+**Strategy:** Incremental enhancement of a clean baseline.
+
+## 📊 File Status Overview - AFTER PHASE 1
+
+| Path                                          | Lines  | Purpose                  | Status                      | Notes                                  |
+| --------------------------------------------- | ------ | ------------------------ | --------------------------- | -------------------------------------- |
+| **📚 UPDATED DOCUMENTATION**                  |        |                          |                             |                                        |
+| `CODEBASE_MAP.md`                             | ~250   | File inventory           | ✅ Updated                  | **This document**                      |
+| `DATA_STANDARDS.md`                           | ~180   | Data format specs        | ✅ Updated                  | **Pydantic models & v1 APIs documented** |
+| **✨ NEW & REFACTORED FILES**                  |        |                          |                             |                                        |
+| `backend/models/csv_models.py`                | ~20    | Pydantic data models     | ✅ New & Compliant          | **Heart of type safety**               |
+| `backend/csv_parser/data_processing_helpers.py` | ~100   | Helper functions         | ✅ New & Compliant          | **Split from data_processor**          |
+| `backend/csv_parser/data_processor.py`        | ~120   | Data processing          | ✅ Refactored & Compliant   | **Now under 200 lines**                |
+| `backend/main.py`                             | ~150   | FastAPI entry            | ✅ Refactored & Compliant   | **API v1 versioning added**            |
+| **🚨 BACKEND CONSTRAINT VIOLATIONS (Remaining)** |        |                          |                             |                                        |
+| `backend/services/transformation_service.py`  | 688    | Transform services       | 🚨 Over Limit               | **CRITICAL - 244% over!**              |
+| `backend/transfer_detection/cross_bank_matcher.py`| 533    | Transfer matching        | 🚨 Over Limit               | **CRITICAL - 167% over!**              |
 | backend/services/multi_csv_service.py | 382 | Multi-CSV handling | 🚨 Over Limit | **91% over limit** |
 | backend/bank_detection/config_manager.py | 316 | Bank config mgmt | 🚨 Over Limit | **58% over limit** |
 | backend/csv_parser/unified_parser.py | 312 | Main CSV parser | 🚨 Over Limit | **56% over limit** |
@@ -50,6 +53,7 @@
 | frontend/src/App.js | 74 | Main React app | ✅ Compliant | **Ready for modification** |
 
 ## 🏗️ Backend Structure (Clean Baseline)
+
 ```
 backend/
 ├── api/
@@ -71,8 +75,9 @@ backend/
 │   ├── bank_detector.py           🚨 205 lines - needs split
 │   └── config_manager.py          🚨 316 lines - needs split
 ├── csv_parser/
-│   ├── __init__.py
-│   ├── data_processor.py          🚨 276 lines - needs split
+│   ├── init.py
+│   ├── data_processor.py ✅ 120 lines - compliant
+│   ├── data_processing_helpers.py ✅ ~100 lines - new helper
 │   ├── dialect_detector.py        🚨 252 lines - needs split
 │   ├── encoding_detector.py       🚨 235 lines - needs split
 │   ├── exceptions.py              ✅ Exception definitions
@@ -93,6 +98,9 @@ backend/
 │   ├── date_cleaner.py            ✅ 155 lines - compliant
 │   ├── numeric_cleaner.py         ✅ 150 lines - compliant
 │   └── quality_checker.py         ✅ 174 lines - compliant
+├── models/ ✨ NEW
+│ ├── init.py
+│ └── csv_models.py ✅ Pydantic models
 ├── services/
 │   ├── cashew_transformer.py      🚨 231 lines - needs split
 │   ├── export_service.py          ✅ Export functionality
@@ -115,8 +123,8 @@ backend/
 │   └── main_detector.py           ✅ 184 lines - compliant
 ├── MAIN_SIZE_CONTROL.md           📚 Size control documentation
 ├── data_cleaner.py                ✅ Data cleaning utilities
-├── main.py                        ✅ 125 lines - FastAPI entry
-└── requirements.txt               ✅ Dependencies
+├── main.py ✅ ~150 lines - API v1 added
+└── requirements.txt ✅ Dependencies
 ```
 
 ## ⚛️ Frontend Structure (Clean Baseline)
@@ -215,6 +223,15 @@ frontend/src/
 | `/multi-csv/transform` | POST | ✅ Working | Transform data |
 | `/configs` | GET | ✅ Working | List configs |
 
+## 🚀 API Endpoints (After Phase 1)
+
+| Endpoint                 | Method | Status   | Frontend Consumer             |
+| ------------------------ | ------ | -------- | ----------------------------- |
+| `/api/v1/upload`         | POST   | ✅ New     | `FileHandlers.js`             |
+| `/api/v1/multi-csv/parse`| POST   | ✅ New     | `ProcessingHandlers.js`       |
+| `/api/v1/multi-csv/transform`| POST | ✅ New   | `ProcessingHandlers.js`       |
+| `/api/v3/configs`        | GET    | ✅ Existing| `configurationService.js`     |
+
 ## 📝 Development Strategy
 
 ### **✅ SAFE MODIFICATION ZONES:**
@@ -236,8 +253,6 @@ frontend/src/
 4. **Implement gradually** - One small change at a time
 
 ## 📅 Last Updated
-**Date:** 2025-06-21  
-**Session:** 🧹 Strategic Rollback & Documentation Update  
-**Status:** ✅ Clean baseline documented, ready for constraint-aware development
-
-**🎯 GOAL:** Accurate inventory of current state to guide safe, incremental improvements while respecting the 200-line constraint.
+**Date:** 2025-06-22
+**Session:** ✅ Phase 1 Type Safety & Frontend API Fixes
+**Status:** ✅ Pydantic models, type conversion, API versioning, and frontend API calls are complete. Documentation is synchronized.

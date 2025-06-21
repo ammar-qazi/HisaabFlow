@@ -22,7 +22,7 @@ function AutoParseHandler({
   // Check for advanced config needs when we get results
   useEffect(() => {
     if (autoParseResults && autoParseResults.length > 0) {
-      const needsConfig = autoParseResults.some(result => {
+      const needsConfig = autoParseResults.some(result => { // This logic already correctly accesses bank_info.confidence and parse_result.row_count
         const confidence = result.bank_info?.confidence || 0;
         const hasData = result.parse_result?.row_count > 0;
         return confidence < 0.8 || !hasData;
@@ -40,7 +40,7 @@ function AutoParseHandler({
   const parseAllFilesWithDefaults = async () => {
     try {
       // Call parseAllFiles - it will update parsedResults in parent state
-      await parseAllFiles();
+      await parseAllFiles(true); // Pass true to indicate auto-parse
       console.log('📊 Auto-parse call completed');
       
     } catch (error) {

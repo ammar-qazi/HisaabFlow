@@ -11,6 +11,7 @@ import { createConfigHandlers } from '../../handlers/configurationHandlers';
 import { exportData } from '../../utils/exportUtils';
 
 const API_BASE = 'http://127.0.0.1:8000';
+const API_V1_BASE = `${API_BASE}/api/v1`;
 
 /**
  * Creates file upload and management handlers
@@ -23,7 +24,7 @@ export const createFileHandlers = (state) => {
     setError, 
     setLoading, 
     setCurrentStep,
-    dynamicBankMapping  // Add this to get access to dynamic mapping
+    dynamicBankMapping
   } = state;
 
   const handleFileSelect = async (selectedFiles) => {
@@ -48,7 +49,8 @@ export const createFileHandlers = (state) => {
         const formData = new FormData();
         formData.append('file', file);
         
-        const response = await axios.post(`${API_BASE}/upload`, formData, {
+        // CORRECTED API ENDPOINT
+        const response = await axios.post(`${API_V1_BASE}/upload`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
         
@@ -63,8 +65,8 @@ export const createFileHandlers = (state) => {
           fileName: file.name,
           preview: null,
           parsedData: null,
-          selectedConfiguration: '', // Start empty - will be auto-selected after detection
-          columnMapping: {}, // Will be auto-populated after detection
+          selectedConfiguration: '',
+          columnMapping: {},
           parseConfig: {
             start_row: bankDetection.defaultStartRow,
             end_row: null,
@@ -85,7 +87,6 @@ export const createFileHandlers = (state) => {
         const updated = [...prev, ...newFiles];
         console.log(`🔍 DEBUG: setUploadedFiles callback - new length: ${updated.length}`);
         
-        // Trigger auto-detection after a short delay
         setTimeout(() => {
           triggerAutoDetection(newFiles, setUploadedFiles, setSuccess, setError, dynamicBankMapping);
         }, 1000);
@@ -94,7 +95,6 @@ export const createFileHandlers = (state) => {
       });
       
       setSuccess(`Successfully uploaded ${selectedFiles.length} file(s) with bank auto-detection`);
-      // Note: Removed auto-progression - users must click "Continue to Configuration" button
       
     } catch (err) {
       console.error(`❌ DEBUG: Upload error:`, err);

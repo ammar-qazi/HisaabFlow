@@ -120,15 +120,24 @@ class TransferDetector:
                 print(f"   🔍 Available columns: {list(sample_transaction.keys())}")
             
             for trans_idx, transaction in enumerate(csv_data['data']):
+                # Get bank type from CSV bank_info if available
+                bank_type = 'unknown'
+                bank_info = csv_data.get('bank_info', {})
+                if bank_info:
+                    detected_bank = bank_info.get('bank_name', bank_info.get('detected_bank'))
+                    if detected_bank and detected_bank != 'unknown':
+                        bank_type = detected_bank
+                
+                # Fallback to filename detection if bank info not available
+                if bank_type == 'unknown':
+                    bank_type = self.config.detect_bank_type(csv_data.get('file_name', ''))
+                
                 enhanced_transaction = {
                     **transaction,
                     '_csv_index': csv_idx,
                     '_transaction_index': global_transaction_counter, # Use global counter
-                    '_csv_name': csv_data.get('file_name', f'CSV_{csv_idx}'),
-                    # '_template_config': csv_data.get('template_config', {}), # Not used by this detector
-                    '_bank_type': self.config.detect_bank_type(
-                        csv_data.get('file_name', '')
-                    ),
+                    '_csv_name': csv_data.get('file_name', ''),
+                    '_bank_type': bank_type,
                     '_raw_data': transaction
                 }
                 all_transactions.append(enhanced_transaction)

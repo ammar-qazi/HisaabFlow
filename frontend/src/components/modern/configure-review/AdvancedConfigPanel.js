@@ -124,7 +124,8 @@ function AdvancedConfigPanel({
                 <Button 
                   variant="secondary"
                   size="small"
-                  onClick={() => previewFile(index)}
+                  // Pass true to indicate re-parse
+                  onClick={() => previewFile(index, true)} 
                   disabled={loading}
                 >
                   Reparse

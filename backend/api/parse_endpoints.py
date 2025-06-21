@@ -1,32 +1,19 @@
 """
 CSV parsing endpoints with preprocessing layer - Refactored to use services
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 import os
-import sys
-
-# Add paths for imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import services
-try:
-    from services.preview_service import PreviewService
-    from services.parsing_service import ParsingService, ParseConfig
-    from services.multi_csv_service import MultiCSVService
-except ImportError:
-    # Fallback path for import issues
-    backend_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    services_path = os.path.join(backend_path, 'services')
-    sys.path.insert(0, services_path)
-    from preview_service import PreviewService
-    from parsing_service import ParsingService, ParseConfig
-    from multi_csv_service import MultiCSVService
+from backend.services.preview_service import PreviewService
+from backend.services.parsing_service import ParsingService, ParseConfig
+from backend.services.multi_csv_service import MultiCSVService
 
 # Import file helper function
 try:
-    from api.file_endpoints import get_uploaded_file
+    from backend.api.file_endpoints import get_uploaded_file
 except ImportError:
     # Fallback implementation
     def get_uploaded_file(file_id):
@@ -34,7 +21,7 @@ except ImportError:
         return None
 
 # Import models from centralized location
-from .models import MultiCSVParseRequest
+from backend.api.models import MultiCSVParseRequest
 
 parse_router = APIRouter()
 
@@ -127,7 +114,10 @@ async def parse_range(file_id: str, request: ParseRangeRequest):
 
 
 @parse_router.post("/multi-csv/parse")
-async def parse_multiple_csvs(request: MultiCSVParseRequest):
+async def parse_multiple_csvs(
+    request: MultiCSVParseRequest,
+    use_pydantic: bool = Query(False, description="Return Pydantic models instead of dicts")
+):
     """Parse multiple CSV files"""
     print(f"🚀 Multi-CSV parse request for {len(request.file_ids)} files")
     
@@ -150,7 +140,8 @@ async def parse_multiple_csvs(request: MultiCSVParseRequest):
         result = multi_csv_service.parse_multiple_files(
             file_infos=file_infos,
             parse_configs=request.parse_configs,
-            enable_cleaning=request.enable_cleaning
+            enable_cleaning=request.enable_cleaning,
+            use_pydantic=use_pydantic  # ADD this
         )
         
         if not result['success']:

@@ -1,30 +1,16 @@
 """
 Multi-CSV parsing service for handling multiple file operations
 """
-import os
-import sys
-
-# Add paths for imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-try:
-    from csv_parser import UnifiedCSVParser # New parser import
-    from data_cleaner import DataCleaner
-    from bank_detection import BankDetector, BankConfigManager
-    from csv_parser import EncodingDetector # Import EncodingDetector
-    from csv_preprocessing.csv_preprocessor import CSVPreprocessor
-    from transfer_detection.config_manager import ConfigurationManager
-except ImportError:
-    # Fallback path for import issues
-    backend_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    if backend_path not in sys.path: # Ensure backend_path is added only once
-        sys.path.insert(0, backend_path)
-    from csv_parser import UnifiedCSVParser # New parser import
-    from data_cleaner import DataCleaner
-    from bank_detection import BankDetector, BankConfigManager
-    from csv_parser import EncodingDetector # Import EncodingDetector
-    from csv_preprocessing.csv_preprocessor import CSVPreprocessor
-    from transfer_detection.config_manager import ConfigurationManager
+import os # Add this import
+from typing import Any, Dict, List # Add these imports
+from backend.models.csv_models import CSVRow, BankDetectionResult
+from decimal import Decimal
+from backend.csv_parser import UnifiedCSVParser
+from backend.data_cleaner import DataCleaner
+from backend.bank_detection import BankDetector, BankConfigManager
+from backend.csv_parser import EncodingDetector
+from backend.csv_preprocessing.csv_preprocessor import CSVPreprocessor
+from backend.transfer_detection.config_manager import ConfigurationManager
 
 class MultiCSVService:
     """Service for handling multi-CSV parsing operations"""
@@ -45,7 +31,7 @@ class MultiCSVService:
         self.config_manager = ConfigurationManager(config_dir=str(config_dir_path))
     
     def parse_multiple_files(self, file_infos: list, parse_configs: list, 
-                           enable_cleaning: bool = True):
+                           enable_cleaning: bool = True, use_pydantic: bool = False):
         """
         Parse multiple CSV files with preprocessing and bank detection
         
@@ -53,6 +39,7 @@ class MultiCSVService:
             file_infos: List of file info dictionaries
             parse_configs: List of parsing configurations
             enable_cleaning: Whether to enable data cleaning
+            use_pydantic: Whether to convert parsed data to CSVRow Pydantic models
             
         Returns:
             dict: Multi-CSV parsing result
@@ -117,13 +104,40 @@ class MultiCSVService:
                     parse_result, final_bank_info, enable_cleaning
                 )
                 
+                # --- Pydantic Model Conversion (after cleaning) ---
+                # Convert final_bank_info dict to Pydantic BankDetectionResult model
+                bank_info_pydantic = BankDetectionResult(
+                    bank_name=final_bank_info.get('bank_name', final_bank_info.get('detected_bank', 'unknown')),
+                    confidence=final_bank_info.get('confidence', 0.0),
+                    reasons=final_bank_info.get('reasons', [])
+                )
+
+                final_data_for_response = final_result['data'] # This is List[Dict[str, Any]]
+                data_type_for_response = 'dict'
+
+                if use_pydantic and bank_info_pydantic.bank_name != 'unknown':
+                    column_mapping = self.bank_config_manager.get_column_mapping(bank_info_pydantic.bank_name)
+                    if column_mapping:
+                        try:
+                            pydantic_data = self._map_to_pydantic_rows(final_data_for_response, column_mapping)
+                            final_data_for_response = pydantic_data
+                            data_type_for_response = 'pydantic'
+                            print(f"  ✨ Mapped {len(pydantic_data)} rows to CSVRow models for {filename}.")
+                        except Exception as e:
+                            print(f"  ⚠️ Pydantic mapping failed for {filename}: {e}. Returning raw typed dictionaries.")
+
                 results.append({
                     "file_id": file_info["file_id"],
-                    "file_name": filename,
-                    "parse_result": final_result,
+                    "filename": filename, # Renamed to match DATA_STANDARDS.md
+                    "success": final_result['success'], # Use cleaning result's success
+                    "bank_info": bank_info_pydantic.dict(), # Convert Pydantic model to dict for response
+                    "parse_result": { # Structure to match DATA_STANDARDS.md
+                        "success": final_result['success'],
+                        "headers": final_result['headers'],
+                        "data": final_data_for_response,
+                        "row_count": len(final_data_for_response)
+                    },
                     "config": current_config, # Store the config that was actually used
-                    "data": final_result['data'],
-                    "bank_info": final_bank_info
                 })
             
             print(f"🎉 Successfully parsed all {len(results)} files")
@@ -329,7 +343,8 @@ class MultiCSVService:
         
         # Store comprehensive bank detection info
         return {
-            'detected_bank': detection_result.bank_name,
+            'bank_name': detection_result.bank_name,  # Changed from detected_bank to bank_name for Pydantic compatibility
+            'detected_bank': detection_result.bank_name,  # Keep for backwards compatibility
             'confidence': detection_result.confidence,
             'reasons': detection_result.reasons,
             'original_headers': parse_result.get('headers', []),
@@ -380,3 +395,46 @@ class MultiCSVService:
             final_result['bank_info'] = bank_info
         
         return final_result
+
+    def _map_to_pydantic_rows(self, data_dicts: List[Dict[str, Any]], column_mapping: Dict[str, str]) -> List[CSVRow]:
+        """
+        Maps a list of dictionaries (with pre-converted types) to a list of CSVRow Pydantic models
+        using a provided column mapping.
+        """
+        csv_rows: List[CSVRow] = []
+        
+        # Invert mapping for easier lookup: {'target_field': 'source_header'}
+        # This assumes column_mapping is like {'source_header': 'target_field'}
+        # We need to map from target_field to source_header for lookup in row_dict
+        target_to_source_map = {v: k for k, v in column_mapping.items()}
+
+        for row_dict in data_dicts:
+            try:
+                # Find values from the source dict using the mapping
+                # Use .get() with a default of None to handle missing optional fields gracefully
+                date_val = row_dict.get(target_to_source_map.get('date'))
+                desc_val = row_dict.get(target_to_source_map.get('description'), '') # Default to empty string
+                balance_val = row_dict.get(target_to_source_map.get('balance'))
+                
+                # Handle amount, which can be from 'amount', 'debit', or 'credit'
+                amount_val = row_dict.get(target_to_source_map.get('amount'))
+                if amount_val is None:
+                    debit_val = row_dict.get(target_to_source_map.get('debit'))
+                    credit_val = row_dict.get(target_to_source_map.get('credit'))
+                    if debit_val is not None and isinstance(debit_val, (Decimal, int, float)):
+                        amount_val = -Decimal(debit_val) # Debits are negative
+                    elif credit_val is not None and isinstance(credit_val, (Decimal, int, float)):
+                        amount_val = Decimal(credit_val)
+
+                # Create the Pydantic model, which will validate the types
+                csv_row = CSVRow(
+                    date=date_val,
+                    amount=amount_val,
+                    description=str(desc_val), # Ensure description is string
+                    balance=balance_val
+                )
+                csv_rows.append(csv_row)
+            except Exception as e:
+                print(f"⚠️ Skipping row due to CSVRow conversion error: {e}. Row: {row_dict}")
+                continue
+        return csv_rows

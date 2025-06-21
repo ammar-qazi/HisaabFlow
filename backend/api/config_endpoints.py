@@ -4,21 +4,7 @@ Configuration endpoints for bank configurations
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Dict, List, Any, Optional
-import os
-import sys
-
-# Add current directory to path for imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-try:
-    from transfer_detection.enhanced_config_manager import EnhancedConfigurationManager
-except ImportError:
-    # Fallback path for import issues
-    import sys
-    import os
-    backend_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    sys.path.insert(0, backend_path)
-    from transfer_detection.enhanced_config_manager import EnhancedConfigurationManager
+from backend.transfer_detection.enhanced_config_manager import EnhancedConfigurationManager
 
 config_router = APIRouter()
 

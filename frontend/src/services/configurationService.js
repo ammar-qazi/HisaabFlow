@@ -15,8 +15,8 @@ export class ConfigurationService {
    */
   static async loadConfigurations() {
     try {
-      console.log('🔍 Loading bank configurations from /api/v3/configs');
-      const response = await axios.get(`${API_BASE}/api/v3/configs`);
+      console.log('🔍 Loading bank configurations from /api/v1/configs');
+      const response = await axios.get(`${API_BASE}/api/v1/configs`);
       console.log('✅ Configurations loaded:', response.data);
       return {
         success: true,
@@ -49,7 +49,7 @@ export class ConfigurationService {
     
     try {
       console.log(`🔍 Loading configuration: ${configName}`);
-      const response = await axios.get(`${API_BASE}/api/v3/config/${encodeURIComponent(configName)}`);
+      const response = await axios.get(`${API_BASE}/api/v1/config/${encodeURIComponent(configName)}`);
       const config = response.data.config;
       
       console.log(`📋 Configuration ${configName} loaded:`, config);

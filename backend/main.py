@@ -3,27 +3,27 @@
 Bank Statement Parser - Clean Configuration-Based Backend
 Lightweight entry point with modular API components
 """
-from fastapi import FastAPI
+from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import os
 import sys
-
-# Add paths for imports
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'api'))
-
-# Import modular API routers directly (avoiding problematic __init__.py)
+ 
+# Add project root to path for consistent absolute imports
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+ 
+# Import modular API routers directly using absolute paths
 try:
-    from api.config_endpoints import config_router
-    from api.file_endpoints import file_router  
-    from api.parse_endpoints import parse_router
-    from api.transform_endpoints import transform_router
-    from api.middleware import setup_logging_middleware
+    from backend.api.config_endpoints import config_router
+    from backend.api.file_endpoints import file_router
+    from backend.api.parse_endpoints import parse_router
+    from backend.api.transform_endpoints import transform_router
+    from backend.api.middleware import setup_logging_middleware
     ROUTERS_AVAILABLE = True
 except ImportError as e:
     print(f"⚠️  Router import failed: {e}")
-    print("🔄 Using minimal endpoints instead...")
     ROUTERS_AVAILABLE = False
     config_router = None
     file_router = None
@@ -61,10 +61,19 @@ else:
 
 # Register API routers if available
 if ROUTERS_AVAILABLE:
-    app.include_router(config_router, prefix="/api/v3", tags=["configs"])
-    app.include_router(file_router, tags=["files"])
-    app.include_router(parse_router, tags=["parsing"])
-    app.include_router(transform_router, tags=["transformation"])
+    v1_router = APIRouter()
+    v1_router.include_router(file_router, tags=["files"])
+    v1_router.include_router(parse_router, tags=["parsing"])
+    v1_router.include_router(transform_router, tags=["transformation"])
+    v1_router.include_router(config_router, tags=["configs"])
+    
+    app.include_router(v1_router, prefix="/api/v1")
+    
+    # Add direct preview route for frontend compatibility
+    app.include_router(parse_router, prefix="", tags=["preview"])
+    
+    # Add v3 compatibility routes for legacy frontend
+    app.include_router(config_router, prefix="/api/v3", tags=["legacy-v3"])
 else:
     print("⚠️  No API routers available - using minimal endpoints only")
 

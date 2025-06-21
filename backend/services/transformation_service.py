@@ -2,28 +2,12 @@
 Data transformation service for converting parsed data to Cashew format
 """
 from pathlib import Path
-import os
-import sys
 import json
 
-# Add paths for imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-try:
-    from services.cashew_transformer import CashewTransformer # New import for transformation
-    from bank_detection import BankDetector, BankConfigManager
-    from transfer_detection.main_detector import TransferDetector
-    from transfer_detection.config_manager import ConfigurationManager
-except ImportError:
-    # Fallback path for import issues
-    backend_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    if backend_path not in sys.path: # Ensure backend_path is added only once
-        sys.path.insert(0, backend_path)
-    sys.path.insert(0, backend_path)
-    from services.cashew_transformer import CashewTransformer # New import for transformation
-    from bank_detection import BankDetector, BankConfigManager
-    from transfer_detection.main_detector import TransferDetector
-    from transfer_detection.config_manager import ConfigurationManager
+from backend.services.cashew_transformer import CashewTransformer
+from backend.bank_detection import BankDetector, BankConfigManager
+from backend.transfer_detection.main_detector import TransferDetector
+from backend.transfer_detection.config_manager import ConfigurationManager
 
 class TransformationService:
     """Service for transforming data to Cashew format"""
@@ -301,7 +285,8 @@ class TransformationService:
     def _get_detected_bank(self, bank_info: dict):
         """Extract detected bank from bank info"""
         if bank_info:
-            detected_bank = bank_info.get('detected_bank', 'unknown')
+            # Try both formats for compatibility
+            detected_bank = bank_info.get('bank_name', bank_info.get('detected_bank', 'unknown'))
             confidence = bank_info.get('confidence', 0.0)
             return f"{detected_bank} (confidence={confidence:.2f})"
         return 'unknown'
@@ -310,9 +295,11 @@ class TransformationService:
         """Get account name from bank configuration or filename"""
         account_name = 'Unknown'
         
-        if bank_info and 'detected_bank' in bank_info:
-            detected_bank = bank_info['detected_bank']
-            if detected_bank != 'unknown':
+        # Try both bank_name and detected_bank for compatibility
+        detected_bank = None
+        if bank_info:
+            detected_bank = bank_info.get('bank_name', bank_info.get('detected_bank'))
+        if detected_bank and detected_bank != 'unknown':
                 try:
                     bank_config = self.bank_config_manager.get_bank_config(detected_bank)
                     if bank_config and bank_config.has_section('bank_info'):
@@ -389,7 +376,7 @@ class TransformationService:
             # Find bank type based on Account name
             for csv_idx, csv_data in enumerate(csv_data_list):
                 bank_info = csv_data.get('bank_info', {})
-                detected_bank = bank_info.get('detected_bank')
+                detected_bank = bank_info.get('bank_name', bank_info.get('detected_bank'))
                 print(f"      📁 CSV {csv_idx}: detected_bank='{detected_bank}'")
                 
                 if detected_bank and detected_bank != 'unknown':
@@ -399,10 +386,10 @@ class TransformationService:
                         if bank_config and bank_config.has_section('bank_info'):
                             cashew_account = bank_config.get('bank_info', 'cashew_account', fallback=None)
                             print(f"         🏦 Bank config cashew_account: '{cashew_account}'")
-                            if cashew_account == account:
-                                bank_name = detected_bank
+                            if detected_bank and detected_bank != 'unknown':
+                                bank_name = detected_bank  # Use detected bank directly
                                 print(f"         ✅ MATCH! Using bank: {bank_name}")
-                                break
+                                break  # Found our match
                     except Exception as e:
                         print(f"         ⚠️  Error getting bank config: {e}")
                         continue
@@ -445,7 +432,7 @@ class TransformationService:
             # Determine bank_name for the current row (similar to _apply_standard_description_cleaning)
             for csv_data in csv_data_list:
                 bank_info = csv_data.get('bank_info', {})
-                detected_bank = bank_info.get('detected_bank')
+                detected_bank = bank_info.get('bank_name', bank_info.get('detected_bank'))
                 if detected_bank and detected_bank != 'unknown':
                     try:
                         # Use self.shared_transfer_config to get BankConfig object
@@ -515,7 +502,7 @@ class TransformationService:
             # Determine bank_name for the current row
             for csv_data in csv_data_list:
                 bank_info = csv_data.get('bank_info', {})
-                detected_bank = bank_info.get('detected_bank')
+                detected_bank = bank_info.get('bank_name', bank_info.get('detected_bank'))
                 if detected_bank and detected_bank != 'unknown':
                     try:
                         bank_cfg_obj_check = self.shared_transfer_config.get_bank_config(detected_bank)
@@ -572,11 +559,32 @@ class TransformationService:
         
         print(f"   🏦 Accounts found: {list(accounts.keys())}")
         
-        # Create csv_data_list format for transfer detector
+        # Create csv_data_list format for transfer detector with bank info
+        csv_data_items = raw_data.get('csv_data_list', [])
+        
         for account, rows in accounts.items():
+            # Find the matching CSV data for this account to get bank info
+            bank_info = {}
+            for csv_item in csv_data_items:
+                csv_bank_info = csv_item.get('bank_info', {})
+                if csv_bank_info:
+                    # Try to match account name with cashew_account from config
+                    detected_bank = csv_bank_info.get('bank_name', csv_bank_info.get('detected_bank'))
+                    if detected_bank and detected_bank != 'unknown':
+                        try:
+                            bank_config = self.bank_config_manager.get_bank_config(detected_bank)
+                            if bank_config and bank_config.has_section('bank_info'):
+                                cashew_account = bank_config.get('bank_info', 'cashew_account', fallback='')
+                                if cashew_account == account:
+                                    bank_info = csv_bank_info
+                                    break
+                        except:
+                            continue
+            
             csv_data = {
                 'data': rows,
                 'file_name': f'{account}.csv',
+                'bank_info': bank_info,
                 'template_config': {}
             }
             csv_data_list.append(csv_data)

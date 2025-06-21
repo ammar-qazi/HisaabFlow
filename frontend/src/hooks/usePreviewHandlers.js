@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import axios from 'axios';
 
 const API_BASE = 'http://localhost:8000';
+const API_V1_BASE = `${API_BASE}/api/v1`;
 
 /**
  * Custom hook for preview-related handlers
@@ -27,13 +28,13 @@ export const usePreviewHandlers = (
 
     setLoading(true);
     try {
-      // Let backend handle bank-aware header detection automatically
       console.log(`🔍 DEBUG: Requesting bank-aware preview for ${fileData.fileName}`);
-      const response = await axios.get(`${API_BASE}/preview/${fileData.fileId}`);
+      
+      // CORRECTED API ENDPOINT
+      const response = await axios.get(`${API_V1_BASE}/preview/${fileData.fileId}`);
       
       console.log('🔍 DEBUG: Preview response:', response.data);
       
-      // Store preview data with bank-detected information
       setUploadedFiles(prev => {
         const updated = [...prev];
         updated[fileIndex] = {
@@ -43,13 +44,11 @@ export const usePreviewHandlers = (
             suggested_header_row: response.data.suggested_header_row,
             suggested_data_start_row: response.data.suggested_data_start_row
           },
-          // Store bank detection data for UI display
           bankDetection: response.data.bank_detection
         };
         return updated;
       });
       
-      // Process auto-configuration based on backend bank detection
       if (response.data.bank_detection) {
         const autoConfigResult = processDetectionResult(response.data.bank_detection);
         
@@ -61,7 +60,6 @@ export const usePreviewHandlers = (
           console.log(`🏦 Bank detected: ${detectedBank} (${confidence.toFixed(2)} confidence)`);
           console.log(`📋 Headers at row ${headerRow}, data starts at row ${dataRow}`);
           
-          // Update the selectedConfiguration immediately
           setUploadedFiles(prev => {
             const updated = [...prev];
             updated[fileIndex] = {
@@ -71,7 +69,6 @@ export const usePreviewHandlers = (
             return updated;
           });
           
-          // Apply the configuration after a short delay
           setTimeout(() => {
             applyTemplate(fileIndex, configName);
           }, 500);
@@ -80,15 +77,9 @@ export const usePreviewHandlers = (
           setSuccess(successMessage);
           
         } else {
-          if (autoConfigResult.configName) {
-            setSuccess(autoConfigResult.message + ' Please select manually.');
-          } else {
-            console.log(`📝 Using manual configuration for ${fileData.fileName}`);
-            setSuccess(`Preview loaded for ${fileData.fileName} - using manual configuration`);
-          }
+          setSuccess(autoConfigResult.message || `Preview loaded for ${fileData.fileName} - using manual configuration`);
         }
       } else {
-        console.log(`📝 No bank detection data in response for ${fileData.fileName}`);
         setSuccess(`Preview loaded for ${fileData.fileName} - no bank detection available`);
       }
       

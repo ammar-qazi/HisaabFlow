@@ -43,8 +43,8 @@ function ConfidenceDashboard({
     const allDates = [];
     autoParseResults.forEach(result => {
       if (result.parse_result?.data) {
-        result.parse_result.data.forEach(row => {
-          const date = row.Date || row.TransactionDate || row.ValueDate;
+        result.parse_result.data.forEach(row => { // row here is a CSVRow object if use_pydantic=true
+          const date = row.date; // Access the 'date' field from the CSVRow Pydantic model
           if (date) allDates.push(new Date(date));
         });
       }

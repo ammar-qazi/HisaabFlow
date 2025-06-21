@@ -2,20 +2,9 @@
 Bank detector for identifying bank type from CSV files
 """
 import re
-from typing import Dict, List, Optional, Tuple, Any
-from .config_manager import BankConfigManager
-
-class BankDetectionResult:
-    """Result of bank detection analysis"""
-    
-    def __init__(self, bank_name: str, confidence: float, reasons: List[str]):
-        self.bank_name = bank_name
-        self.confidence = confidence
-        self.reasons = reasons
-        self.is_confident = confidence >= 0.7
-    
-    def __str__(self):
-        return f"BankDetectionResult(bank={self.bank_name}, confidence={self.confidence:.2f}, reasons={self.reasons})"
+from typing import Any, Dict, List, Tuple
+from backend.bank_detection.config_manager import BankConfigManager
+from backend.models.csv_models import BankDetectionResult
 
 class BankDetector:
     """Detects bank type from CSV files using content signatures and header analysis"""
@@ -48,7 +37,7 @@ class BankDetector:
             confidence, reasons = self._calculate_confidence(filename, csv_content, headers, patterns)
             
             if confidence > 0:
-                candidates.append(BankDetectionResult(bank_name, confidence, reasons))
+                candidates.append(BankDetectionResult(bank_name=bank_name, confidence=confidence, reasons=reasons))
                 print(f"🏦 {bank_name}: confidence={confidence:.2f}, reasons={reasons}")
         
         # Sort by confidence (highest first)
@@ -60,7 +49,7 @@ class BankDetector:
             return best_match
         else:
             print(f"❓ No bank detected, using unknown")
-            return BankDetectionResult('unknown', 0.0, ['No patterns matched'])
+            return BankDetectionResult(bank_name='unknown', confidence=0.0, reasons=['No patterns matched'])
     
     def _calculate_confidence(self, filename: str, content: str, headers: List[str], 
                             patterns: Dict[str, Any]) -> Tuple[float, List[str]]:
@@ -184,7 +173,7 @@ class BankDetector:
             BankDetectionResult
         """
         if not data_rows:
-            return BankDetectionResult('unknown', 0.0, ['No data provided'])
+            return BankDetectionResult(bank_name='unknown', confidence=0.0, reasons=['No data provided'])
         
         # Extract headers from first row
         headers = list(data_rows[0].keys())

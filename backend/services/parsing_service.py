@@ -1,24 +1,9 @@
 """
 Parsing service for single CSV file operations
 """
-import os
-import sys
-
-# Add paths for imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-try:
-    from csv_parser import UnifiedCSVParser # New parser import
-    from data_cleaner import DataCleaner
-    from bank_detection import BankDetector, BankConfigManager
-except ImportError:
-    # Fallback path for import issues
-    backend_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    if backend_path not in sys.path: # Ensure backend_path is added only once
-        sys.path.insert(0, backend_path)
-    from csv_parser import UnifiedCSVParser # New parser import
-    from data_cleaner import DataCleaner
-    from bank_detection import BankDetector, BankConfigManager
+from backend.csv_parser import UnifiedCSVParser
+from backend.data_cleaner import DataCleaner
+from backend.bank_detection import BankDetector, BankConfigManager
 
 
 class ParseConfig:

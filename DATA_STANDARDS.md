@@ -1,304 +1,190 @@
 # HisaabFlow Data Standards
 
 ## 🎯 Purpose
-This document defines the **actual data formats** used by our clean, working HisaabFlow baseline to prevent data structure mismatches and ensure reliable component integration.
+This document defines the **standardized data formats and API contracts** used by HisaabFlow after Phase 1 Type Safety & API Versioning implementation. All components must adhere to these specifications for reliable integration.
 
-**⚠️ Based on:** Clean baseline code after strategic rollback (commit 3e6ff14)
+**✅ Status:** Updated for Phase 1 Type Safety Implementation and v1 API versioning.
 
-## 📊 Core Data Types
+---
 
-### **CSV Row Data (Parser Output)**
+## 📊 Core Data Types (Pydantic Models)
+
+### **CSVRow (Pydantic Model)**
+**Source:** `backend/models/csv_models.py`
+```python
+from pydantic import BaseModel
+from decimal import Decimal
+from datetime import date
+from typing import Optional
+
+class CSVRow(BaseModel):
+    date: date
+    amount: Decimal
+    description: str
+    balance: Optional[Decimal] = None
+```
+
+### **BankDetectionResult (Pydantic Model)**
+**Source:** `backend/models/csv_models.py`
+```python
+from pydantic import BaseModel, Field
+from typing import List
+
+class BankDetectionResult(BaseModel):
+    bank_name: str = Field(..., min_length=1)
+    confidence: float = Field(..., ge=0.0, le=1.0)
+    reasons: List[str] = Field(default_factory=list)
+```
+
+---
+
+## 🔗 API Endpoint Contracts (v1)
+
+All core endpoints are now versioned under `/api/v1` prefix as implemented in `backend/main.py`.
+
+### **POST /api/v1/upload**
+**Purpose:** Upload a single CSV file and receive a unique file ID for subsequent operations.
+
 ```typescript
-// ✅ CURRENT FORMAT: Dictionary with string keys (from DataProcessor)
-interface CSVRow {
-  [columnName: string]: string;
-}
-
-// Example from working parser:
+// Request: FormData with 'file' field
+// Response
 {
-  "Date": "2025-06-10",
-  "Amount": "-18,063",
-  "Description": "Payment to merchant", 
-  "Balance": "45,230.50"
+  "success": true,
+  "file_id": "string",
+  "original_name": "string", 
+  "size": number
 }
-
-// ❌ NOT USED: Array format
-// ["2025-06-10", "-18,063", "Payment to merchant", "45,230.50"]
 ```
 
-### **Bank Detection Result (BankDetector.detect_bank)**
-```typescript
-// ✅ CURRENT FORMAT: BankDetectionResult object
-class BankDetectionResult {
-  bank_name: string;           // Bank identifier (e.g., "nayapay", "wise_usd")
-  confidence: number;          // 0.0 to 1.0 (0% to 100%)
-  reasons: string[];           // List of detection reasons
-}
+### **GET /api/v1/preview/{file_id}**
+**Purpose:** Generate a preview of uploaded CSV with bank detection and suggested parsing parameters.
 
-// Example from working detector:
+```typescript
+// Request: GET with file_id in URL path
+// Optional query params: encoding, header_row
+
+// Response
 {
-  bank_name: "nayapay",
-  confidence: 0.85,
-  reasons: ["filename contains 'nayapay'", "header contains 'Amount'"]
+  "success": true,
+  "preview_data": Array<Array<string>>, // Raw CSV rows
+  "bank_detection": {
+    "bank_name": "string",
+    "confidence": number,
+    "reasons": Array<string>
+  },
+  "suggested_header_row": number,
+  "suggested_data_start_row": number,
+  "total_rows": number
 }
 ```
 
-### **Parse Result (UnifiedCSVParser.parse_csv)**
-```typescript
-interface ParseResult {
-  success: boolean;
-  headers: string[];           // Column names from CSV
-  data: CSVRow[];             // Array of dictionary rows
-  row_count: number;
-  error?: string;             // If success is false
-  parsing_info?: object;      // Additional parsing details
-}
+### **POST /api/v1/multi-csv/parse**
+**Purpose:** Parse one or more uploaded CSV files using their file IDs with custom parsing configurations.
 
-// Example from working parser:
-{
-  success: true,
-  headers: ["Date", "Amount", "Description", "Balance"],
-  data: [
-    {"Date": "2025-06-10", "Amount": "-18,063", "Description": "Payment", "Balance": "45,230.50"},
-    {"Date": "2025-06-09", "Amount": "1,000", "Description": "Deposit", "Balance": "63,293.50"}
-  ],
-  row_count: 2
-}
-```
-
-### **Bank Info Structure (MultiCSVService output)**
-```typescript
-interface BankInfo {
-  detected_bank: string;                    // Bank name from detector
-  confidence: number;                       // Detection confidence
-  reasons: string[];                        // Detection reasons
-  original_headers: string[];               // Headers from parser
-  preprocessing_applied?: boolean;          // Whether preprocessing was used
-  preprocessing_info?: object;              // Preprocessing details
-}
-
-// Example from working service:
-{
-  detected_bank: "erste_bank",
-  confidence: 0.92,
-  reasons: ["content signature match", "header pattern match"],
-  original_headers: ["Date", "Amount", "Description"],
-  preprocessing_applied: false
-}
-```
-
-### **Multi-CSV Service Response**
-```typescript
-interface MultiCSVResponse {
-  success: boolean;
-  results: CSVFileResult[];
-  error?: string;
-}
-
-interface CSVFileResult {
-  filename: string;
-  success: boolean;
-  bank_info: BankInfo;
-  parse_result: ParseResult;
-  cleaned_data?: CSVRow[];                  // If cleaning applied
-  error?: string;
-}
-```
-
-### **Transformation Service Input/Output**
-```typescript
-// ✅ INPUT: Array of CSV data objects
-interface TransformationInput {
-  csv_data_list: CSVFileResult[];
-  user_name?: string;
-  enable_transfer_detection?: boolean;
-}
-
-// ✅ OUTPUT: Standardized Cashew format
-interface TransformationOutput {
-  success: boolean;
-  data: CashewTransaction[];                // Standardized format
-  transfer_analysis?: TransferAnalysis;
-  error?: string;
-}
-
-interface CashewTransaction {
-  Date: string;                             // YYYY-MM-DD format
-  Amount: number;                           // Numeric value
-  Title: string;                            // Description
-  Account: string;                          // Bank account name
-  Currency: string;                         // Currency code
-  Category?: string;                        // Transaction category
-}
-```
-
-## 🔄 Data Flow Patterns
-
-### **1. File Upload → Parse Flow**
-```
-File Upload 
-  ↓ (filename, file_path)
-MultiCSVService.process_files() 
-  ↓ (raw CSV data)
-UnifiedCSVParser.parse_csv()
-  ↓ (ParseResult with CSVRow[])
-BankDetector.detect_bank_from_data()
-  ↓ (BankDetectionResult + ParseResult)
-Return: CSVFileResult[]
-```
-
-### **2. Parse Results → Transform Flow**
-```
-CSVFileResult[] 
-  ↓ (with bank_info + parse_result.data)
-TransformationService.transform_multi_csv()
-  ↓ (data preprocessing + standardization)
-CashewTransformer.transform()
-  ↓ (apply bank-specific mapping)
-Return: CashewTransaction[]
-```
-
-### **3. Bank Detection Data Flow**
-```
-Filename + CSV Content 
-  ↓
-BankDetector.detect_bank()
-  ↓ (initial detection)
-BankConfigManager.detect_header_row()
-  ↓ (bank-specific header detection)
-Final BankDetectionResult
-```
-
-## 🚨 Critical Compatibility Rules
-
-### **Data Structure Validation**
-1. **Always verify format**: Check if data is `CSVRow[]` (array of dictionaries) or `object[]`
-2. **Handle both formats**: Add fallback logic for different input types
-3. **Access patterns**: Use `.get()` or `?.` for safe access
-4. **Type checking**: Verify array vs object before processing
-
-### **Bank Detection Integration**
-```typescript
-// ✅ CORRECT: Access detected bank info
-const bankName = bankInfo.detected_bank;
-const confidence = bankInfo.confidence;
-
-// ❌ AVOID: Direct object access without checking
-const bankName = bankInfo['bank_name']; // Wrong property name
-```
-
-### **CSV Data Access Patterns**
-```typescript
-// ✅ CORRECT: Safe dictionary access
-const amount = row.get('Amount') || row['Amount'] || '';
-
-// ✅ CORRECT: Handle missing data
-const date = row['Date'] || row['date'] || '';
-
-// ❌ AVOID: Array access on dictionary
-const amount = row[1]; // Will fail if row is dictionary
-```
-
-## 📋 API Endpoint Data Contracts
-
-### **POST /multi-csv/parse**
 ```typescript
 // Request
 {
-  files: File[];
-  parse_configs: {
-    [filename: string]: {
-      header_row?: number;
-      start_row?: number;
-      end_row?: number;
-      encoding?: string;
+  "file_ids": Array<string>,
+  "parse_configs": {
+    [file_id: string]: {
+      "header_row"?: number,
+      "data_start_row"?: number,
+      "encoding"?: string
     }
-  };
-  enable_cleaning?: boolean;
+  },
+  "enable_cleaning"?: boolean
 }
 
-// Response: MultiCSVResponse
+// Response
 {
-  success: boolean;
-  results: CSVFileResult[];
+  "success": true,
+  "parsed_csvs": Array<{
+    "file_id": string,
+    "filename": string,
+    "success": boolean,
+    "bank_info": BankDetectionResult,
+    "parse_result": {
+      "success": boolean,
+      "headers": Array<string>,
+      "data": Array<CSVRow>,
+      "row_count": number
+    },
+    "error"?: string
+  }>
 }
 ```
 
-### **POST /multi-csv/transform**
+### **POST /api/v1/multi-csv/transform**
+**Purpose:** Transform parsed CSV data into standardized Cashew format for export.
+
 ```typescript
 // Request
 {
-  csv_data: CSVFileResult[];           // From parse endpoint
-  user_name?: string;
-  enable_transfer_detection?: boolean;
+  "csv_data_list": Array<ParsedCSVResult>, // From parse endpoint
+  "user_name"?: string,
+  "enable_transfer_detection"?: boolean
 }
 
-// Response: TransformationOutput
+// Response  
 {
-  success: boolean;
-  data: CashewTransaction[];
+  "success": true,
+  "transformed_data": Array<{
+    "Date": string,        // YYYY-MM-DD format
+    "Amount": number,      // Numeric value
+    "Title": string,       // Description
+    "Account": string,     // Bank account identifier
+    "Currency": string,    // Currency code
+    "Category"?: string    // Optional category
+  }>,
+  "transfer_analysis"?: Object,
+  "error"?: string
 }
 ```
 
-## 🔧 Configuration Data Types
+---
 
-### **Bank Configuration Structure**
-```typescript
-interface BankConfig {
-  bank_info: {
-    name: string;
-    file_patterns: string;              // Comma-separated
-    detection_content_signatures: string;
-    cashew_account: string;
-  };
-  csv_config: {
-    expected_headers: string;           // Comma-separated
-    header_row?: number;
-    data_start_row?: number;
-  };
-  column_mapping: {
-    [standardField: string]: string;    // Maps to CSV columns
-  };
-}
+## 🔄 Data Processing Flow
+
+### **Standard Upload → Transform Pipeline**
+```
+1. POST /api/v1/upload 
+   ↓ (receives file_id)
+2. GET /api/v1/preview/{file_id}
+   ↓ (bank detection + parsing suggestions)  
+3. POST /api/v1/multi-csv/parse
+   ↓ (structured CSVRow data)
+4. POST /api/v1/multi-csv/transform
+   ↓ (standardized Cashew format)
 ```
 
-## 📝 Testing & Validation
+### **Type Safety Integration**
+All data structures are now validated using Pydantic models, ensuring:
+- **Compile-time validation** of data formats
+- **Automatic serialization/deserialization** 
+- **Clear error messages** for invalid data
+- **IDE support** with type hints
 
-### **Sample Data Structures for Testing**
-```typescript
-// Valid CSV row for testing
-const testRow: CSVRow = {
-  "Date": "2025-06-21",
-  "Amount": "-1500.00", 
-  "Description": "Test transaction",
-  "Balance": "10000.00"
-};
+---
 
-// Valid bank detection for testing
-const testBankDetection: BankDetectionResult = {
-  bank_name: "test_bank",
-  confidence: 0.95,
-  reasons: ["test signature match"]
-};
-```
+## ⚠️ Migration Notes
 
-## ⚠️ Known Legacy Issues (Avoid)
+### **Breaking Changes from Previous Version**
+- **TypeScript interfaces → Pydantic models**: Core data types now defined in Python
+- **Unversioned APIs → /api/v1**: All endpoints require v1 prefix  
+- **Enhanced type validation**: Stricter data format requirements
+- **Improved error handling**: Pydantic validation errors
 
-### **Removed/Deprecated Patterns**
-- ❌ Preprocessing-aware components (removed in rollback)
-- ❌ Array-based CSV row format
-- ❌ Complex multi-file interdependencies
-- ❌ Enhanced detection with configuration adjustment
+### **Backward Compatibility**
+- API response formats remain functionally equivalent
+- Frontend can be updated incrementally to use v1 endpoints
+- Data structures maintain same field names and types
 
-### **Safe Development Guidelines**
-1. **Stick to working patterns**: Use formats documented above
-2. **Test incrementally**: Validate each data transformation
-3. **Handle edge cases**: Always check for null/undefined
-4. **Maintain compatibility**: Keep existing API contracts
+---
 
 ## 📅 Last Updated
 **Date:** 2025-06-21  
-**Session:** Clean Baseline Data Standards Creation  
-**Based On:** Working code after strategic rollback (commit 3e6ff14)
-
-**🎯 Purpose:** Accurate documentation of proven data structures to guide safe development without introducing bugs from failed experiments.
+**Update:** Phase 1 Type Safety & API Versioning  
+**Changes:** 
+- Updated Core Data Types to reference Pydantic models in `backend/models/csv_models.py`
+- Replaced unversioned API contracts with v1 versioned endpoints
+- Added type safety documentation and migration notes

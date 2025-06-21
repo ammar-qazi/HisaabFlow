@@ -5,23 +5,10 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from typing import Dict, List, Any, Optional
 import json
-import os
-import sys
-
-# Add paths for imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import services
-try:
-    from services.transformation_service import TransformationService
-    from services.export_service import ExportService
-except ImportError:
-    # Fallback path for import issues
-    backend_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    services_path = os.path.join(backend_path, 'services')
-    sys.path.insert(0, services_path)
-    from transformation_service import TransformationService
-    from export_service import ExportService
+from backend.services.transformation_service import TransformationService
+from backend.services.export_service import ExportService
 
 transform_router = APIRouter()
 

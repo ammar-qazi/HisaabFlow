@@ -5,6 +5,7 @@
 import axios from 'axios';
 
 const API_BASE = 'http://127.0.0.1:8000';
+const API_V1_BASE = `${API_BASE}/api/v1`;
 
 /**
  * Exports transformed data as CSV file
@@ -13,7 +14,7 @@ export const exportData = async (transformedData, setSuccess, setError) => {
   if (!transformedData) return;
   
   try {
-    const response = await axios.post(`${API_BASE}/export`, transformedData, {
+    const response = await axios.post(`${API_V1_BASE}/export`, transformedData, {
       responseType: 'blob'
     });
     
