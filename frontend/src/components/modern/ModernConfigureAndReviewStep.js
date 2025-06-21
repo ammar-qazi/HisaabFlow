@@ -97,6 +97,7 @@ function ModernConfigureAndReviewStep({
       {showAdvancedConfig && (
         <AdvancedConfigPanel
           uploadedFiles={uploadedFiles}
+          autoParseResults={autoParseResults}
           templates={templates}
           updateFileConfig={updateFileConfig}
           applyTemplate={applyTemplate}

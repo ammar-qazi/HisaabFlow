@@ -4,6 +4,7 @@ import { Card, Button, Badge } from '../../ui';
 import { Settings, FileText, AlertCircle, CheckCircle } from '../../ui/Icons';
 function AdvancedConfigPanel({
   uploadedFiles,
+  autoParseResults,
   templates,
   updateFileConfig,
   applyTemplate,
@@ -58,6 +59,11 @@ function AdvancedConfigPanel({
           const fileStatus = getFileStatus(file);
           const StatusIcon = fileStatus.icon;
           const confidence = file.confidence || 0;
+
+          // Find the full parse result for this file to get the accurate row count
+          const resultForFile = autoParseResults?.find(r => r.filename === file.fileName);
+          const finalRowCount = resultForFile?.parse_result?.row_count;
+          const displayRowCount = finalRowCount ?? file.preview?.total_rows ?? 0;
           
           return (
             <div key={index} style={{
@@ -139,7 +145,7 @@ function AdvancedConfigPanel({
                   borderRadius: theme.borderRadius.sm,
                 }}>
                   Detected: {file.detectedBank} | 
-                  Rows: {file.preview?.parse_result?.row_count || 0}
+                  Rows: {displayRowCount}
                 </div>
               )}
             </div>
