@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { useTheme } from '../../../theme/ThemeProvider';
 import { Card, Button, Badge } from '../../ui';
 import { 
-  CheckCircle, AlertCircle, BarChart, Building // Removed Calendar from imports
+  CheckCircle, AlertCircle, BarChart, Building, Calendar // Removed Calendar from imports
 } from '../../ui/Icons';
 
 function ConfidenceDashboard({ 
@@ -112,17 +112,18 @@ function ConfidenceDashboard({
           borderRadius: theme.borderRadius.md,
           textAlign: 'center',
         }}>
-          {/* Calendar icon removed as it's not available. Text display adjusted for clarity. */}
-          <div style={{ fontSize: '16px', fontWeight: '600', color: theme.colors.text.primary }}>
+          <Calendar size={24} color={theme.colors.success} style={{ marginBottom: theme.spacing.xs }} />
+          <div style={{ fontSize: '24px', fontWeight: '600', color: theme.colors.text.primary }}>
             {confidenceMetrics.dateRange ? 
-              `${confidenceMetrics.dateRange.start} - ${confidenceMetrics.dateRange.end}` : 
-              'No dates found'
+              confidenceMetrics.dateRange.days : 
+              0
             }
           </div>
-          <div style={{ fontSize: '12px', color: theme.colors.text.secondary, marginTop: theme.spacing.xs }}> {/* Added marginTop for spacing */}
+          <div style={{ fontSize: '12px', color: theme.colors.text.secondary }}>
             {confidenceMetrics.dateRange ? 
-              `${confidenceMetrics.dateRange.days} days` : 
-              (confidenceMetrics.dateRange === null ? 'Date Range (No Dates)' : 'Date Range')}
+              'Days of Data' : 
+              'No Date Range'
+            }
           </div>
         </div>
 

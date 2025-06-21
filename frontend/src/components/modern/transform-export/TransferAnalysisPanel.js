@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../../theme/ThemeProvider';
-import { Card, Button } from '../../ui';
+import { Card, Button, Badge } from '../../ui';
 import { ChevronDown, ChevronUp, AlertCircle, TrendingUp } from '../../ui/Icons'; // Assuming icons exist
 
 function TransferAnalysisPanel({ transferAnalysis }) {
@@ -69,87 +69,90 @@ function TransferAnalysisPanel({ transferAnalysis }) {
       )}
       {hasTransfers && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing.md }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing.sm, backgroundColor: theme.colors.background.default, padding: theme.spacing.sm, borderRadius: theme.borderRadius.md, border: `1px solid ${theme.colors.divider}` }}>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: theme.spacing.sm, 
+            backgroundColor: theme.colors.background.default, 
+            padding: theme.spacing.lg, 
+            borderRadius: theme.borderRadius.lg, 
+            border: `1px solid ${theme.colors.border}` 
+          }}>
             <TrendingUp size={20} color={theme.colors.info} />
             <p style={{ ...theme.typography.body2, color: theme.colors.text.primary }}>
               Detected {transferPairs.length} potential transfer pair(s){currencyConversions > 0 ? ` and ${currencyConversions} currency conversion(s)` : ''}.
             </p>
           </div>
-          {transferPairs.map((pair, index) => (
-            <div key={index} style={{ border: `1px solid ${theme.colors.divider}`, borderRadius: theme.borderRadius.md, overflow: 'hidden' }}>
-              <Button
-                variant="text"
-                onClick={() => toggleExpand(index)}
-                style={{
-                  width: '100%',
-                  textAlign: 'left',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: theme.spacing.md,
-                  backgroundColor: theme.colors.background.paper,
-                  borderBottom: expandedTransfers[index] ? `1px solid ${theme.colors.divider}` : 'none'
-                }}
-              >
-                <span style={{ ...theme.typography.body1, color: theme.colors.text.primary }}>
-                  Transfer: {pair.outgoing?._csv_name || 'Unknown'} → {pair.incoming?._csv_name || 'Unknown'}
-                </span>
-                {expandedTransfers[index] ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-              </Button>
-              {expandedTransfers[index] && (
-                <div style={{ padding: theme.spacing.md, backgroundColor: theme.colors.background.default }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: theme.spacing.md }}>
-                    <div>
-                      <h4 style={{ ...theme.typography.h6, color: theme.colors.text.primary, marginBottom: theme.spacing.sm }}>Outgoing</h4>
-                      <p style={{ ...theme.typography.body2, color: theme.colors.text.secondary, marginBottom: theme.spacing.xs }}>
-                        Account: {pair.outgoing?.Account || 'Unknown'}
-                      </p>
-                      <p style={{ ...theme.typography.body2, color: theme.colors.text.secondary, marginBottom: theme.spacing.xs }}>
-                        Amount: {pair.outgoing?.Amount || 'Unknown'}
-                      </p>
-                      <p style={{ ...theme.typography.body2, color: theme.colors.text.secondary, marginBottom: theme.spacing.xs }}>
-                        Date: {pair.outgoing?.Date || 'Unknown'}
-                      </p>
-                      <p style={{ ...theme.typography.body2, color: theme.colors.text.secondary, marginBottom: theme.spacing.xs }}>
-                        Description: {pair.outgoing?.Title || pair.outgoing?.Description || 'Unknown'}
-                      </p>
+          {transferPairs.map((pair, index) => {
+            const formattedDate = new Date(pair.outgoing?.Date).toLocaleDateString(undefined, {
+              year: 'numeric', month: 'long', day: 'numeric' 
+            });
+
+            return (
+              <div key={index} style={{ 
+                border: `1px solid ${theme.colors.border}`, 
+                borderRadius: theme.borderRadius.lg, 
+                overflow: 'hidden',
+                backgroundColor: theme.colors.background.paper
+              }}>
+                {/* ===== Redesigned Accordion Header ===== */}
+                <Button
+                  variant="secondary"
+                  onClick={() => toggleExpand(index)}
+                  style={{
+                    width: '100%',
+                    textAlign: 'left',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: theme.spacing.md,
+                    border: 'none', // Remove the border for a cleaner look
+                    backgroundColor: 'transparent', // Ensure transparent background
+                  }}
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <span style={{ ...theme.typography.body1, color: theme.colors.text.primary, fontWeight: '500' }}>
+                      {pair.outgoing?.Account || 'Unknown'} → {pair.incoming?.Account || 'Unknown'}
+                    </span>
+                    <span style={{ ...theme.typography.caption, color: theme.colors.text.secondary }}>
+                      {formattedDate}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing.sm }}>
+                    <Badge variant={pair.confidence >= 0.9 ? 'success' : 'warning'}>
+                      {((pair.confidence || 0) * 100).toFixed(0)}% Confidence
+                    </Badge>
+                    {expandedTransfers[index] ? 
+                      <ChevronUp size={18} color={theme.colors.text.primary} /> : 
+                      <ChevronDown size={18} color={theme.colors.text.primary} />
+                    }
+                  </div>
+                </Button>
+
+                {/* ===== Redesigned Accordion Body ===== */}
+                {expandedTransfers[index] && (
+                  <div style={{ 
+                    padding: `${theme.spacing.sm} ${theme.spacing.md} ${theme.spacing.md}`, // Less padding on top
+                    borderTop: `1px solid ${theme.colors.border}`,
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    gap: theme.spacing.lg
+                  }}>
+                    {/* Left side: Amounts */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing.md }}>
+                      <span style={{ ...theme.typography.h6, color: theme.colors.error }}>{pair.outgoing?.Amount}</span>
+                      <span style={{ ...theme.typography.body1, color: theme.colors.text.secondary }}>→</span>
+                      <span style={{ ...theme.typography.h6, color: theme.colors.success }}>{pair.incoming?.Amount}</span>
                     </div>
-                    <div>
-                      <h4 style={{ ...theme.typography.h6, color: theme.colors.text.primary, marginBottom: theme.spacing.sm }}>Incoming</h4>
-                      <p style={{ ...theme.typography.body2, color: theme.colors.text.secondary, marginBottom: theme.spacing.xs }}>
-                        Account: {pair.incoming?.Account || 'Unknown'}
-                      </p>
-                      <p style={{ ...theme.typography.body2, color: theme.colors.text.secondary, marginBottom: theme.spacing.xs }}>
-                        Amount: {pair.incoming?.Amount || 'Unknown'}
-                      </p>
-                      <p style={{ ...theme.typography.body2, color: theme.colors.text.secondary, marginBottom: theme.spacing.xs }}>
-                        Date: {pair.incoming?.Date || 'Unknown'}
-                      </p>
-                      <p style={{ ...theme.typography.body2, color: theme.colors.text.secondary, marginBottom: theme.spacing.xs }}>
-                        Description: {pair.incoming?.Title || pair.incoming?.Description || 'Unknown'}
-                      </p>
+                    {/* Right side: Description */}
+                    <div style={{ ...theme.typography.body2, color: theme.colors.text.secondary, textAlign: 'right' }}>
+                      {pair.outgoing?.Title || pair.outgoing?.Description || 'N/A'}
                     </div>
                   </div>
-                  <div style={{ marginTop: theme.spacing.md, padding: theme.spacing.sm, backgroundColor: theme.colors.background.paper, borderRadius: theme.borderRadius.sm }}>
-                    <p style={{ ...theme.typography.body2, color: theme.colors.text.secondary, marginBottom: theme.spacing.xs }}>
-                      Match Strategy: {pair.match_strategy || 'Unknown'}
-                    </p>
-                    <p style={{ ...theme.typography.body2, color: theme.colors.text.secondary, marginBottom: theme.spacing.xs }}>
-                      Confidence: {((pair.confidence || 0) * 100).toFixed(1)}%
-                    </p>
-                    <p style={{ ...theme.typography.body2, color: theme.colors.text.secondary, marginBottom: theme.spacing.xs }}>
-                      Pair ID: {pair.pair_id || 'Unknown'}
-                    </p>
-                    {pair.match_details && (
-                      <p style={{ ...theme.typography.body2, color: theme.colors.text.secondary }}>
-                        Details: {pair.match_details}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </Card>

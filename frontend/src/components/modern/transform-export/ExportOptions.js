@@ -107,7 +107,6 @@ function ExportOptions({ transformedData, exportData }) {
           disabled={!isDataAvailable || exporting}
           loading={exporting}
           leftIcon={exporting ? null : <Download size={18} />}
-          style={{ padding: theme.spacing.lg }}
         >
           {exporting ? 'Preparing Download...' : 'Download Processed Data'}
         </Button>

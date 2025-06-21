@@ -80,7 +80,7 @@ export const createProcessingHandlers = (state) => {
           filename: file.fileName,
           data: file.parsedData.data,
           headers: file.parsedData.headers,
-          bank_info: file.parsedData.bank_info || {},
+          bank_info: file.preview?.bank_detection || file.parsedData.bank_info || {},
           // Add other necessary fields if the backend needs them
         }));
 
