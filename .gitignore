@@ -116,3 +116,13 @@ start_app.bat
 # Development and AI assistance files
 ai_assistance/
 codemcp.toml
+
+# Serena AI assistant files (local development only)
+.serena/
+
+# AI documentation files (local development only)
+AI_WORKFLOW.md
+CODEBASE_MAP.md
+CURRENT_STATE.md
+SYSTEM_DESIGN.md
+DATA_STANDARDS.md
