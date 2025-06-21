@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTheme } from '../../theme/ThemeProvider';
 import { Badge } from '../ui';
-import { CloudUpload, Settings, Eye, Download } from '../ui/Icons';
+import { CloudUpload, Settings, Download } from '../ui/Icons';
 
 const StepNavigation = ({ currentStep = 1 }) => {
   const theme = useTheme();
@@ -21,14 +21,8 @@ const StepNavigation = ({ currentStep = 1 }) => {
     },
     {
       number: 3,
-      title: 'Review',
-      description: 'Verify parsed data',
-      icon: Eye,
-    },
-    {
-      number: 4,
-      title: 'Export',
-      description: 'Download processed results',
+      title: 'Review & Export',
+      description: 'Verify data and export results',
       icon: Download,
     },
   ];
