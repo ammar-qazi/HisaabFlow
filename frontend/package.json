@@ -84,10 +84,7 @@
       "icon": "assets/icon.icns"
     },
     "linux": {
-      "target": [
-        "AppImage",
-        "deb"
-      ],
+      "target": "AppImage",
       "category": "Office",
       "icon": "assets/icon.png"
     },

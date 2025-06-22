@@ -84,8 +84,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: hisaabflow-${{ matrix.platform }}
-          path: frontend/dist/
+          path: |
+            frontend/dist/*.AppImage
+            frontend/dist/*.exe
+            frontend/dist/*.dmg
+            frontend/dist/*.deb
           retention-days: 30
+          if-no-files-found: warn
 
   release:
     needs: build
@@ -101,14 +106,13 @@ jobs:
       - name: List downloaded artifacts (debug)
         run: |
           echo "Downloaded artifacts structure:"
-          find ./artifacts -type f -name "*.AppImage" -o -name "*.deb" -o -name "*.exe" -o -name "*.dmg" || echo "No build artifacts found"
+          find ./artifacts -type f -name "*.AppImage" -o -name "*.exe" -o -name "*.dmg" || echo "No build artifacts found"
           
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
             ./artifacts/**/*.AppImage
-            ./artifacts/**/*.deb
             ./artifacts/**/*.exe
             ./artifacts/**/*.dmg
           draft: false
