@@ -52,12 +52,15 @@ class PythonBundlePreparator {
   async setupLinuxPython() {
     console.log('📦 Setting up Python for Linux...');
     
-    // Use system Python to create a relocatable installation
     const pythonDir = path.join(this.bundleDir, 'python');
     fs.mkdirSync(pythonDir, { recursive: true });
     
-    // Create a minimal Python installation using venv
+    // First create a venv with copies (not symlinks)
+    console.log('🔧 Creating Python virtual environment...');
     await this.runCommand('python3', ['-m', 'venv', '--copies', pythonDir]);
+    
+    // Now make it truly self-contained by copying shared libraries
+    await this.makePythonSelfContained(pythonDir);
     
     // Verify installation
     const pythonBin = path.join(pythonDir, 'bin', 'python3');
@@ -89,12 +92,15 @@ class PythonBundlePreparator {
   async setupMacPython() {
     console.log('📦 Setting up Python for macOS...');
     
-    // Use system Python to create a relocatable installation
     const pythonDir = path.join(this.bundleDir, 'python');
     fs.mkdirSync(pythonDir, { recursive: true });
     
     // Create a minimal Python installation using venv
+    console.log('🔧 Creating Python virtual environment...');
     await this.runCommand('python3', ['-m', 'venv', '--copies', pythonDir]);
+    
+    // Make it self-contained for macOS
+    await this.makeMacPythonSelfContained(pythonDir);
     
     console.log('✅ macOS Python setup complete');
   }
@@ -142,6 +148,235 @@ class PythonBundlePreparator {
     ]);
     
     console.log('✅ Dependencies installed');
+  }
+
+  async makePythonSelfContained(pythonDir) {
+    console.log('🔗 Making Python self-contained with shared libraries...');
+    
+    const pythonBin = path.join(pythonDir, 'bin', 'python3');
+    const libDir = path.join(pythonDir, 'lib');
+    
+    try {
+      // Find Python shared library dependencies using ldd
+      console.log('🔍 Analyzing Python dependencies...');
+      const { stdout } = await this.runCommand('ldd', [pythonBin]);
+      
+      // Parse ldd output to find libpython and other essential libraries
+      const dependencies = this.parseLddOutput(stdout);
+      console.log(`🔍 Found ${dependencies.length} dependencies`);
+      
+      // Copy essential shared libraries to bundle
+      for (const dep of dependencies) {
+        if (this.isEssentialLibrary(dep.name)) {
+          const destPath = path.join(libDir, dep.name);
+          console.log(`📋 Copying ${dep.name} from ${dep.path}`);
+          
+          // Create lib directory if it doesn't exist
+          if (!fs.existsSync(libDir)) {
+            fs.mkdirSync(libDir, { recursive: true });
+          }
+          
+          // Copy the library
+          fs.copyFileSync(dep.path, destPath);
+          
+          // Make it executable
+          fs.chmodSync(destPath, 0o755);
+        }
+      }
+      
+      // Update Python binary to look in bundle lib directory
+      await this.setPythonRPath(pythonBin, libDir);
+      
+      console.log('✅ Python made self-contained');
+      
+    } catch (error) {
+      console.warn('⚠️ Failed to make Python fully self-contained:', error.message);
+      console.warn('⚠️ Python may work if target system has compatible libraries');
+    }
+  }
+
+  async makeMacPythonSelfContained(pythonDir) {
+    console.log('🔗 Making macOS Python self-contained...');
+    
+    const pythonBin = path.join(pythonDir, 'bin', 'python3');
+    const libDir = path.join(pythonDir, 'lib');
+    
+    try {
+      // Find Python shared library dependencies using otool (macOS equivalent of ldd)
+      console.log('🔍 Analyzing Python dependencies...');
+      const { stdout } = await this.runCommand('otool', ['-L', pythonBin]);
+      
+      // Parse otool output to find Python framework and libraries
+      const dependencies = this.parseOtoolOutput(stdout);
+      console.log(`🔍 Found ${dependencies.length} dependencies`);
+      
+      // Copy essential shared libraries/frameworks to bundle
+      for (const dep of dependencies) {
+        if (this.isMacEssentialLibrary(dep.path)) {
+          const libName = path.basename(dep.path);
+          const destPath = path.join(libDir, libName);
+          console.log(`📋 Copying ${libName} from ${dep.path}`);
+          
+          // Create lib directory if it doesn't exist
+          if (!fs.existsSync(libDir)) {
+            fs.mkdirSync(libDir, { recursive: true });
+          }
+          
+          // Copy the library
+          if (fs.existsSync(dep.path)) {
+            fs.copyFileSync(dep.path, destPath);
+            fs.chmodSync(destPath, 0o755);
+          }
+        }
+      }
+      
+      // Update Python binary to look in bundle lib directory using install_name_tool
+      await this.setMacPythonRPath(pythonBin, libDir);
+      
+      console.log('✅ macOS Python made self-contained');
+      
+    } catch (error) {
+      console.warn('⚠️ Failed to make macOS Python fully self-contained:', error.message);
+      console.warn('⚠️ Python may work if target system has compatible libraries');
+    }
+  }
+
+  parseOtoolOutput(otoolOutput) {
+    const dependencies = [];
+    const lines = otoolOutput.split('\n');
+    
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.includes('is not an object file')) continue;
+      
+      // Parse lines like: /usr/lib/libpython3.11.dylib (compatibility version...)
+      const match = trimmed.match(/^\s*([^\s]+)\s+\(/);
+      if (match) {
+        dependencies.push({
+          path: match[1]
+        });
+      }
+    }
+    
+    return dependencies;
+  }
+
+  isMacEssentialLibrary(libPath) {
+    // Only copy Python-specific libraries and essential runtime libraries
+    const essentialPatterns = [
+      '/Python.framework',     // Python framework
+      'libpython',            // Python runtime
+      'libssl',               // SSL support
+      'libcrypto'             // Crypto support
+    ];
+    
+    return essentialPatterns.some(pattern => libPath.includes(pattern));
+  }
+
+  async setMacPythonRPath(pythonBin, libDir) {
+    try {
+      console.log('🔧 Setting install_name for macOS Python executable...');
+      
+      // Use install_name_tool to set library search paths
+      await this.runCommand('install_name_tool', ['-add_rpath', '@executable_path/../lib', pythonBin]);
+      
+      console.log('✅ macOS RPATH set successfully');
+    } catch (error) {
+      console.warn('⚠️ Could not set RPATH on macOS:', error.message);
+      console.warn('⚠️ Creating DYLD_LIBRARY_PATH wrapper instead...');
+      await this.createMacPythonWrapper(pythonBin, libDir);
+    }
+  }
+
+  async createMacPythonWrapper(pythonBin, libDir) {
+    // Create a wrapper script that sets DYLD_LIBRARY_PATH
+    const wrapperPath = pythonBin + '_real';
+    const wrapperScript = `#!/bin/bash
+export DYLD_LIBRARY_PATH="${libDir}:\${DYLD_LIBRARY_PATH}"
+exec "${wrapperPath}" "$@"
+`;
+    
+    // Rename original python to python_real
+    fs.renameSync(pythonBin, wrapperPath);
+    
+    // Create wrapper script
+    fs.writeFileSync(pythonBin, wrapperScript);
+    fs.chmodSync(pythonBin, 0o755);
+    
+    console.log('✅ Created DYLD_LIBRARY_PATH wrapper script');
+  }
+
+  parseLddOutput(lddOutput) {
+    const dependencies = [];
+    const lines = lddOutput.split('\n');
+    
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.includes('not a dynamic executable')) continue;
+      
+      // Parse lines like: libpython3.11.so.1.0 => /usr/lib/x86_64-linux-gnu/libpython3.11.so.1.0 (0x...)
+      const match = trimmed.match(/([^\s]+)\s*=>\s*([^\s]+)/);
+      if (match) {
+        dependencies.push({
+          name: match[1],
+          path: match[2]
+        });
+      }
+    }
+    
+    return dependencies;
+  }
+
+  isEssentialLibrary(libName) {
+    // Only copy Python-specific libraries and essential runtime libraries
+    const essentialPrefixes = [
+      'libpython',          // Python runtime
+      'libssl',             // SSL support (needed for pip/https)
+      'libcrypto',          // Crypto support
+    ];
+    
+    return essentialPrefixes.some(prefix => libName.startsWith(prefix));
+  }
+
+  async setPythonRPath(pythonBin, libDir) {
+    try {
+      console.log('🔧 Setting RPATH for Python executable...');
+      
+      // Use patchelf to set RPATH so Python looks in bundle lib directory
+      await this.runCommand('patchelf', ['--set-rpath', `$ORIGIN/../lib:${libDir}`, pythonBin]);
+      
+      console.log('✅ RPATH set successfully');
+    } catch (error) {
+      console.warn('⚠️ patchelf not available, trying chrpath...');
+      
+      try {
+        // Fallback to chrpath
+        await this.runCommand('chrpath', ['-r', `$ORIGIN/../lib:${libDir}`, pythonBin]);
+        console.log('✅ RPATH set with chrpath');
+      } catch (error2) {
+        console.warn('⚠️ Could not set RPATH (patchelf/chrpath not available)');
+        console.warn('⚠️ Creating LD_LIBRARY_PATH wrapper instead...');
+        await this.createPythonWrapper(pythonBin, libDir);
+      }
+    }
+  }
+
+  async createPythonWrapper(pythonBin, libDir) {
+    // Create a wrapper script that sets LD_LIBRARY_PATH
+    const wrapperPath = pythonBin + '_real';
+    const wrapperScript = `#!/bin/bash
+export LD_LIBRARY_PATH="${libDir}:\${LD_LIBRARY_PATH}"
+exec "${wrapperPath}" "$@"
+`;
+    
+    // Rename original python to python_real
+    fs.renameSync(pythonBin, wrapperPath);
+    
+    // Create wrapper script
+    fs.writeFileSync(pythonBin, wrapperScript);
+    fs.chmodSync(pythonBin, 0o755);
+    
+    console.log('✅ Created LD_LIBRARY_PATH wrapper script');
   }
 
   getPythonExecutable() {
