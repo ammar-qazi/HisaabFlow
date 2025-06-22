@@ -1,6 +1,6 @@
 {
   "name": "hisaabflow",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Desktop app for parsing bank statement CSVs",
   "author": "Ammar <ammar@example.com>",
   "homepage": "./",
