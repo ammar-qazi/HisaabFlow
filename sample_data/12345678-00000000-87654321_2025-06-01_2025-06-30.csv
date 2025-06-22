@@ -1,15 +1,14 @@
-Account Number,12345678-00000000-87654321
-Account Holder,John Smith
-Period From,2025-06-01
-Period To,2025-06-30
-Generated,2025-06-16
-
-Date,Amount,Currency,Description,Type,Balance,Reference
-2025-06-01,-15.50,HUF,Coffee Shop Purchase,Card Payment,12450.50,REF001234
-2025-06-02,50000.00,HUF,Monthly Salary,Transfer In,62450.50,SAL202506
-2025-06-03,-8500.00,HUF,Grocery Store,Card Payment,53950.50,REF001235
-2025-06-04,-25.00,HUF,Public Transport,Card Payment,53925.50,REF001236
-2025-06-05,-1200.00,HUF,Online Shopping,Card Payment,52725.50,REF001237
-2025-06-08,-450.00,HUF,Restaurant,Card Payment,52275.50,REF001238
-2025-06-10,5000.00,HUF,Freelance Payment,Transfer In,57275.50,PAY202506
-2025-06-12,-12000.00,HUF,Rent Payment,Transfer Out,45275.50,RENT0625
+"Booking Date","Amount","Currency","Partner Name","Partner IBAN","Partner Account Number","Bank code","Transaction Date Time","Transaction Type"
+"2025.06.30","-2,450","HUF","ALDI CEGLED","","","","2025.06.29 16:24:37","Debit card usage"
+"2025.06.28","50,000","HUF","SAMPLE TECHNOLOGIES CEGLED TEL","HU13163000000401341390106428","16300000-04013413-90106428","","","Transfer"
+"2025.06.25","-8,500","HUF","TESCO CEGLED","","","","2025.06.24 14:15:22","Debit card usage"
+"2025.06.22","-25,000","HUF","Revolut**2984*","","","","2025.06.21 23:23:23","Debit card usage"
+"2025.06.20","-1,200","HUF","SINSAY CEGLED","","","","2025.06.19 17:29:03","Debit card usage"
+"2025.06.18","-450","HUF","SAMPLE WORKPLACE DELIREST ETT","","","","2025.06.17 12:38:15","Debit card usage"
+"2025.06.15","5,000","HUF","Sample Freelance Client","HU98117700000000054321987","11770000-00000005-43219876","","","Transfer"
+"2025.06.12","-12,000","HUF","Sample Landlord","HU42117700000000012345678","11770000-00000001-23456789","","2025.06.12 00:01:00","Transfer"
+"2025.06.10","-18,063","HUF","ING Bank N. V. Magyarországi Fióktelepe","HU67137000160397801000000000","13700016-03978010-00000000","","2025.06.09 17:59:55","Instant external forint transfer - electronic"
+"2025.06.08","-6,000","HUF","PEPCO 150075 CEGLED 2","","","","2025.06.07 18:22:58","Debit card usage"
+"2025.06.05","-1,450","HUF","TEDi-HU 3128","","","","2025.06.04 18:07:04","Debit card usage"
+"2025.06.03","-780","HUF","Sample Patika Gyógyszertár","","","","2025.06.02 09:24:37","Debit card usage"
+"2025.06.01","-15,500","HUF","Coffee Shop Purchase","","","","2025.05.31 08:15:30","Debit card usage"

@@ -48,7 +48,6 @@ real_*.csv
 configs/app.conf
 configs/*.conf
 !configs/*.conf.template
-!configs/wise_family.conf
 
 # IDE & Editor
 .vscode/
@@ -136,3 +135,37 @@ CROSS_PLATFORM_SETUP_COMPLETE.md
 # Test scripts (temporary development files)
 test_*.sh
 verify_*.sh
+
+# Python bundled runtime (large files - should be generated, not tracked)
+frontend/python-bundle/
+
+# Electron build artifacts
+frontend/dist/
+frontend/build/
+frontend/electron-dist/
+frontend/*.tgz
+frontend/releases/
+
+# Electron specific
+frontend/electron-builder-cache/
+frontend/node_modules/.cache/
+frontend/out/
+
+# Build configuration cache files
+frontend/dist/*.yml
+frontend/dist/*.yaml
+frontend/builder-*.yml
+frontend/builder-*.yaml
+
+# Large binary artifacts (AppImage, DEB, DMG, EXE)
+*.AppImage
+*.deb
+*.dmg
+*.exe
+*.msi
+*.snap
+
+# Temporary build files
+*.tmp
+*.temp
+backend.log

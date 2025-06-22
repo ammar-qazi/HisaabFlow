@@ -1,14 +1,119 @@
 const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const path = require('path');
+const fs = require('fs');
+const os = require('os');
 const isDev = require('electron-is-dev');
 const BackendLauncher = require('../scripts/backend-launcher');
 
 let mainWindow;
 let backendLauncher;
 
+// Setup user directory with configs and sample data
+async function setupUserDirectory() {
+  const userDir = path.join(os.homedir(), 'HisaabFlow');
+  const configsDir = path.join(userDir, 'configs');
+  const sampleDataDir = path.join(userDir, 'sample_data');
+  
+  // Create directories if they don't exist
+  if (!fs.existsSync(userDir)) {
+    fs.mkdirSync(userDir, { recursive: true });
+    console.log('📁 Created user directory:', userDir);
+  }
+  
+  if (!fs.existsSync(configsDir)) {
+    fs.mkdirSync(configsDir, { recursive: true });
+    console.log('📁 Created configs directory:', configsDir);
+  }
+  
+  if (!fs.existsSync(sampleDataDir)) {
+    fs.mkdirSync(sampleDataDir, { recursive: true });
+    console.log('📁 Created sample_data directory:', sampleDataDir);
+  }
+  
+  // Copy configs from app bundle (first run only - preserve user modifications)
+  const appConfigsPath = isDev 
+    ? path.join(__dirname, '../../configs')
+    : path.join(process.resourcesPath, 'configs');
+    
+  if (fs.existsSync(appConfigsPath)) {
+    const configFiles = fs.readdirSync(appConfigsPath).filter(f => f.endsWith('.conf'));
+    for (const configFile of configFiles) {
+      const sourcePath = path.join(appConfigsPath, configFile);
+      const destPath = path.join(configsDir, configFile);
+      
+      // Only copy if user doesn't already have this config (preserve modifications)
+      if (!fs.existsSync(destPath)) {
+        fs.copyFileSync(sourcePath, destPath);
+        console.log('📋 Copied config:', configFile);
+      }
+    }
+  }
+  
+  // Copy sample data from app bundle (first run only)
+  const appSampleDataPath = isDev 
+    ? path.join(__dirname, '../../sample_data')
+    : path.join(process.resourcesPath, 'sample_data');
+    
+  if (fs.existsSync(appSampleDataPath)) {
+    const sampleFiles = fs.readdirSync(appSampleDataPath);
+    for (const sampleFile of sampleFiles) {
+      const sourcePath = path.join(appSampleDataPath, sampleFile);
+      const destPath = path.join(sampleDataDir, sampleFile);
+      
+      // Only copy if file doesn't exist (preserve user modifications)
+      if (!fs.existsSync(destPath) && fs.statSync(sourcePath).isFile()) {
+        fs.copyFileSync(sourcePath, destPath);
+        console.log('📄 Copied sample data:', sampleFile);
+      }
+    }
+  }
+  
+  // Create README for user
+  const readmePath = path.join(userDir, 'README.md');
+  if (!fs.existsSync(readmePath)) {
+    const readmeContent = `# HisaabFlow User Directory
+
+Welcome to your HisaabFlow configuration directory!
+
+## 📁 Directory Structure
+
+- **configs/**: Bank configuration files (.conf)
+- **sample_data/**: Sample CSV files for testing
+
+## 🔧 Customizing Configurations
+
+Edit the .conf files in the configs/ directory to customize:
+- Bank detection patterns
+- Column mappings  
+- Categorization rules
+- Data cleaning settings
+
+## 📄 Sample Data
+
+Use the sample CSV files to test the application with different bank formats.
+
+## 🚀 Getting Started
+
+1. Place your bank CSV files anywhere
+2. Open HisaabFlow
+3. Upload and parse your statements
+4. Customize configs as needed
+
+Your modifications will be preserved across app updates.
+`;
+    fs.writeFileSync(readmePath, readmeContent);
+    console.log('📚 Created user README');
+  }
+  
+  return userDir;
+}
+
 async function createWindow() {
-  // Initialize backend launcher
-  backendLauncher = new BackendLauncher();
+  // Setup user directory first
+  const userDir = await setupUserDirectory();
+  
+  // Initialize backend launcher with user directory
+  backendLauncher = new BackendLauncher(userDir);
   
   // Start backend before creating window
   console.log('🔄 Initializing HisaabFlow...');

@@ -2,6 +2,7 @@
 name = Erste
 file_patterns = Erste, Erste_Bank
 filename_regex_patterns = ^\d{8}-\d{8}-\d{8}_\d{4}-\d{2}-\d{2}_\d{4}-\d{2}-\d{2}\.csv$
+detection_content_signatures = Booking Date,Partner IBAN
 use_regex = true
 currency_primary = HUF
 cashew_account = Forint Bank
@@ -12,16 +13,19 @@ has_header = true
 skip_rows = 0
 date_format = %%Y.%%m.%%d
 encoding = utf-8
-expected_headers = Booking Date,Amount,Currency,Partner Name
+expected_headers = Booking Date,Amount,Currency,Partner Name,Partner IBAN,Partner Account Number,Bank Code,Transaction Date Time,Transaction Type
 
 # Column mapping for Forint Bank CSV format
 [column_mapping]
-Date = Date
+Date = Transaction Date Time
+Title = Partner Name
 Amount = Amount
-Title = Description
-Note = Type
-Balance = Balance
-Reference = Reference
+Currency = Currency
+Note = Transaction Type
+# Optional fallback mappings (any bank can use)
+BackupDate = Booking Date
+BackupTitle = Transaction Type
+# Can add backup for any field
 
 # Account mapping
 [account_mapping]
@@ -65,29 +69,49 @@ pharmacy_cleanup = (Sample Pharmacy.*)|Pharmacy
 # COMPREHENSIVE CATEGORIZATION RULES
 # These patterns match the anonymized sample data
 [categorization]
+# Grocery patterns
+ALDI = Groceries
+SPAR = Groceries
+LIDL = Groceries
+CBA = Groceries
+TESCO = Groceries
+PENNY = Groceries
+AUCHAN = Groceries
 
-# Sample data merchants - exactly matching the CSV
-Coffee Shop Purchase = Dining
-Monthly Salary = Income
-Grocery Store = Groceries
-Public Transport = Travel
-Online Shopping = Shopping
-Restaurant = Dining
-Freelance Payment = Income
-Rent Payment = Rent
+# Food patterns
+BURGER KING = Dining
+KFC = Dining
+McDonald = Dining
+Pizza = Dining
+Fagyizo = Dining
+Étterem = Dining
 
-# Generic patterns that might appear
-Coffee Shop = Dining
-Salary = Income
-Groceries = Groceries
-Transport = Travel
-Shopping = Shopping
-Dining = Dining
-Income = Income
-Rent = Rent
+# Shopping patterns
+H&M = Shopping
+SHEIN = Shopping
+SINSAY = Shopping
+TAKKO = Shopping
+DECATHLON = Shopping
+TEDi = Shopping
+KIK = Shopping
+PEPCO = Shopping
+ROSSMANN = Shopping
 
-# Transfer patterns for people names
-John Smith = Transfer
-Jane Doe = Transfer
-Alex Johnson = Transfer
-Emily Davis = Transfer
+# Transport/Bills patterns
+MAV = Bills & Fees
+ING Bank = Bills & Fees
+
+# Health patterns
+Patika = Health
+Gyógyszertár = Health
+
+# Travel patterns
+Booking.com = Travel
+FLIXBUS = Travel
+VOLANBUSZ = Travel
+Taxi = Travel
+Hotel = Travel
+
+# Transfer patterns
+Revolut = Transfer
+Bank = Bills & Fees

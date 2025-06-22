@@ -6,6 +6,7 @@ import json
 
 from backend.services.cashew_transformer import CashewTransformer
 from backend.bank_detection import BankDetector, BankConfigManager
+from backend.csv_parser.utils import get_config_dir_for_manager
 from backend.transfer_detection.main_detector import TransferDetector
 from backend.transfer_detection.config_manager import ConfigurationManager
 
@@ -14,7 +15,7 @@ class TransformationService:
     
     def __init__(self):
         self.transformer = CashewTransformer() # New transformer instance
-        self.bank_config_manager = BankConfigManager()
+        self.bank_config_manager = BankConfigManager(get_config_dir_for_manager())
         self.bank_detector = BankDetector(self.bank_config_manager)
 
         # Determine the config directory path.

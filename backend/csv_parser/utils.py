@@ -173,3 +173,32 @@ def estimate_data_types(rows: List[List[str]], sample_size: int = 100) -> Dict[i
             type_estimates[col_idx] = 'text'
     
     return type_estimates
+
+def get_user_config_dir() -> Optional[str]:
+    """Get user config directory from environment variable, fallback to default"""
+    import os
+    
+    # Check environment variable set by Electron launcher
+    user_config_dir = os.environ.get('HISAABFLOW_CONFIG_DIR')
+    if user_config_dir and os.path.exists(user_config_dir):
+        return user_config_dir
+    
+    # Check if user directory exists
+    user_dir = os.environ.get('HISAABFLOW_USER_DIR')
+    if user_dir:
+        config_path = os.path.join(user_dir, 'configs')
+        if os.path.exists(config_path):
+            return config_path
+    
+    # Fallback to default (None means use default behavior)
+    return None
+
+def get_config_dir_for_manager() -> Optional[str]:
+    """Get config directory for BankConfigManager with fallback"""
+    user_config = get_user_config_dir()
+    if user_config:
+        print(f"🏠 [HisaabFlow] Using user config directory: {user_config}")
+        return user_config
+    
+    print("🏗️ [HisaabFlow] Using default config directory")
+    return None

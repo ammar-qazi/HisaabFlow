@@ -4,6 +4,7 @@ Preview service for CSV files with bank-aware header detection
 from typing import Optional
 from backend.csv_parser import UnifiedCSVParser
 from backend.bank_detection import BankDetector, BankConfigManager
+from backend.csv_parser.utils import get_config_dir_for_manager
 
 
 class PreviewService:
@@ -11,7 +12,7 @@ class PreviewService:
     
     def __init__(self):
         self.unified_parser = UnifiedCSVParser()
-        self.bank_config_manager = BankConfigManager()
+        self.bank_config_manager = BankConfigManager(get_config_dir_for_manager())
         self.bank_detector = BankDetector(self.bank_config_manager)
     
     def preview_csv_file(self, file_path: str, filename: str, encoding: Optional[str] = None, header_row: Optional[int] = None):

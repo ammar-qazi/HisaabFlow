@@ -3,10 +3,11 @@ const path = require('path');
 const os = require('os');
 
 class BackendLauncher {
-  constructor() {
+  constructor(userDir = null) {
     this.backendProcess = null;
     this.isRunning = false;
     this.port = 8000;
+    this.userDir = userDir;
   }
 
   async startBackend() {
@@ -22,6 +23,18 @@ class BackendLauncher {
       console.log(`🐍 Python path: ${pythonPath}`);
       
       // Start FastAPI server using uvicorn
+      // Set up environment with user configs directory
+      const env = { 
+        ...process.env, 
+        PYTHONPATH: backendPath 
+      };
+      
+      if (this.userDir) {
+        env.HISAABFLOW_USER_DIR = this.userDir;
+        env.HISAABFLOW_CONFIG_DIR = path.join(this.userDir, 'configs');
+        console.log(`📁 Using user configs: ${env.HISAABFLOW_CONFIG_DIR}`);
+      }
+      
       this.backendProcess = spawn(pythonPath, [
         '-m', 'uvicorn',
         'main:app',
@@ -30,7 +43,7 @@ class BackendLauncher {
         '--log-level', 'info'
       ], {
         cwd: backendPath,
-        env: { ...process.env, PYTHONPATH: backendPath }
+        env: env
       });
 
       this.setupProcessHandlers();
@@ -90,6 +103,27 @@ class BackendLauncher {
     }
   }
 
+  getBundledPythonPath() {
+    const isDev = require('electron-is-dev');
+    
+    if (isDev) {
+      // Development: check for local python bundle first
+      const localBundle = path.join(__dirname, '../python-bundle/python');
+      if (require('fs').existsSync(localBundle)) {
+        return process.platform === 'win32' 
+          ? path.join(localBundle, 'python.exe')
+          : path.join(localBundle, 'bin', 'python3');
+      }
+      return null; // Fall back to system Python in development
+    } else {
+      // Production: use bundled Python
+      const bundlePath = path.join(process.resourcesPath, 'python-bundle/python');
+      return process.platform === 'win32' 
+        ? path.join(bundlePath, 'python.exe')
+        : path.join(bundlePath, 'bin', 'python3');
+    }
+  }
+
   getVenvPath() {
     return path.join(os.homedir(), '.hisaabflow', 'venv');
   }
@@ -102,6 +136,15 @@ class BackendLauncher {
   }
 
   async ensureVenv() {
+    // First check if we have bundled Python
+    const bundledPython = this.getBundledPythonPath();
+    if (bundledPython && require('fs').existsSync(bundledPython)) {
+      console.log('✅ Using bundled Python runtime');
+      return bundledPython;
+    }
+    
+    // Fall back to virtual environment approach (for development)
+    console.log('⚠️ Bundled Python not found, using virtual environment...');
     const venvPath = this.getVenvPath();
     
     if (!require('fs').existsSync(venvPath)) {
@@ -171,32 +214,7 @@ class BackendLauncher {
     });
   }
 
-  getPythonPath() {
-    const isDev = require('electron-is-dev');
-    
-    if (isDev) {
-      // Development: try virtual environment first, then system Python
-      const backendPath = this.getBackendPath();
-      const venvPath = path.join(backendPath, 'venv');
-      
-      if (process.platform === 'win32') {
-        const venvPython = path.join(venvPath, 'Scripts', 'python.exe');
-        if (require('fs').existsSync(venvPython)) {
-          return venvPython;
-        }
-        return 'python';
-      } else {
-        const venvPython = path.join(venvPath, 'bin', 'python3');
-        if (require('fs').existsSync(venvPython)) {
-          return venvPython;
-        }
-        return 'python3';
-      }
-    } else {
-      // Production: use system Python (user must have Python + deps installed)
-      return process.platform === 'win32' ? 'python' : 'python3';
-    }
-  }
+
 
   stopBackend() {
     if (this.backendProcess && this.isRunning) {
