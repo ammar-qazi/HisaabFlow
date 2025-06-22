@@ -1,13 +1,27 @@
 const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const path = require('path');
 const isDev = require('electron-is-dev');
+const BackendLauncher = require('../scripts/backend-launcher');
 
 let mainWindow;
+let backendLauncher;
 
-function createWindow() {
+async function createWindow() {
+  // Initialize backend launcher
+  backendLauncher = new BackendLauncher();
+  
+  // Start backend before creating window
+  console.log('🔄 Initializing HisaabFlow...');
+  const backendStarted = await backendLauncher.startBackend();
+  
+  if (!backendStarted) {
+    console.error('❌ Failed to start backend - app may not work correctly');
+  }
+
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    title: 'HisaabFlow',
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
@@ -28,11 +42,24 @@ function createWindow() {
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
+  
+  // Provide backend URL to frontend
+  mainWindow.webContents.on('dom-ready', () => {
+    mainWindow.webContents.executeJavaScript(`
+      window.BACKEND_URL = '${backendLauncher.getBackendUrl()}';
+      console.log('🔗 Backend URL configured:', window.BACKEND_URL);
+    `);
+  });
 }
 
 app.on('ready', createWindow);
 
 app.on('window-all-closed', () => {
+  // Stop backend when app closes
+  if (backendLauncher) {
+    backendLauncher.stopBackend();
+  }
+  
   if (process.platform !== 'darwin') {
     app.quit();
   }

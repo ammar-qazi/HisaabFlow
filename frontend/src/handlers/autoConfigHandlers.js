@@ -4,7 +4,7 @@
  */
 import axios from 'axios';
 
-const API_BASE = 'http://127.0.0.1:8000';
+const API_BASE = window.BACKEND_URL || 'http://127.0.0.1:8000';
 
 /**
  * Auto-configures a file based on bank detection results

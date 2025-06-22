@@ -1,7 +1,13 @@
 {
-  "name": "bank-statement-parser",
+  "name": "hisaabflow",
   "version": "1.0.0",
   "description": "Desktop app for parsing bank statement CSVs",
+  "author": "Ammar <ammar@example.com>",
+  "homepage": "./",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/HisaabFlow.git"
+  },
   "main": "public/electron.js",
   "private": true,
   "dependencies": {
@@ -9,7 +15,6 @@
     "ag-grid-react": "^30.0.0",
     "axios": "^1.4.0",
     "concurrently": "^8.0.0",
-    "electron": "^25.0.0",
     "electron-is-dev": "^2.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -25,19 +30,59 @@
     "electron": "electron .",
     "electron-dev": "concurrently \"npm start\" \"wait-on http://localhost:3000 && electron .\"",
     "electron-pack": "npm run build && electron-builder",
-    "preelectron-pack": "npm run build"
+    "preelectron-pack": "npm run build",
+    "dist": "npm run build && electron-builder",
+    "dist:all": "npm run build && electron-builder --mac --win --linux",
+    "dist:linux": "npm run build && electron-builder --linux",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:win": "npm run build && electron-builder --win"
   },
   "build": {
-    "appId": "com.bankstatementparser.app",
-    "productName": "Bank Statement Parser",
+    "appId": "com.hisaabflow.app",
+    "productName": "HisaabFlow",
     "directories": {
       "output": "dist"
     },
     "files": [
       "build/**/*",
-      "node_modules/**/*",
-      "public/electron.js"
-    ]
+      "node_modules/**/*", 
+      "public/electron.js",
+      "scripts/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "../backend",
+        "to": "backend",
+        "filter": [
+          "**/*",
+          "!venv/**/*",
+          "!__pycache__/**/*",
+          "!*.log",
+          "!*.pyc"
+        ]
+      },
+      {
+        "from": "../configs",
+        "to": "configs"
+      }
+    ],
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.finance",
+      "icon": "assets/icon.icns"
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "category": "Office",
+      "icon": "assets/icon.png"
+    },
+    "win": {
+      "target": "portable",
+      "icon": "assets/icon.ico"
+    },
+    "publish": {
+      "provider": "github"
+    }
   },
   "browserslist": {
     "production": [
@@ -52,6 +97,7 @@
     ]
   },
   "devDependencies": {
+    "electron": "^25.0.0",
     "electron-builder": "^24.0.0"
   }
 }

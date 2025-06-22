@@ -1,0 +1,61 @@
+<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Brand color gradients -->
+    <linearGradient id="blueFlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#42A5F5;stop-opacity:0.9" />
+      <stop offset="50%" style="stop-color:#2196f3;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#1976D2;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="greenFlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4CAF50;stop-opacity:0.9" />
+      <stop offset="100%" style="stop-color:#2E7D32;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="purpleFlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="accentFlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2196f3;stop-opacity:0.7" />
+      <stop offset="100%" style="stop-color:#42A5F5;stop-opacity:0.9" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Main flowing ribbon -->
+  <path d="M5,60 Q20,40 35,60 Q50,80 65,50 Q80,20 95,40 Q110,60 115,35" stroke="url(#blueFlow)" stroke-width="8" fill="none" opacity="0.8"/>
+  
+  <!-- Secondary flow layer -->
+  <path d="M10,65 Q25,45 40,65 Q55,85 70,55 Q85,25 100,45 Q115,65 120,40" stroke="url(#greenFlow)" stroke-width="6" fill="none" opacity="0.7"/>
+  
+  <!-- Tertiary accent flow -->
+  <path d="M8,55 Q23,35 38,55 Q53,75 68,45 Q83,15 98,35 Q113,55 118,30" stroke="url(#purpleFlow)" stroke-width="4" fill="none" opacity="0.6"/>
+  
+  <!-- Currency symbols positioned along the flow -->
+  <!-- Yen symbol (¥) - left side -->
+  <g transform="translate(15,70)">
+    <text font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#1976D2" text-anchor="middle">¥</text>
+  </g>
+  
+  <!-- Euro symbol (€) - top center -->
+  <g transform="translate(60,25)">
+    <text font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#2E7D32" text-anchor="middle">€</text>
+  </g>
+  
+  <!-- Dollar symbol ($) - right side -->
+  <g transform="translate(105,50)">
+    <text font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#764ba2" text-anchor="middle">$</text>
+  </g>
+  
+  <!-- Euro symbol (€) - bottom center -->
+  <g transform="translate(45,95)">
+    <text font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#4CAF50" text-anchor="middle">€</text>
+  </g>
+  
+  <!-- Flowing ribbons with transparency for depth -->
+  <path d="M5,58 Q20,38 35,58 Q50,78 65,48 Q80,18 95,38 Q110,58 115,33 L115,37 Q110,62 95,42 Q80,22 65,52 Q50,82 35,62 Q20,42 5,62 Z" fill="url(#accentFlow)" opacity="0.3"/>
+  <path d="M8,53 Q23,33 38,53 Q53,73 68,43 Q83,13 98,33 Q113,53 118,28 L118,32 Q113,57 98,37 Q83,17 68,47 Q53,77 38,57 Q23,37 8,57 Z" fill="url(#blueFlow)" opacity="0.2"/>
+  
+  <!-- Subtle glow effects -->
+  <circle cx="60" cy="45" r="25" fill="url(#greenFlow)" opacity="0.1"/>
+  <circle cx="30" cy="65" r="20" fill="url(#blueFlow)" opacity="0.1"/>
+  <circle cx="90" cy="35" r="18" fill="url(#purpleFlow)" opacity="0.1"/>
+</svg>

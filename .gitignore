@@ -71,6 +71,11 @@ yarn-error.log*
 frontend/build/
 frontend/dist/
 
+# Backend build artifacts
+backend/build/
+backend/dist/
+backend/*.spec
+
 # Logs
 *.log
 logs/
@@ -126,3 +131,8 @@ CODEBASE_MAP.md
 CURRENT_STATE.md
 SYSTEM_DESIGN.md
 DATA_STANDARDS.md
+CROSS_PLATFORM_SETUP_COMPLETE.md
+
+# Test scripts (temporary development files)
+test_*.sh
+verify_*.sh
