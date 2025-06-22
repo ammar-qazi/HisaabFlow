@@ -19,8 +19,6 @@ jobs:
         include:
           - os: ubuntu-latest
             platform: linux
-          - os: windows-latest
-            platform: windows  
           - os: macos-latest
             platform: mac
 
@@ -70,11 +68,6 @@ jobs:
         working-directory: frontend
         run: npm run build && npx electron-builder --linux --publish never
 
-      - name: Build Electron app (Windows)
-        if: matrix.platform == 'windows'
-        working-directory: frontend
-        run: npm run build && npx electron-builder --win --publish never
-
       - name: Build Electron app (macOS)
         if: matrix.platform == 'mac'
         working-directory: frontend
@@ -86,9 +79,7 @@ jobs:
           name: hisaabflow-${{ matrix.platform }}
           path: |
             frontend/dist/*.AppImage
-            frontend/dist/*.exe
             frontend/dist/*.dmg
-            frontend/dist/*.deb
           retention-days: 30
           if-no-files-found: warn
 
@@ -106,14 +97,13 @@ jobs:
       - name: List downloaded artifacts (debug)
         run: |
           echo "Downloaded artifacts structure:"
-          find ./artifacts -type f -name "*.AppImage" -o -name "*.exe" -o -name "*.dmg" || echo "No build artifacts found"
+          find ./artifacts -type f -name "*.AppImage" -o -name "*.dmg" || echo "No build artifacts found"
           
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
             ./artifacts/**/*.AppImage
-            ./artifacts/**/*.exe
             ./artifacts/**/*.dmg
           draft: false
           prerelease: false
