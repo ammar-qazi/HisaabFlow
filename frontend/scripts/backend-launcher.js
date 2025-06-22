@@ -125,15 +125,18 @@ class BackendLauncher {
       // Development: check for local python bundle first
       const localBundle = path.join(__dirname, '../python-bundle/python');
       if (require('fs').existsSync(localBundle)) {
-        return process.platform === 'win32' 
+        const pythonExe = process.platform === 'win32' 
           ? path.join(localBundle, 'python.exe')
           : path.join(localBundle, 'bin', 'python3');
+        console.log(`🔍 Dev bundle Python: ${pythonExe}`);
+        return pythonExe;
       }
       return null; // Fall back to system Python in development
     } else {
-      // Production: use bundled Python
+      // Production: use bundled python-build-standalone Python
       const bundlePath = path.join(process.resourcesPath, 'python-bundle/python');
       console.log(`🔍 Production bundle path: ${bundlePath}`);
+      
       const pythonExe = process.platform === 'win32' 
         ? path.join(bundlePath, 'python.exe')
         : path.join(bundlePath, 'bin', 'python3');
@@ -249,8 +252,25 @@ class BackendLauncher {
   stopBackend() {
     if (this.backendProcess && this.isRunning) {
       console.log('🛑 Stopping backend...');
-      this.backendProcess.kill();
+      
+      try {
+        // Try graceful shutdown first
+        this.backendProcess.kill('SIGTERM');
+        
+        // Force kill after timeout
+        setTimeout(() => {
+          if (this.backendProcess && this.isRunning) {
+            console.log('⚡ Force killing backend process...');
+            this.backendProcess.kill('SIGKILL');
+          }
+        }, 3000); // 3 second timeout
+        
+      } catch (error) {
+        console.error('⚠️ Error stopping backend:', error.message);
+      }
+      
       this.isRunning = false;
+      console.log('✅ Backend shutdown initiated');
     }
   }
 

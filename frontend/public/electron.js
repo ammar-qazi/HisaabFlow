@@ -145,7 +145,18 @@ async function createWindow() {
   }
 
   mainWindow.on('closed', () => {
+    console.log('🪟 Main window closed');
     mainWindow = null;
+  });
+  
+  // Handle window close event to ensure clean shutdown
+  mainWindow.on('close', (event) => {
+    console.log('🔄 Window closing, ensuring backend cleanup...');
+    
+    if (backendLauncher && backendLauncher.isRunning) {
+      console.log('🛑 Stopping backend before window close...');
+      backendLauncher.stopBackend();
+    }
   });
   
   // Provide backend URL to frontend
@@ -160,12 +171,16 @@ async function createWindow() {
 app.on('ready', createWindow);
 
 app.on('window-all-closed', () => {
+  console.log('🔄 All windows closed, cleaning up...');
+  
   // Stop backend when app closes
   if (backendLauncher) {
+    console.log('🛑 Stopping backend process...');
     backendLauncher.stopBackend();
   }
   
   if (process.platform !== 'darwin') {
+    console.log('🚪 Quitting application...');
     app.quit();
   }
 });
@@ -193,3 +208,26 @@ ipcMain.handle('show-save-dialog', async (event, options) => {
   const result = await dialog.showSaveDialog(mainWindow, options);
   return result;
 });
+
+// Process cleanup handlers for proper shutdown
+process.on('SIGINT', () => {
+  console.log('🔄 Received SIGINT, cleaning up...');
+  cleanup();
+});
+
+process.on('SIGTERM', () => {
+  console.log('🔄 Received SIGTERM, cleaning up...');
+  cleanup();
+});
+
+process.on('exit', () => {
+  console.log('🔄 Process exiting, final cleanup...');
+  cleanup();
+});
+
+function cleanup() {
+  if (backendLauncher && backendLauncher.isRunning) {
+    console.log('🛑 Final backend cleanup...');
+    backendLauncher.stopBackend();
+  }
+}
