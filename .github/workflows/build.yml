@@ -96,14 +96,21 @@ jobs:
         with:
           path: ./artifacts
         
+      - name: List downloaded artifacts (debug)
+        run: |
+          echo "Downloaded artifacts structure:"
+          find ./artifacts -type f -name "*.AppImage" -o -name "*.deb" -o -name "*.exe" -o -name "*.dmg" || echo "No build artifacts found"
+          
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            ./artifacts/hisaabflow-linux/**/*
-            ./artifacts/hisaabflow-windows/**/*
-            ./artifacts/hisaabflow-mac/**/*
+            ./artifacts/**/*.AppImage
+            ./artifacts/**/*.deb
+            ./artifacts/**/*.exe
+            ./artifacts/**/*.dmg
           draft: false
           prerelease: false
           generate_release_notes: true
           token: ${{ secrets.GITHUB_TOKEN }}
+          fail_on_unmatched_files: false
