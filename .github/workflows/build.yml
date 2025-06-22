@@ -31,7 +31,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Setup Python (for backend)
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
@@ -65,7 +65,7 @@ jobs:
         run: npm run dist:mac
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: hisaabflow-${{ matrix.platform }}
           path: frontend/dist/
@@ -78,15 +78,17 @@ jobs:
     
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
         
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            hisaabflow-linux/**/*
-            hisaabflow-windows/**/*
-            hisaabflow-mac/**/*
+            ./artifacts/hisaabflow-linux/**/*
+            ./artifacts/hisaabflow-windows/**/*
+            ./artifacts/hisaabflow-mac/**/*
           draft: false
           prerelease: false
           generate_release_notes: true
