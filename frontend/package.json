@@ -90,7 +90,32 @@
     },
     "win": {
       "target": "portable",
-      "icon": "assets/icon.ico"
+      "icon": "assets/icon.ico",
+      "extraResources": [
+        {
+          "from": "../backend",
+          "to": "backend",
+          "filter": [
+            "**/*",
+            "!venv/**/*",
+            "!__pycache__/**/*",
+            "!*.log",
+            "!*.pyc"
+          ]
+        },
+        {
+          "from": "python-bundle",
+          "to": "python-bundle"
+        },
+        {
+          "from": "../configs",
+          "to": "configs"
+        },
+        {
+          "from": "../sample_data",
+          "to": "sample_data"
+        }
+      ]
     }
   },
   "browserslist": {
