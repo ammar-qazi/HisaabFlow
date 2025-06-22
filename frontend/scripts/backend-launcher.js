@@ -12,15 +12,29 @@ class BackendLauncher {
 
   async startBackend() {
     console.log('🚀 Starting HisaabFlow backend...');
+    console.log('🔍 DEBUG: Platform:', process.platform);
+    console.log('🔍 DEBUG: resourcesPath:', process.resourcesPath);
+    console.log('🔍 DEBUG: __dirname:', __dirname);
     
     try {
       const backendPath = this.getBackendPath();
+      console.log(`📂 Backend path: ${backendPath}`);
+      console.log(`📂 Backend exists: ${require('fs').existsSync(backendPath)}`);
+      
+      if (require('fs').existsSync(backendPath)) {
+        const backendFiles = require('fs').readdirSync(backendPath);
+        console.log(`📂 Backend files: ${backendFiles.join(', ')}`);
+      }
       
       // Ensure virtual environment exists and get Python path
       const pythonPath = await this.ensureVenv();
-      
-      console.log(`📂 Backend path: ${backendPath}`);
       console.log(`🐍 Python path: ${pythonPath}`);
+      console.log(`🐍 Python exists: ${require('fs').existsSync(pythonPath)}`);
+      
+      // Test Python execution
+      console.log('🧪 Testing Python execution...');
+      const testResult = await this.testPython(pythonPath);
+      console.log(`🧪 Python test result: ${testResult}`);
       
       // Start FastAPI server using uvicorn
       // Set up environment with user configs directory
@@ -105,6 +119,7 @@ class BackendLauncher {
 
   getBundledPythonPath() {
     const isDev = require('electron-is-dev');
+    console.log(`🔍 isDev: ${isDev}`);
     
     if (isDev) {
       // Development: check for local python bundle first
@@ -118,9 +133,12 @@ class BackendLauncher {
     } else {
       // Production: use bundled Python
       const bundlePath = path.join(process.resourcesPath, 'python-bundle/python');
-      return process.platform === 'win32' 
+      console.log(`🔍 Production bundle path: ${bundlePath}`);
+      const pythonExe = process.platform === 'win32' 
         ? path.join(bundlePath, 'python.exe')
         : path.join(bundlePath, 'bin', 'python3');
+      console.log(`🔍 Production Python executable: ${pythonExe}`);
+      return pythonExe;
     }
   }
 
@@ -138,9 +156,21 @@ class BackendLauncher {
   async ensureVenv() {
     // First check if we have bundled Python
     const bundledPython = this.getBundledPythonPath();
+    console.log(`🔍 Bundled Python path: ${bundledPython}`);
+    
     if (bundledPython && require('fs').existsSync(bundledPython)) {
       console.log('✅ Using bundled Python runtime');
       return bundledPython;
+    } else {
+      console.log(`⚠️ Bundled Python not found at: ${bundledPython}`);
+      if (bundledPython) {
+        const bundleDir = require('path').dirname(bundledPython);
+        console.log(`🔍 Bundle directory exists: ${require('fs').existsSync(bundleDir)}`);
+        if (require('fs').existsSync(bundleDir)) {
+          const bundleFiles = require('fs').readdirSync(bundleDir);
+          console.log(`🔍 Files in bundle dir: ${bundleFiles.join(', ')}`);
+        }
+      }
     }
     
     // Fall back to virtual environment approach (for development)
@@ -221,6 +251,34 @@ class BackendLauncher {
       console.log('🛑 Stopping backend...');
       this.backendProcess.kill();
       this.isRunning = false;
+    }
+  }
+
+  async testPython(pythonPath) {
+    try {
+      const { spawn } = require('child_process');
+      return new Promise((resolve) => {
+        const test = spawn(pythonPath, ['--version'], { stdio: 'pipe' });
+        let output = '';
+        
+        test.stdout.on('data', (data) => {
+          output += data.toString();
+        });
+        
+        test.stderr.on('data', (data) => {
+          output += data.toString();
+        });
+        
+        test.on('close', (code) => {
+          resolve(`Exit code: ${code}, Output: ${output.trim()}`);
+        });
+        
+        test.on('error', (error) => {
+          resolve(`Error: ${error.message}`);
+        });
+      });
+    } catch (error) {
+      return `Exception: ${error.message}`;
     }
   }
 
