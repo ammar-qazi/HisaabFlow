@@ -2,11 +2,11 @@
   "name": "hisaabflow",
   "version": "1.0.1",
   "description": "Desktop app for parsing bank statement CSVs",
-  "author": "Ammar <ammar@example.com>",
+  "author": "Ammar <ammarqazi.official@gmail.com>",
   "homepage": "./",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/HisaabFlow.git"
+    "url": "https://github.com/ammar-qazi/HisaabFlow.git"
   },
   "main": "public/electron.js",
   "private": true,
