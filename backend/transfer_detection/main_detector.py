@@ -13,9 +13,9 @@ from .config_manager import ConfigurationManager # Assuming this is transfer_det
 
 class TransferDetector:
     """
-    Enhanced transfer detection system with Ammar's specifications:
+    Enhanced transfer detection system with configurable specifications:
     1. Exchange To Amount matching for currency conversions
-    2. Ammar name-based cross-bank transfers (Sent money to Ammar <-> Incoming from Ammar)
+    2. Generic name-based cross-bank transfers (Sent money to {name} <-> Incoming from {name})
     3. Currency-based bank targeting (PKR for Pakistani banks, EUR for European accounts)
     4. 24-hour date tolerance with fallback to traditional amount matching
     """
@@ -37,7 +37,7 @@ class TransferDetector:
         self.confidence_calculator = ConfidenceCalculator()
     
     def detect_transfers(self, csv_data_list: List[Dict]) -> Dict[str, Any]:
-        """Main transfer detection function with Ammar's specifications"""
+        """Main transfer detection function with configurable specifications"""
         
         print("\n🔍 STARTING ENHANCED TRANSFER DETECTION (CONFIG-BASED)")
         print("=" * 70)
@@ -64,8 +64,8 @@ class TransferDetector:
         conversion_pairs = self.currency_converter.match_currency_conversions(all_transactions)
         print(f"   ✅ Found {len(conversion_pairs)} currency conversion pairs")
         
-        # STEP 2: Match cross-bank transfers using AMMAR SPECIFICATIONS
-        print("\n🔄 MATCHING CROSS-BANK TRANSFERS (AMMAR SPECS)...")
+        # STEP 2: Match cross-bank transfers using configured specifications
+        print("🔄 MATCHING CROSS-BANK TRANSFERS (CONFIGURED SPECS)...")
         cross_bank_pairs = self.cross_bank_matcher.match_cross_bank_transfers(
             potential_transfers, all_transactions, conversion_pairs
         )

@@ -1,267 +1,493 @@
 # HisaabFlow
 
-Many of us want to track our expenses, but life gets in the way. A day passes, then a week, then a month, and suddenly you're staring at a pile of bank statements from different accounts, currencies, and formats that would take hours to organize manually.
+**HisaabFlow** (*"Hisaab" = Account/Calculation in Urdu/Hindi*) is a powerful, configuration-driven bank statement parser that automatically categorizes transactions, detects transfers between accounts, and exports clean, structured financial data.
 
-I built HisaabFlow because I got tired of spending more time wrestling with CSV files than I did traveling. Now I just upload, click, and get back to the important stuff.
+## Key Features
 
-## What It Does
+- 🏛️ **Multi-Bank Support**: Currently supports Wise (multi-currency), NayaPay, and Erste Bank
+- 🔧 **Configuration-Based Categorization**: Rule-based transaction categorization with customizable keywords
+- 🔄 **Transfer Detection**: Automatically identifies and matches transfers between your accounts
+- 📊 **Structured Data Export**: Clean, organized transaction data perfect for budgeting apps
+- 🖥️ **Desktop App**: Native Electron application with modern React UI
+- 📈 **CSV Export**: Export processed data in structured CSV format for Cashew and other budgeting tools
+- 🛡️ **Privacy First**: All processing happens locally on your machine
 
-HisaabFlow takes whatever messy CSV your bank gives you and converts it into clean, organized data. No more copying and pasting between spreadsheets or trying to remember if that $50 charge was groceries or dining.
+## Screenshots
 
-Right now it converts everything to work with Cashew (the expense tracker I use), but the whole system is built around simple configuration files.
+### Upload Files
+![Drag-and-drop file upload interface with bank auto-detection](/docs/_media/upload_statements.png)
 
-## Features
+### Configure
+![Set configs and review transaction tables](/docs/_media/Configure.png)
 
-- **🎯 Smart Bank Detection**: Recognizes your bank from the CSV filename
-- **⚙️ Configuration-Based**: No hardcoded bank rules, everything's customizable through simple .conf files
-- **🔄 Transfer Detection**: Finds matching transfers between different accounts (like Wise to NayaPay)
-- **🏷️ Auto-Categorization**: Your groceries stay groceries, your rent stays rent
-- **💱 Multi-Currency Support**: Handles different Wise currency pockets separately
-- **📋 Reusable Configs**: Set up once per bank, use forever
-- **🖥️ Desktop App**: Runs locally; your financial data never leaves your computer
-
-## Target Format (Cashew)
-
-HisaabFlow converts everything to this clean, standardized format:
-
-```csv
-Date,Amount,Category,Title,Note,Account
-2025-06-01 08:08:35,-50,Groceries,Fruits and Vegetables,Paid with cash,NayaPay
-2025-06-01 12:30:00,2500,Income,Salary Transfer,Monthly salary,Wise USD
-```
-
-Six simple columns that work with most personal finance tools, spreadsheets, or whatever system you prefer.
+### Review & Export
+![Screenshot placeholder - Transfer detection insights and CSV export options](/docs/_media/Review_Export.png)
 
 ## Quick Start
 
-### What You Need
+### Download & Run (Recommended)
 
-- Python 3.8+ (for the backend)
-- Node.js 14+ (for the desktop app)
-- A few minutes to set up your bank configurations
+**Get the latest release from [GitHub Releases](https://github.com/ammar-qazi/HisaabFlow/releases)**
 
-### Start the App
+**Linux (AppImage):**
+```bash
+# Download HisaabFlow.AppImage
+chmod +x HisaabFlow.AppImage
+./HisaabFlow.AppImage
+```
+
+**macOS:**
+```bash
+# Download HisaabFlow.dmg
+# Open and drag to Applications folder
+```
+
+**Windows:**
+```
+🚧 Coming Soon. Work in progress
+```
+
+### Build from Source (Alternative)
+
+If you prefer to build from source or want to contribute:
+
+### Prerequisites
+
+- **Python 3.9+** with pip
+- **Node.js 16+** with npm/yarn
+
+### One-Command Installation & Launch
 
 ```bash
+# Clone the repository
+git clone https://github.com/ammar-qazi/HisaabFlow.git
+cd HisaabFlow
+
+# Make start script executable and run
+chmod +x start_app.sh
 ./start_app.sh
 ```
 
-That's it. The script handles installing dependencies and starting both the backend and desktop app. The first time takes a minute while everything installs and loads.
+The start script will:
+1. ✅ Check system requirements
+2. 🔧 Set up Python virtual environment
+3. 📦 Install all dependencies automatically
+4. 🚀 Launch both backend and frontend
+5. 🖥️ Open the desktop application
 
-## How to Use It
+### Manual Setup (Alternative)
 
-### First Time: Set Up Your Banks
+<details>
+<summary>Click to expand manual setup instructions</summary>
 
-1. **Copy the configuration templates:**
-   ```bash
-   cp configs/app.conf.template configs/app.conf
-   cp configs/wise_usd.conf.template configs/wise_usd.conf
-   # Copy templates for any banks you use
-   ```
+**⚠️ Note for Windows users:** This project uses pandas which requires cmake on Windows. There are currently some setup issues on Windows that haven't been fully resolved yet. So, it's a work in progress.
 
-2. **Edit your personal info in `configs/app.conf`:**
-   ```ini
-   [general]
-   user_name = Your Name  # Used for transfer detection
-   ```
-
-3. **Update bank configs with your real merchants:**
-   ```ini
-   [categorization]
-   # Replace template examples with YOUR merchants
-   Amazon.com = Shopping
-   Your Local Grocery = Groceries
-   Your Workplace = Income
-   ```
-
-### Daily Use: Convert Your Statements
-
-1. **Upload your CSV**: Drag and drop or click to upload
-2. **Preview and confirm**: The app shows what it detected
-3. **Export**: Download your clean, categorized data
-
-That's it. The configuration you set up once handles everything on its own.
-
-### Example: Setting Up NayaPay
-
-If you use NayaPay, copy the template and customize it:
-
+#### Backend Setup
 ```bash
-cp configs/nayapay.conf.template configs/nayapay.conf
+cd backend
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+python main.py
 ```
 
-Then edit the categorization section with your actual merchants:
-
-```ini
-[categorization]
-# Your real merchants, not the template examples
-Careem = Transportation
-Al-Fatah = Groceries
-Dominos = Dining
+#### Frontend Setup
+```bash
+cd frontend
+npm install
+npm run electron-dev
 ```
 
-Now every NayaPay CSV you upload will categorize these merchants correctly.
+</details>
 
-## How to Add Your Own .conf File
+## Architecture
 
-Got a bank that's not supported yet? Here's how to add it:
-
-### 1. Create the Configuration File
-
-Start with a basic template:
-
-```ini
-[bank_info]
-name = your_bank_name
-file_patterns = yourbank,your_bank  # Keywords that appear in CSV filenames
-currency_primary = USD
-cashew_account = Your Bank Name # Account name in Cashew
-
-[csv_config]
-delimiter = ,
-has_header = true
-date_format = %Y-%m-%d
-
-[column_mapping]
-Date = Date
-Amount = Amount  
-Title = Description
-Note = Payment Reference # Or Note
-```
-
-### 2. Map Your CSV Columns
-
-Look at your bank's CSV file and map the columns:
-
-- **Date**: Whatever column has the transaction date
-- **Amount**: The money column (positive/negative values)
-- **Title**: Transaction description 
-- **Note**: Payment reference or similar
-- **Account**: (Optional to use for currency comparions)
-
-### 3. Add Your Merchants
-
-```ini
-[categorization]
-Your Grocery Store = Groceries
-Your Favorite Restaurant = Dining
-Your Workplace = Income
-Your Landlord = Rent
-```
-
-### 4. Test It
-
-Upload a CSV file and see if the detection and categorization work. Tweak the patterns as needed.
-
-The configuration system is forgiving. You can adjust things as you learn how your bank formats their data. You can also ask any of the LLMs to help with it since they can understand .conf files. 
-
-## Project Structure
+HisaabFlow uses a modern, modular architecture:
 
 ```
 HisaabFlow/
-├── backend/                 # Python FastAPI backend
-│   ├── main.py             # Main server
-│   ├── api/                # Modular API endpoints
-│   └── requirements.txt    # Python dependencies
-├── frontend/               # Electron + React desktop app
-│   ├── src/App.js          # Main interface
-│   ├── public/electron.js  # Desktop app wrapper
-│   └── package.json        # Node dependencies
-├── configs/                # Bank configurations
-│   ├── *.conf.template     # Public templates
-│   └── *.conf              # Your personal configs (git-ignored)
-└── sample_data/            # Example CSV files for testing
+├── backend/                 # FastAPI backend
+│   ├── api/                # API endpoints (modular)
+│   ├── services/           # Business logic
+│   ├── csv_parser/         # Bank statement parsing
+│   ├── transfer_detection/ # Transfer matching algorithms
+│   └── models/             # Data models (Pydantic)
+├── frontend/               # React + Electron frontend
+│   ├── src/components/     # React components
+│   ├── src/services/       # API communication
+│   └── public/             # Electron main process
+├── configs/                # Bank configuration files
+├── sample_data/            # Example bank statements
+└── start_app.sh           # One-command launcher
 ```
 
-The configuration files live in `configs/` and contain all the bank-specific rules. Your personal `.conf` files are ignored by git, so your real merchant data stays private.
+## Configuration
+
+### Bank Configuration
+HisaabFlow uses .conf files to support different bank formats. Here's the structure based on the actual NayaPay configuration:
+
+```conf
+# configs/nayapay.conf
+[bank_info]
+name = nayapay
+file_patterns = nayapay,naya_pay
+filename_regex_patterns = ^m-\d{2}-\d{4}\.csv$
+detection_content_signatures = NayaPay ID,NayaPay Account Number
+currency_primary = PKR
+cashew_account = NayaPay
+
+[csv_config]
+has_header = true
+date_format = %%Y-%%m-%%d
+encoding = utf-8
+start_row = 13
+header_row = 13
+data_start_row = 14
+expected_headers = TIMESTAMP,TYPE,DESCRIPTION,AMOUNT,BALANCE
+
+[column_mapping]
+Date = TIMESTAMP
+Amount = AMOUNT
+Title = DESCRIPTION
+Note = TYPE
+Balance = BALANCE
+
+[data_cleaning]
+enable_currency_addition = true
+numeric_amount_conversion = true
+date_standardization = true
+remove_invalid_rows = true
+default_currency = PKR
+
+[description_cleaning]
+# Transform specific patterns in transaction descriptions
+uber_pattern = Card transaction.*Uber.*|Uber Ride
+savemart_pattern = Savemart.*|Savemart
+mobile_topup = Mobile top-up purchased\|.*Nickname: (.*?)(?:\|.*)?$|Mobile topup for \1
+
+[categorization]
+Savemart = Grocery
+KFC = Food
+amazon = Shopping
+salary = Income
+Mobile topup.* = Bills & Fees
+```
+
+### Transfer Detection
+Configure transfer detection in `configs/app.conf`:
+
+```conf
+[transfer_detection]
+confidence_threshold = 0.7
+date_tolerance_hours = 72
+# Optional
+user_name = Your Name Here
+
+[transfer_categorization]
+default_pair_category = Balance Correction
+```
 
 ## Supported Banks
 
-HisaabFlow includes templates for:
+HisaabFlow currently includes configurations for:
 
-- **Wise** (USD, EUR, HUF, PKR currency pockets)
-- **NayaPay** (Pakistani digital wallet)
-- **Erste Bank** (Hungarian bank)
+| Bank | Currency | Status | Sample Format |
+|------|----------|--------|---------------|
+| **Wise (TransferWise)** | USD | ✅ Full Support | `statement_20141677_USD_2025-01-04_2025-06-02.csv` |
+| **Wise (TransferWise)** | EUR | ✅ Full Support | `statement_23243482_EUR_2025-01-04_2025-06-02.csv` |
+| **Wise (TransferWise)** | PKR | ✅ Full Support | N/A |
+| **Wise (TransferWise)** | HUF | ✅ Full Support | N/A |
+| **NayaPay** | PKR | ✅ Full Support | `m-02-2025.csv` |
+| **Erste Bank** | HUF | ✅ Full Support | `12345678-00000000-87654321_2025-06-01_2025-06-30.csv` |
+| **Revolut** | Multiple | 🚧 Coming Next | In development |
 
-But the power is in the configuration system. You can add any bank by creating a simple `.conf` file.
+**Planning to add your bank?** HisaabFlow's flexible .conf system is designed to support new banks, though it's currently experimental as each bank format has required adjustments to the universal parsing system so far.
 
-## Future Plans
+## Workflow
 
-Here's what's coming next:
+### 1. File Upload
+- Drag & drop CSV files or click to browse
+- Automatic bank detection from file format and content
+- Support for multiple files simultaneously
 
-### Near Term
-- **Revolut support**
-- **PDF parsing** for banks that don't provide CSV exports
-- **More output formats** beyond Cashew
-- **Date range filtering** for partial exports
+### 2. Configuration & Review
+- Review detected bank configuration
+- Preview parsed results in interactive table
+- Change configs if needed
 
-### Longer Term  
-- **Improved frontend** with better UX
-- **More modular codebase** for easier contributions
-- **Bank detection** from CSV content
-- **Rule suggestions** based on transaction patterns
+### 3. Review & Export
+- View categorized transactions in interactive table
+- Analyze transfer detection insights
+- Export structured data in CSV format for budgeting apps
 
-## Contributing
+## Use Cases
 
-Want to help make HisaabFlow better? Here are the best ways:
+### Personal Finance Management
+- **CSV Consolidation**: Combine multiple bank statement CSVs into one structured format
+- **Cashew Integration**: Export data perfectly formatted for Cashew expense tracker
+- **Transfer Detection**: Automatically identify transfers between your accounts to avoid double-counting
+- **Clean Categorization**: Rule-based transaction categorization for better organization
 
-### 🐛 Bug Reports
-Found something broken? Open an issue with:
-- What you were trying to do
-- What happened instead
-- Your bank/CSV format if relevant
+### Multi-Account Management
+- **Multi-Bank Support**: Handle CSV exports from different banks (Wise, NayaPay, Erste)
+- **Currency Handling**: Support for multiple currencies (USD, EUR, PKR, HUF)
+- **Account Reconciliation**: Match transfers between different accounts and banks
+- **Unified Export**: Single CSV export containing all accounts for budgeting apps
 
-### 🏦 Bank Statement Contributions
+### Budgeting App Preparation
+- **Cashew Ready**: Currently optimized for Cashew expense tracker format
+- **Future Support**: Planned integration with Money Lover, YNAB, and other budgeting apps
+- **Clean Data**: Processed, categorized, and transfer-aware transaction data
 
-This is the most valuable contribution. If you want HisaabFlow to support your bank:
+## Advanced Usage
 
-1. **Download a CSV statement** from your bank
-2. **Anonymize it** by replacing:
-   - Your real name with "John Smith"
-   - Real merchant names with generic ones ("Local Grocery", "Coffee Shop", etc.)
-   - Account numbers with fake ones
-   - Keep the structure and formatting identical
-3. **Share it** via GitHub issue or email
+### Adding New Banks (Experimental)
 
-I'll create the `.conf` file and template so other users with your bank can benefit right away.
+**Note**: Adding new banks via .conf files is currently experimental. The three supported banks (Wise, NayaPay, Erste) required significant adjustments to make the parsing system more universal.
 
-### 💻 Code Contributions
+1. **Create Configuration File**
+```bash
+cp configs/nayapay.conf.template configs/yourbank.conf
+```
 
-The codebase is modular and well-documented. Feel free to:
-- Add new features to the configuration system
-- Improve the desktop app interface  
-- Optimize parsing performance
-- Add new export formats
+2. **Configure Bank Detection**
+```conf
+[bank_info]
+name = yourbank
+file_patterns = yourbank,your_bank
+filename_regex_patterns = ^yourbank.*\.csv$
+detection_content_signatures = Unique Header,Bank Identifier
+currency_primary = USD
+```
+
+3. **Set Column Mapping**
+```conf
+[column_mapping]
+Date = Transaction Date
+Amount = Amount
+Title = Description
+Note = Reference
+Balance = Running Balance
+```
+
+4. **Add Description Cleaning Rules**
+```conf
+[description_cleaning]
+# Transform merchant names and clean descriptions
+merchant_pattern = Original Pattern.*|Clean Name
+card_transaction = Card transaction at (.*?)\|.*|Card purchase at \1
+```
+
+5. **Configure Categorization**
+```conf
+[categorization]
+grocery_store = Grocery
+gas_station = Transportation
+restaurant = Food
+amazon = Shopping
+```
+
+### Custom Categorization
+
+Customize transaction categorization by editing .conf files:
+
+```conf
+[categorization]
+# Grocery stores
+walmart = Grocery
+target = Grocery
+safeway = Grocery
+
+# Restaurants
+mcdonalds = Food
+starbucks = Food
+chipotle = Food
+
+# Transportation
+uber = Transportation
+lyft = Transportation
+shell = Transportation
+
+# Bills & Utilities
+verizon = Bills & Fees
+pge = Bills & Fees
+internet = Bills & Fees
+```
+
+### Description Cleaning
+
+Clean and standardize transaction descriptions:
+
+```conf
+[description_cleaning]
+# Clean up card transactions
+card_pattern = Card transaction at (.*?)\s*\|.*|Purchase at \1
+
+# Standardize merchant names
+uber_pattern = .*Uber.*|Uber
+amazon_pattern = Amazon.*|Amazon
+
+# Extract useful info from complex descriptions
+mobile_pattern = Mobile top-up.*Nickname: (.*?)(?:\|.*)?$|Mobile topup for \1
+```
+
+### Transfer Detection Tuning
+
+Fine-tune transfer detection sensitivity:
+
+```conf
+[transfer_detection]
+# Lower threshold = more sensitive (may catch false positives)
+# Higher threshold = less sensitive (may miss actual transfers)
+confidence_threshold = 0.7
+
+# Time window for matching transfers (hours)
+date_tolerance_hours = 72
+
+# Your name variations for transfer detection
+user_name = John Doe, J. Doe, John D
+```
+
+## Distribution
+
+### Desktop Application (AppImage)
+
+HisaabFlow can be packaged as a standalone desktop application:
+
+```bash
+# Build for all platforms
+npm run dist:all
+
+# Build for specific platform
+npm run dist:linux    # Linux(AppImage)
+npm run dist:mac    # macOS
+```
+
+**Download ready-to-run desktop apps from [GitHub Releases](https://github.com/ammar-qazi/HisaabFlow/releases)**
 
 ## Privacy & Security
 
-Your financial data never leaves your computer. HisaabFlow runs entirely locally:
+- **Local Processing**: All data stays on your machine
+- **No Cloud Storage**: No data sent to external servers
+- **Open Source**: Full transparency in code and algorithms
+- **Configurable**: Control exactly how your data is processed
 
-- **No cloud processing**: Everything happens on your machine
-- **No data transmission**: CSV files stay in your local folders
-- **Private configurations**: Your `.conf` files with real merchant names are git-ignored
-- **Open source**: You can audit exactly what the code does
+## Contributing
 
-The only thing that gets shared publicly are the anonymized `.conf.template` files that help other users set up their banks.
+We welcome contributions! Here's how to get started:
 
-## Need Help?
+### Development Setup
+
+1. **Fork and Clone**
+```bash
+git clone https://github.com/ammar-qazi/HisaabFlow.git
+cd HisaabFlow
+```
+
+2. **Install Dependencies**
+```bash
+./start_app.sh  # Handles all setup automatically
+```
+
+3. **Development Mode**
+```bash
+# Backend (API server)
+cd backend && python main.py
+
+# Frontend (React dev server)
+cd frontend && npm start
+
+# Desktop app development
+cd frontend && npm run electron-dev
+```
+
+### Code Style
+
+- **Backend**: Python with FastAPI, Pydantic models
+- **Frontend**: Modern React with hooks, Tailwind CSS
+- **Configuration**: CONF files for bank configurations
+- **Testing**: Inline debugging (console.log, print statements)
+
+### Contribution Guidelines
+
+- 📝 **Documentation**: Update README for new features
+- 🧪 **Testing**: Test with real bank statements (anonymized)
+- 🔧 **Configuration**: Add bank configs for new formats
+- 🎨 **UI**: Keep interface clean and intuitive
+- 🛡️ **Privacy**: Ensure no data leaves user's machine
+
+## API Documentation
+
+When running locally, visit:
+- **API Documentation**: http://127.0.0.1:8000/docs
+- **API Endpoints**: http://127.0.0.1:8000/redoc
+
+### Key Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/banks` | GET | List available bank configurations |
+| `/api/v1/parse/preview` | POST | Preview CSV parsing results |
+| `/api/v1/parse/process` | POST | Process and categorize transactions |
+| `/api/v1/transform/analyze-transfers` | POST | Detect transfers between accounts |
+| `/api/v1/transform/export` | POST | Export processed data in CSV format |
+
+## Troubleshooting
 
 ### Common Issues
 
-**"Unknown bank type" error**: Create a `.conf` file for your bank or check that the `file_patterns` match your CSV filename.
+**"Backend failed to start"**
+```bash
+# Check Python version
+python3 --version
 
-**Transfers not detected**: Make sure your `user_name` in `app.conf` matches exactly how it appears in your bank statements.
+# Reinstall dependencies
+cd backend && pip install -r requirements.txt
 
-**Wrong categorization**: Add or update the merchant names in your bank's `.conf` file.
+# Check if port 8000 is in use
+lsof -i :8000
+```
 
-### Getting Support
+**"Frontend won't load"**
+```bash
+# Clear npm cache
+npm cache clean --force
 
-- Check the sample configurations in `configs/` for examples
-- Test with the included sample data first
-- Open a GitHub issue for bugs or feature requests
+# Reinstall dependencies
+cd frontend && rm -rf node_modules && npm install
 
-The configuration system is flexible. Most issues can be solved by tweaking a `.conf` file rather than changing code.
+# Check Node.js version
+node --version  # Should be 16+
+```
+
+**"Bank not detected"**
+```bash
+# Check CSV format
+head -5 your_bank_statement.csv
+
+# Create custom configuration
+cp configs/template.conf configs/yourbank.conf
+# Edit the configuration file
+```
+
+### Getting Help
+
+- 🐛 **Issues**: Report bugs on GitHub Issues
+- 💬 **Discussions**: Ask questions in GitHub Discussions
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- **FastAPI** - Modern Python web framework
+- **React** - Frontend library
+- **Electron** - Desktop app framework
+- **Pydantic** - Data validation and parsing
+- **Tailwind CSS** - Utility-first CSS framework
+- **Pandas** - Data processing and analysis
 
 ---
 
-HisaabFlow turns the tedious job of organizing bank statements into a one-click process. Set it up once, use it forever, and never categorize transactions by hand again.
+*HisaabFlow - Because your financial data deserves better than manual categorization*
