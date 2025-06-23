@@ -36,6 +36,12 @@ chmod +x HisaabFlow.AppImage
 ./HisaabFlow.AppImage
 ```
 
+**📁 First Run Setup**: On first launch, HisaabFlow automatically creates a `~/HisaabFlow/` directory in your home folder containing:
+- `sample_data/` - Example CSV files for testing
+- `configs/` - Configuration files copied from the app
+
+**All users work from `~/HisaabFlow/` regardless of installation method.** Use sample data from `~/HisaabFlow/sample_data/` and edit configs in `~/HisaabFlow/configs/` for your personal setup.
+
 **macOS:**
 ```bash
 # Download HisaabFlow.dmg
@@ -82,6 +88,23 @@ The start script will:
 
 **⚠️ Note for Windows users:** This project uses pandas which requires cmake on Windows. There are currently some setup issues on Windows that haven't been fully resolved yet. So, it's a work in progress.
 
+**📁 One-Time Setup for Source Builds:** GitHub releases come with ready-to-use .conf files, but source builds start with only templates. Before first run, create working configs:
+
+```bash
+# Copy essential configuration templates to create working configs
+cp configs/app.conf.template configs/app.conf
+cp configs/wise_usd.conf.template configs/wise_usd.conf
+cp configs/wise_eur.conf.template configs/wise_eur.conf
+cp configs/wise_huf.conf.template configs/wise_huf.conf
+cp configs/wise_family.conf.template configs/wise_family.conf
+cp configs/nayapay.conf.template configs/nayapay.conf
+cp configs/Erste.conf.template configs/Erste.conf
+
+# Edit configs/app.conf with your personal information
+```
+
+**After this one-time setup, the desktop app will copy these configs to `~/HisaabFlow/configs/` and use them from there.**
+
 #### Backend Setup
 ```bash
 cd backend
@@ -125,6 +148,9 @@ HisaabFlow/
 
 ### Bank Configuration
 HisaabFlow uses .conf files to support different bank formats. Here's the structure based on the actual NayaPay configuration:
+
+**📁 Configuration File Locations:**
+All desktop app users work with configs in `~/HisaabFlow/configs/` (automatically created and managed by the app).
 
 ```conf
 # configs/nayapay.conf
@@ -207,6 +233,7 @@ HisaabFlow currently includes configurations for:
 
 ### 1. File Upload
 - Drag & drop CSV files or click to browse
+- **Desktop App users**: Use sample data from `~/HisaabFlow/sample_data/` for testing
 - Automatic bank detection from file format and content
 - Support for multiple files simultaneously
 
@@ -247,7 +274,8 @@ HisaabFlow currently includes configurations for:
 
 1. **Create Configuration File**
 ```bash
-cp configs/nayapay.conf.template configs/yourbank.conf
+# All desktop app users work from the home directory:
+cp ~/HisaabFlow/configs/nayapay.conf.template ~/HisaabFlow/configs/yourbank.conf
 ```
 
 2. **Configure Bank Detection**
