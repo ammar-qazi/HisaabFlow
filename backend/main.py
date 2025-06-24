@@ -113,6 +113,8 @@ async def global_exception_handler(request, exc):
 
 if __name__ == "__main__":
     import uvicorn
+    import sys
+    
     print("\n🌟 Starting Modular Configuration-Based FastAPI Server...")
     print("   📡 Backend: http://127.0.0.1:8000")
     print("   📋 API docs: http://127.0.0.1:8000/docs")
@@ -121,13 +123,24 @@ if __name__ == "__main__":
     print("   ⏹️  Press Ctrl+C to stop")
     print("")
     
+    # Parse command line arguments for executable compatibility
+    host = "127.0.0.1"
+    port = 8000
+    
+    for i, arg in enumerate(sys.argv):
+        if arg == "--host" and i + 1 < len(sys.argv):
+            host = sys.argv[i + 1]
+        elif arg == "--port" and i + 1 < len(sys.argv):
+            port = int(sys.argv[i + 1])
+    
     try:
         uvicorn.run(
             "main:app",
-            host="127.0.0.1",
-            port=8000,
-            reload=True,
+            host=host,
+            port=port,
+            reload=False,  # Disable reload for compiled executable
             log_level="info"
         )
     except Exception as e:
         print(f"❌ Failed to start server: {e}")
+        sys.exit(1)

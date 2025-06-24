@@ -10,11 +10,75 @@ class BackendLauncher {
     this.userDir = userDir;
   }
 
+  getBackendExecutable() {
+    const isDev = require('electron-is-dev');
+    
+    if (isDev) {
+      // Development: still use Python approach
+      return null;
+    } else {
+      // Production: use compiled executable for Windows
+      if (process.platform === 'win32') {
+        return path.join(process.resourcesPath, 'hisaabflow-backend.exe');
+      }
+      return null; // Use Python approach for Linux/macOS
+    }
+  }
+
+  async startCompiledBackend(exePath) {
+    console.log('🎯 Using compiled backend executable');
+    console.log(`📂 Executable path: ${exePath}`);
+    
+    try {
+      // Set up environment with user configs directory
+      const env = { ...process.env };
+      
+      if (this.userDir) {
+        env.HISAABFLOW_USER_DIR = this.userDir;
+        env.HISAABFLOW_CONFIG_DIR = path.join(this.userDir, 'configs');
+        console.log(`📁 Using user configs: ${env.HISAABFLOW_CONFIG_DIR}`);
+      }
+      
+      // Start the compiled executable
+      this.backendProcess = spawn(exePath, [], {
+        env: env,
+        stdio: 'pipe'
+      });
+
+      this.setupProcessHandlers();
+      
+      // Wait for backend to be ready
+      await this.waitForBackend();
+      this.isRunning = true;
+      
+      console.log('✅ Compiled backend started successfully');
+      return true;
+      
+    } catch (error) {
+      console.error('❌ Failed to start compiled backend:', error);
+      return false;
+    }
+  }
+
   async startBackend() {
     console.log('🚀 Starting HisaabFlow backend...');
     console.log('🔍 DEBUG: Platform:', process.platform);
     console.log('🔍 DEBUG: resourcesPath:', process.resourcesPath);
     console.log('🔍 DEBUG: __dirname:', __dirname);
+    
+    // Check for compiled executable first (Windows production)
+    const backendExe = this.getBackendExecutable();
+    
+    if (backendExe && require('fs').existsSync(backendExe)) {
+      return this.startCompiledBackend(backendExe);
+    } else {
+      // Fall back to current Python approach
+      return this.startPythonBackend();
+    }
+  }
+
+  async startPythonBackend() {
+    console.log('🐍 Using Python backend approach');
     
     try {
       const backendPath = this.getBackendPath();
@@ -66,11 +130,11 @@ class BackendLauncher {
       await this.waitForBackend();
       this.isRunning = true;
       
-      console.log('✅ Backend started successfully');
+      console.log('✅ Python backend started successfully');
       return true;
       
     } catch (error) {
-      console.error('❌ Failed to start backend:', error);
+      console.error('❌ Failed to start Python backend:', error);
       return false;
     }
   }

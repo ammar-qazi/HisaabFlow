@@ -21,6 +21,8 @@ jobs:
             platform: linux
           - os: macos-latest
             platform: mac
+          - os: windows-latest
+            platform: windows
 
     steps:
       - name: Checkout code
@@ -55,10 +57,39 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      - name: Prepare Python runtime bundle
+      - name: Prepare Python runtime bundle (Linux/macOS)
+        if: matrix.platform != 'windows'
         working-directory: frontend
         run: npm run prepare-python
 
+      - name: Compile Backend with Nuitka (Windows)
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          # Install Nuitka
+          pip install nuitka
+          
+          # Install backend dependencies for compilation
+          pip install -r backend/requirements.txt
+          
+          # Create output directory
+          New-Item -ItemType Directory -Force -Path "frontend/compiled-backend"
+          
+          # Compile backend to executable
+          cd backend
+          nuitka --onefile `
+                 --include-data-dir=../configs=configs `
+                 --include-package=fastapi `
+                 --include-package=uvicorn `
+                 --include-package=pydantic `
+                 --include-package=pandas `
+                 --output-dir=../frontend/compiled-backend `
+                 --output-filename=hisaabflow-backend.exe `
+                 main.py
+          
+          # Verify executable was created
+          ls ../frontend/compiled-backend/
+          
       - name: Build React app
         working-directory: frontend
         run: npm run build
@@ -73,6 +104,15 @@ jobs:
         working-directory: frontend
         run: npm run build && npx electron-builder --mac --publish never
 
+      - name: Build Electron app (Windows)
+        if: matrix.platform == 'windows'
+        working-directory: frontend
+        shell: pwsh
+        run: |
+          # Run electron-builder for Windows
+          npm run build
+          npx electron-builder --win --publish never
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -80,6 +120,7 @@ jobs:
           path: |
             frontend/dist/*.AppImage
             frontend/dist/*.dmg
+            frontend/dist/*.exe
           retention-days: 30
           if-no-files-found: warn
 
@@ -97,7 +138,7 @@ jobs:
       - name: List downloaded artifacts (debug)
         run: |
           echo "Downloaded artifacts structure:"
-          find ./artifacts -type f -name "*.AppImage" -o -name "*.dmg" || echo "No build artifacts found"
+          find ./artifacts -type f -name "*.AppImage" -o -name "*.dmg" -o -name "*.exe" || echo "No build artifacts found"
           
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -105,6 +146,7 @@ jobs:
           files: |
             ./artifacts/**/*.AppImage
             ./artifacts/**/*.dmg
+            ./artifacts/**/*.exe
           draft: false
           prerelease: false
           generate_release_notes: true

@@ -93,19 +93,8 @@
       "icon": "assets/icon.ico",
       "extraResources": [
         {
-          "from": "../backend",
-          "to": "backend",
-          "filter": [
-            "**/*",
-            "!venv/**/*",
-            "!__pycache__/**/*",
-            "!*.log",
-            "!*.pyc"
-          ]
-        },
-        {
-          "from": "python-bundle",
-          "to": "python-bundle"
+          "from": "compiled-backend/hisaabflow-backend.exe",
+          "to": "hisaabflow-backend.exe"
         },
         {
           "from": "../configs",
