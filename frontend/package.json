@@ -31,10 +31,9 @@
     "electron-dev": "concurrently \"npm start\" \"wait-on http://localhost:3000 && electron .\"",
     "electron-pack": "npm run build && electron-builder",
     "preelectron-pack": "npm run build",
-    "prepare-python": "node scripts/prepare-python-bundle.js",
-    "dist": "npm run prepare-python && npm run build && electron-builder --publish never",
-    "dist:all": "npm run prepare-python && npm run build && electron-builder --mac --win --linux --publish never",
-    "dist:linux": "npm run prepare-python && npm run build && electron-builder --linux --publish never",
+    "dist": "npm run build && electron-builder --publish never",
+    "dist:all": "npm run build && electron-builder --mac --win --linux --publish never",
+    "dist:linux": "npm run build && electron-builder --linux --publish never",
     "dist:mac": "npm run build && electron-builder --mac --publish never",
     "dist:win": "npm run build && electron-builder --win --publish never"
   },
@@ -53,40 +52,43 @@
       "public/electron.js",
       "scripts/**/*"
     ],
-    "extraResources": [
-      {
-        "from": "../backend",
-        "to": "backend",
-        "filter": [
-          "**/*",
-          "!venv/**/*",
-          "!__pycache__/**/*",
-          "!*.log",
-          "!*.pyc"
-        ]
-      },
-      {
-        "from": "python-bundle",
-        "to": "python-bundle"
-      },
-      {
-        "from": "../configs",
-        "to": "configs"
-      },
-      {
-        "from": "../sample_data",
-        "to": "sample_data"
-      }
-    ],
     "mac": {
       "target": "dmg",
       "category": "public.app-category.finance",
-      "icon": "assets/icon.icns"
+      "icon": "assets/icon.icns",
+      "extraResources": [
+        {
+          "from": "compiled-backend/hisaabflow-backend",
+          "to": "hisaabflow-backend"
+        },
+        {
+          "from": "../configs",
+          "to": "configs"
+        },
+        {
+          "from": "../sample_data",
+          "to": "sample_data"
+        }
+      ]
     },
     "linux": {
       "target": "AppImage",
       "category": "Office",
-      "icon": "assets/icon.png"
+      "icon": "assets/icon.png",
+      "extraResources": [
+        {
+          "from": "compiled-backend/hisaabflow-backend",
+          "to": "hisaabflow-backend"
+        },
+        {
+          "from": "../configs",
+          "to": "configs"
+        },
+        {
+          "from": "../sample_data",
+          "to": "sample_data"
+        }
+      ]
     },
     "win": {
       "target": "portable",

@@ -48,7 +48,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Setup Python (for bundle preparation)
+      - name: Setup Python (for Nuitka compilation)
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -57,14 +57,8 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      - name: Prepare Python runtime bundle (Linux/macOS)
-        if: matrix.platform != 'windows'
-        working-directory: frontend
-        run: npm run prepare-python
-
-      - name: Compile Backend with Nuitka (Windows)
-        if: matrix.platform == 'windows'
-        shell: pwsh
+      - name: Compile Backend with Nuitka (All Platforms)
+        shell: bash
         run: |
           # Install Nuitka
           pip install nuitka
@@ -72,24 +66,46 @@ jobs:
           # Install backend dependencies for compilation
           pip install -r backend/requirements.txt
           
-          # Create output directory
-          New-Item -ItemType Directory -Force -Path "frontend/compiled-backend"
+          # Create output directory  
+          mkdir -p frontend/compiled-backend
           
-          # Compile backend to executable
+          # Platform-specific compilation
           cd backend
-          nuitka --onefile `
-                 --include-data-dir=../configs=configs `
-                 --include-package=fastapi `
-                 --include-package=uvicorn `
-                 --include-package=pydantic `
-                 --include-package=pandas `
-                 --output-dir=../frontend/compiled-backend `
-                 --output-filename=hisaabflow-backend.exe `
-                 main.py
+          if [[ "${{ matrix.platform }}" == "windows" ]]; then
+            nuitka --onefile \
+                   --include-data-dir=../configs=configs \
+                   --include-package=fastapi \
+                   --include-package=uvicorn \
+                   --include-package=pydantic \
+                   --include-package=pandas \
+                   --output-dir=../frontend/compiled-backend \
+                   --output-filename=hisaabflow-backend.exe \
+                   main.py
+          elif [[ "${{ matrix.platform }}" == "linux" ]]; then
+            nuitka --onefile \
+                   --include-data-dir=../configs=configs \
+                   --include-package=fastapi \
+                   --include-package=uvicorn \
+                   --include-package=pydantic \
+                   --include-package=pandas \
+                   --output-dir=../frontend/compiled-backend \
+                   --output-filename=hisaabflow-backend \
+                   main.py
+          elif [[ "${{ matrix.platform }}" == "mac" ]]; then
+            nuitka --onefile \
+                   --include-data-dir=../configs=configs \
+                   --include-package=fastapi \
+                   --include-package=uvicorn \
+                   --include-package=pydantic \
+                   --include-package=pandas \
+                   --output-dir=../frontend/compiled-backend \
+                   --output-filename=hisaabflow-backend \
+                   main.py
+          fi
           
           # Verify executable was created
-          ls ../frontend/compiled-backend/
-          
+          ls -la ../frontend/compiled-backend/
+
       - name: Build React app
         working-directory: frontend
         run: npm run build

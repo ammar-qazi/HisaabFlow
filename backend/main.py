@@ -35,7 +35,7 @@ except ImportError as e:
 app = FastAPI(
     title="Bank Statement Parser API - Configuration Based", 
     version="3.0.0",
-    description="Modular configuration-based CSV parser for Cashew"
+    description="Modular configuration-based CSV parser for HisaabFlow"
 )
 
 # Setup CORS
@@ -113,13 +113,13 @@ async def global_exception_handler(request, exc):
 
 if __name__ == "__main__":
     import uvicorn
-    import sys
     
-    print("\n🌟 Starting Modular Configuration-Based FastAPI Server...")
+    print("\n🌟 Starting HisaabFlow Configuration-Based FastAPI Server...")
     print("   📡 Backend: http://127.0.0.1:8000")
     print("   📋 API docs: http://127.0.0.1:8000/docs")
     print("   ⚙️  Architecture: Modular API routers")
     print("   📏 Main file: Under 300 lines")
+    print("   🎯 Mode: Nuitka compiled executable")
     print("   ⏹️  Press Ctrl+C to stop")
     print("")
     

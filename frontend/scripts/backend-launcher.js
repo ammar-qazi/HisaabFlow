@@ -14,14 +14,14 @@ class BackendLauncher {
     const isDev = require('electron-is-dev');
     
     if (isDev) {
-      // Development: still use Python approach
+      // Development: still use Python approach for easier debugging
       return null;
     } else {
-      // Production: use compiled executable for Windows
-      if (process.platform === 'win32') {
-        return path.join(process.resourcesPath, 'hisaabflow-backend.exe');
-      }
-      return null; // Use Python approach for Linux/macOS
+      // Production: use compiled executable for ALL platforms
+      const execName = process.platform === 'win32' 
+        ? 'hisaabflow-backend.exe' 
+        : 'hisaabflow-backend';
+      return path.join(process.resourcesPath, execName);
     }
   }
 
@@ -66,19 +66,19 @@ class BackendLauncher {
     console.log('🔍 DEBUG: resourcesPath:', process.resourcesPath);
     console.log('🔍 DEBUG: __dirname:', __dirname);
     
-    // Check for compiled executable first (Windows production)
+    // Check for compiled executable first (ALL platforms in production)
     const backendExe = this.getBackendExecutable();
     
     if (backendExe && require('fs').existsSync(backendExe)) {
       return this.startCompiledBackend(backendExe);
     } else {
-      // Fall back to current Python approach
+      // Fall back to Python approach (development only)
       return this.startPythonBackend();
     }
   }
 
   async startPythonBackend() {
-    console.log('🐍 Using Python backend approach');
+    console.log('🐍 Using Python backend approach (development mode)');
     
     try {
       const backendPath = this.getBackendPath();
@@ -176,7 +176,7 @@ class BackendLauncher {
       // Development: backend folder in project root
       return path.join(__dirname, '../../backend');
     } else {
-      // Production: backend in extraResources
+      // Production: backend in extraResources (fallback for development)
       return path.join(process.resourcesPath, 'backend');
     }
   }
@@ -197,7 +197,7 @@ class BackendLauncher {
       }
       return null; // Fall back to system Python in development
     } else {
-      // Production: use bundled python-build-standalone Python
+      // Production: use bundled python-build-standalone Python (not used with Nuitka)
       const bundlePath = path.join(process.resourcesPath, 'python-bundle/python');
       console.log(`🔍 Production bundle path: ${bundlePath}`);
       
@@ -310,8 +310,6 @@ class BackendLauncher {
       });
     });
   }
-
-
 
   stopBackend() {
     if (this.backendProcess && this.isRunning) {
