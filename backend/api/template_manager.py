@@ -23,10 +23,24 @@ except ImportError:
 class TemplateManager:
     """Manages bank configurations (no more template files)"""
     
-    def __init__(self, template_dir: str = "../templates", config_dir: str = "../configs"):
+    def __init__(self, template_dir: str = "../templates", config_dir: str = None):
         self.template_dir = template_dir  # Keep for backward compatibility
-        self.config_dir = config_dir
-        self.enhanced_config_manager = EnhancedConfigurationManager(config_dir)
+        
+        # Use Nuitka-aware config detection if no config_dir provided
+        if config_dir is None:
+            from backend.csv_parser.utils import get_config_dir_for_manager
+            import os
+            
+            user_config_dir = get_config_dir_for_manager()
+            if user_config_dir:
+                self.config_dir = user_config_dir
+            else:
+                # Fallback to relative path
+                self.config_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "configs"))
+        else:
+            self.config_dir = config_dir
+            
+        self.enhanced_config_manager = EnhancedConfigurationManager(self.config_dir)
         
         print(f"🔧 TemplateManager (config-based) initialized")
         print(f"⚙️  Config dir: {config_dir}")

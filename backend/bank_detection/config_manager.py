@@ -12,9 +12,16 @@ class BankConfigManager:
     
     def __init__(self, config_dir: str = None):
         if config_dir is None:
-            # Default to configs directory relative to backend
-            backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            self.config_dir = os.path.join(os.path.dirname(backend_dir), 'configs')
+            # Try to get config directory through utility function first
+            from backend.csv_parser.utils import get_config_dir_for_manager
+            user_config_dir = get_config_dir_for_manager()
+            
+            if user_config_dir:
+                self.config_dir = user_config_dir
+            else:
+                # Default to configs directory relative to backend
+                backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                self.config_dir = os.path.join(os.path.dirname(backend_dir), 'configs')
         else:
             self.config_dir = config_dir
             

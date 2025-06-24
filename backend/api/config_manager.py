@@ -35,16 +35,22 @@ class ConfigManager:
     
     def __init__(self, config_dir: str = None):
         if config_dir is None:
-            # Correct path to project_root/configs from backend/api/
-            self.config_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "configs"))
+            # Try to get config directory through utility function first (supports Nuitka)
+            from backend.csv_parser.utils import get_config_dir_for_manager
+            user_config_dir = get_config_dir_for_manager()
+            
+            if user_config_dir:
+                self.config_dir = user_config_dir
+            else:
+                # Fallback: Correct path to project_root/configs from backend/api/
+                self.config_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "configs"))
         else:
             self.config_dir = config_dir
-        self.enhanced_config_manager = EnhancedConfigurationManager(config_dir)
+        self.enhanced_config_manager = EnhancedConfigurationManager(self.config_dir)
         
         print(f"🔧 [api.ConfigManager] Initialized (no more templates!)")
         print(f"⚙️  [api.ConfigManager] Effective config directory: {self.config_dir}")
-        print(f"🏦 Available bank configurations: {self.enhanced_config_manager.list_configured_banks()}")
-    
+        print(f"🏦 Available bank configurations: {self.enhanced_config_manager.list_configured_banks()}")    
     def save_config(self, request: SaveTemplateRequest) -> Dict[str, any]:
         """Save bank configuration (replaces save_template)"""
         print(f"💾 Saving bank configuration: {request.template_name}")

@@ -8,8 +8,22 @@ from backend.transfer_detection.enhanced_config_manager import EnhancedConfigura
 
 config_router = APIRouter()
 
-# Initialize config manager
-config_manager = EnhancedConfigurationManager("../configs")
+# Initialize config manager with Nuitka detection
+def get_config_manager():
+    """Get config manager with proper path detection"""
+    from backend.csv_parser.utils import get_config_dir_for_manager
+    import os
+    
+    user_config_dir = get_config_dir_for_manager()
+    if user_config_dir:
+        config_dir = user_config_dir
+    else:
+        # Fallback to relative path
+        config_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "configs"))
+    
+    return EnhancedConfigurationManager(config_dir)
+
+config_manager = get_config_manager()
 
 class SaveConfigRequest(BaseModel):
     config_name: str

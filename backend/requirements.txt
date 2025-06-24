@@ -3,3 +3,4 @@ fastapi>=0.100.0
 uvicorn>=0.20.0
 python-multipart>=0.0.6
 pydantic>=2.0.0
+chardet>=5.0.0
