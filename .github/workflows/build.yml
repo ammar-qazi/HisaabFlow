@@ -84,18 +84,15 @@ jobs:
           # Install Nuitka with Windows optimization
           pip install nuitka
           
-          # Pre-approve Dependency Walker download (avoids interactive prompt)
-          $env:NUITKA_DOWNLOAD_DEPENDENCY_WALKER = "yes"
-          
           # Install backend dependencies for compilation
           pip install -r backend/requirements.txt
           
           # Create output directory  
           New-Item -ItemType Directory -Force -Path "frontend/compiled-backend"
           
-          # Compile backend to executable (from project root, not backend dir)
-          # This fixes the "Failed to locate package directory of 'backend'" error
+          # Compile backend to executable with auto-download approval
           nuitka --onefile `
+                 --assume-yes-for-downloads `
                  --include-module=main `
                  --include-package=backend `
                  --include-package-data=backend `
@@ -108,8 +105,38 @@ jobs:
                  --output-filename=hisaabflow-backend.exe `
                  backend/main.py
           
-          # Verify executable was created
+          # Verify executable was created and check size
+          Write-Host "Verifying Windows executable creation..."
           Get-ChildItem frontend/compiled-backend/
+          
+          # Check if executable exists and verify size (should be ~200MB)
+          if (Test-Path "frontend/compiled-backend/hisaabflow-backend.exe") {
+            $size = (Get-Item "frontend/compiled-backend/hisaabflow-backend.exe").Length
+            $sizeMB = [math]::Round($size / 1MB, 1)
+            Write-Host "✅ Executable created successfully: $sizeMB MB"
+            
+            if ($sizeMB -lt 100) {
+              Write-Host "⚠️ WARNING: Executable size ($sizeMB MB) is unusually small - backend may not be included"
+            } else {
+              Write-Host "✅ Executable size looks correct"
+            }
+          } else {
+            Write-Host "❌ ERROR: hisaabflow-backend.exe not found!"
+            exit 1
+          }
+          
+          # Quick test that executable can start (should show help and exit quickly)
+          Write-Host "Testing executable startup..."
+          try {
+            $proc = Start-Process -FilePath "frontend/compiled-backend/hisaabflow-backend.exe" -ArgumentList "--help" -Wait -PassThru -NoNewWindow
+            if ($proc.ExitCode -eq 0) {
+              Write-Host "✅ Executable startup test passed"
+            } else {
+              Write-Host "⚠️ WARNING: Executable startup test failed with exit code $($proc.ExitCode)"
+            }
+          } catch {
+            Write-Host "⚠️ WARNING: Could not test executable startup: $($_.Exception.Message)"
+          }
 
       - name: Compile Backend with Nuitka (Linux/macOS)
         if: matrix.platform != 'windows'
