@@ -17,17 +17,17 @@ async function setupUserDirectory() {
   // Create directories if they don't exist
   if (!fs.existsSync(userDir)) {
     fs.mkdirSync(userDir, { recursive: true });
-    console.log('📁 Created user directory:', userDir);
+    console.log(' Created user directory:', userDir);
   }
   
   if (!fs.existsSync(configsDir)) {
     fs.mkdirSync(configsDir, { recursive: true });
-    console.log('📁 Created configs directory:', configsDir);
+    console.log(' Created configs directory:', configsDir);
   }
   
   if (!fs.existsSync(sampleDataDir)) {
     fs.mkdirSync(sampleDataDir, { recursive: true });
-    console.log('📁 Created sample_data directory:', sampleDataDir);
+    console.log(' Created sample_data directory:', sampleDataDir);
   }
   
   // Copy configs from app bundle (first run only - preserve user modifications)
@@ -44,7 +44,7 @@ async function setupUserDirectory() {
       // Only copy if user doesn't already have this config (preserve modifications)
       if (!fs.existsSync(destPath)) {
         fs.copyFileSync(sourcePath, destPath);
-        console.log('📋 Copied config:', configFile);
+        console.log(' Copied config:', configFile);
       }
     }
   }
@@ -63,7 +63,7 @@ async function setupUserDirectory() {
       // Only copy if file doesn't exist (preserve user modifications)
       if (!fs.existsSync(destPath) && fs.statSync(sourcePath).isFile()) {
         fs.copyFileSync(sourcePath, destPath);
-        console.log('📄 Copied sample data:', sampleFile);
+        console.log(' Copied sample data:', sampleFile);
       }
     }
   }
@@ -75,12 +75,12 @@ async function setupUserDirectory() {
 
 Welcome to your HisaabFlow configuration directory!
 
-## 📁 Directory Structure
+##  Directory Structure
 
 - **configs/**: Bank configuration files (.conf)
 - **sample_data/**: Sample CSV files for testing
 
-## 🔧 Customizing Configurations
+##  Customizing Configurations
 
 Edit the .conf files in the configs/ directory to customize:
 - Bank detection patterns
@@ -88,11 +88,11 @@ Edit the .conf files in the configs/ directory to customize:
 - Categorization rules
 - Data cleaning settings
 
-## 📄 Sample Data
+##  Sample Data
 
 Use the sample CSV files to test the application with different bank formats.
 
-## 🚀 Getting Started
+## [START] Getting Started
 
 1. Place your bank CSV files anywhere
 2. Open HisaabFlow
@@ -102,7 +102,7 @@ Use the sample CSV files to test the application with different bank formats.
 Your modifications will be preserved across app updates.
 `;
     fs.writeFileSync(readmePath, readmeContent);
-    console.log('📚 Created user README');
+    console.log(' Created user README');
   }
   
   return userDir;
@@ -116,11 +116,11 @@ async function createWindow() {
   backendLauncher = new BackendLauncher(userDir);
   
   // Start backend before creating window
-  console.log('🔄 Initializing HisaabFlow...');
+  console.log(' Initializing HisaabFlow...');
   const backendStarted = await backendLauncher.startBackend();
   
   if (!backendStarted) {
-    console.error('❌ Failed to start backend - app may not work correctly');
+    console.error('[ERROR]  Failed to start backend - app may not work correctly');
   }
 
   mainWindow = new BrowserWindow({
@@ -151,10 +151,10 @@ async function createWindow() {
   
   // Handle window close event to ensure clean shutdown
   mainWindow.on('close', (event) => {
-    console.log('🔄 Window closing, ensuring backend cleanup...');
+    console.log(' Window closing, ensuring backend cleanup...');
     
     if (backendLauncher && backendLauncher.isRunning) {
-      console.log('🛑 Stopping backend before window close...');
+      console.log(' Stopping backend before window close...');
       backendLauncher.stopBackend();
     }
   });
@@ -163,7 +163,7 @@ async function createWindow() {
   mainWindow.webContents.on('dom-ready', () => {
     mainWindow.webContents.executeJavaScript(`
       window.BACKEND_URL = '${backendLauncher.getBackendUrl()}';
-      console.log('🔗 Backend URL configured:', window.BACKEND_URL);
+      console.log(' Backend URL configured:', window.BACKEND_URL);
     `);
   });
 }
@@ -171,16 +171,16 @@ async function createWindow() {
 app.on('ready', createWindow);
 
 app.on('window-all-closed', () => {
-  console.log('🔄 All windows closed, cleaning up...');
+  console.log(' All windows closed, cleaning up...');
   
   // Stop backend when app closes
   if (backendLauncher) {
-    console.log('🛑 Stopping backend process...');
+    console.log(' Stopping backend process...');
     backendLauncher.stopBackend();
   }
   
   if (process.platform !== 'darwin') {
-    console.log('🚪 Quitting application...');
+    console.log(' Quitting application...');
     app.quit();
   }
 });
@@ -211,23 +211,23 @@ ipcMain.handle('show-save-dialog', async (event, options) => {
 
 // Process cleanup handlers for proper shutdown
 process.on('SIGINT', () => {
-  console.log('🔄 Received SIGINT, cleaning up...');
+  console.log(' Received SIGINT, cleaning up...');
   cleanup();
 });
 
 process.on('SIGTERM', () => {
-  console.log('🔄 Received SIGTERM, cleaning up...');
+  console.log(' Received SIGTERM, cleaning up...');
   cleanup();
 });
 
 process.on('exit', () => {
-  console.log('🔄 Process exiting, final cleanup...');
+  console.log(' Process exiting, final cleanup...');
   cleanup();
 });
 
 function cleanup() {
   if (backendLauncher && backendLauncher.isRunning) {
-    console.log('🛑 Final backend cleanup...');
+    console.log(' Final backend cleanup...');
     backendLauncher.stopBackend();
   }
 }

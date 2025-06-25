@@ -13,7 +13,7 @@ class BankDetector:
         self.config_manager = config_manager or BankConfigManager()
         self.detection_patterns = self.config_manager.get_detection_patterns()
         
-        print(f"🔍 BankDetector initialized with {len(self.detection_patterns)} bank patterns")
+        print(f" BankDetector initialized with {len(self.detection_patterns)} bank patterns")
     
     def detect_bank(self, filename: str, csv_content: str, headers: List[str]) -> BankDetectionResult:
         """
@@ -27,9 +27,9 @@ class BankDetector:
         Returns:
             BankDetectionResult with bank name and confidence score
         """
-        print(f"🔍 Detecting bank for file: {filename}")
-        print(f"📄 Headers found: {headers}")
-        print(f"📖 Content preview: {csv_content[:200]}...")
+        print(f" Detecting bank for file: {filename}")
+        print(f" Headers found: {headers}")
+        print(f" Content preview: {csv_content[:200]}...")
         
         candidates = []
         
@@ -38,17 +38,17 @@ class BankDetector:
             
             if confidence > 0:
                 candidates.append(BankDetectionResult(bank_name=bank_name, confidence=confidence, reasons=reasons))
-                print(f"🏦 {bank_name}: confidence={confidence:.2f}, reasons={reasons}")
+                print(f" {bank_name}: confidence={confidence:.2f}, reasons={reasons}")
         
         # Sort by confidence (highest first)
         candidates.sort(key=lambda x: x.confidence, reverse=True)
         
         if candidates:
             best_match = candidates[0]
-            print(f"🎯 Best match: {best_match}")
+            print(f"Best match: {best_match}")
             return best_match
         else:
-            print(f"❓ No bank detected, using unknown")
+            print(f" No bank detected, using unknown")
             return BankDetectionResult(bank_name='unknown', confidence=0.0, reasons=['No patterns matched'])
     
     def _calculate_confidence(self, filename: str, content: str, headers: List[str], 
@@ -86,7 +86,7 @@ class BankDetector:
         max_score = 0.0
         
         # Debug filename matching
-        print(f"🔍 Checking filename '{filename}' against patterns: {patterns}")
+        print(f" Checking filename '{filename}' against patterns: {patterns}")
         
         for pattern in patterns:
             pattern_lower = pattern.lower()
@@ -98,26 +98,26 @@ class BankDetector:
                     # Treat as regex pattern
                     if re.match(pattern, filename, re.IGNORECASE):
                         score = 1.0
-                        print(f"✅ Regex pattern '{pattern}' matched filename '{filename}'")
+                        print(f"[SUCCESS] Regex pattern '{pattern}' matched filename '{filename}'")
                     else:
-                        print(f"❌ Regex pattern '{pattern}' did not match filename '{filename}'")
+                        print(f"[ERROR]  Regex pattern '{pattern}' did not match filename '{filename}'")
                 except re.error as e:
-                    print(f"⚠️ Invalid regex pattern '{pattern}': {e}")
+                    print(f"[WARNING] Invalid regex pattern '{pattern}': {e}")
                     # Fallback to simple string matching
                     if pattern_lower in filename_lower:
                         score = 0.7  # Lower confidence for fallback
-                        print(f"✅ Fallback string match for pattern '{pattern}'")
+                        print(f"[SUCCESS] Fallback string match for pattern '{pattern}'")
             else:
                 # Simple string containment check
                 if pattern_lower in filename_lower:
                     score = 0.8  # Good confidence for simple patterns
-                    print(f"✅ Simple pattern '{pattern}' found in filename '{filename}'")
+                    print(f"[SUCCESS] Simple pattern '{pattern}' found in filename '{filename}'")
                 else:
-                    print(f"❌ Simple pattern '{pattern}' not found in filename '{filename}'")
+                    print(f"[ERROR]  Simple pattern '{pattern}' not found in filename '{filename}'")
             
             max_score = max(max_score, score)
         
-        print(f"🎯 Final filename score: {max_score}")
+        print(f"Final filename score: {max_score}")
         return max_score
     
     def _check_content_signatures(self, content: str, signatures: List[str]) -> float:

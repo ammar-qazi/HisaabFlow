@@ -92,17 +92,17 @@ class TransformationService:
         Returns:
             dict: Multi-CSV transformation result
         """
-        print(f"🔄 Multi-CSV transform request received")
+        print(f" Multi-CSV transform request received")
         
         try:
-            print(f"🗂️ Request keys: {list(raw_data.keys())}")
+            print(f"️ Request keys: {list(raw_data.keys())}")
             
             # Extract data from frontend format using bank-agnostic detection
             data, column_mapping, bank_name = self._extract_transform_data_per_bank(raw_data)
             
-            print(f"📈 Final data length: {len(data)}")
-            print(f"🏦 Final bank name: {bank_name}")
-            print(f"🗂️ Final column mapping: {column_mapping}")
+            print(f" Final data length: {len(data)}")
+            print(f" Final bank name: {bank_name}")
+            print(f"️ Final column mapping: {column_mapping}")
             
             # Get categorization rules
             categorization_rules = raw_data.get('categorization_rules')
@@ -111,7 +111,7 @@ class TransformationService:
             
             # Show sample data for debugging
             if data:
-                print(f"📄 Sample data (first row): {data[0] if data else 'none'}")
+                print(f" Sample data (first row): {data[0] if data else 'none'}")
             
             # Get bank configs for fallback logic
             bank_configs = self._get_bank_configs_for_data(raw_data)
@@ -137,17 +137,17 @@ class TransformationService:
                     config=bank_configs
                 )
             
-            print(f"✅ Transformation successful: {len(result)} rows transformed")
+            print(f"[SUCCESS] Transformation successful: {len(result)} rows transformed")
             if result:
-                print(f"📄 Sample result (first row): {result[0] if result else 'none'}")
+                print(f" Sample result (first row): {result[0] if result else 'none'}")
             
             # Apply description cleaning and transfer detection
             print(f"\n🧹 Applying description cleaning and transfer detection...")
             enhanced_result, transfer_analysis = self._apply_advanced_processing(result, raw_data)
             
-            print(f"🔍 Transfer detection summary:")
-            print(f"   📊 Transfer pairs found: {transfer_analysis['summary']['transfer_pairs_found']}")
-            print(f"   🔄 Potential transfers: {transfer_analysis['summary']['potential_transfers']}")
+            print(f" Transfer detection summary:")
+            print(f"   [DATA] Transfer pairs found: {transfer_analysis['summary']['transfer_pairs_found']}")
+            print(f"    Potential transfers: {transfer_analysis['summary']['potential_transfers']}")
             
             # Frontend expects 'transformed_data' and 'transfer_analysis' format
             response_data = {
@@ -165,13 +165,13 @@ class TransformationService:
                 "bank_name": bank_name
             }
             
-            print(f"📦 Sending response with {len(result)} transformed_data rows")
+            print(f" Sending response with {len(result)} transformed_data rows")
             return response_data
             
         except Exception as e:
-            print(f"❌ Multi-CSV transform exception: {str(e)}")
+            print(f"[ERROR]  Multi-CSV transform exception: {str(e)}")
             import traceback
-            print(f"📖 Full traceback: {traceback.format_exc()}")
+            print(f" Full traceback: {traceback.format_exc()}")
             return {
                 "success": False,
                 "error": str(e)
@@ -185,7 +185,7 @@ class TransformationService:
             return self._process_multi_csv_format(raw_data)
         else:
             # Standard single-file format
-            print(f"📋 Standard format detected")
+            print(f" Standard format detected")
             data = raw_data.get('data', [])
             column_mapping = raw_data.get('column_mapping', {})
             bank_name = raw_data.get('bank_name', '')
@@ -194,12 +194,12 @@ class TransformationService:
     
     def _process_multi_csv_format(self, raw_data: dict):
         """Process multi-CSV format data"""
-        print(f"📋 Frontend format detected: csv_data_list")
+        print(f" Frontend format detected: csv_data_list")
         csv_data_list = raw_data.get('csv_data_list', [])
-        print(f"📈 CSV data list length: {len(csv_data_list)}")
+        print(f" CSV data list length: {len(csv_data_list)}")
         
         if not csv_data_list:
-            print(f"⚠️ No CSV data found in csv_data_list")
+            print(f"[WARNING] No CSV data found in csv_data_list")
             return [], {}, ''
         
         return self._process_csv_data_list(csv_data_list)
@@ -209,7 +209,7 @@ class TransformationService:
         all_transformed_data = []
         
         for csv_index, csv_data in enumerate(csv_data_list):
-            print(f"\n🗂️ Processing CSV {csv_index + 1}/{len(csv_data_list)}")
+            print(f"\n️ Processing CSV {csv_index + 1}/{len(csv_data_list)}")
             
             # Get data from this CSV
             csv_file_data = csv_data.get('data', [])
@@ -217,18 +217,18 @@ class TransformationService:
             bank_info = csv_data.get('bank_info', {})
             
             if not csv_file_data:
-                print(f"   ⚠️ No data in CSV {csv_index + 1}")
+                print(f"   [WARNING] No data in CSV {csv_index + 1}")
                 continue
             
-            print(f"   📊 CSV has {len(csv_file_data)} rows")
-            print(f"   📁 Filename: {filename}")
+            print(f"   [DATA] CSV has {len(csv_file_data)} rows")
+            print(f"    Filename: {filename}")
             
             # Log pre-detected bank info
             detected_bank = self._get_detected_bank(bank_info)
-            print(f"   🏦 PRE-DETECTED bank: {detected_bank}")
+            print(f"    PRE-DETECTED bank: {detected_bank}")
             
             # Data is already cleaned and standardized
-            print(f"   ✅ Using pre-cleaned data as-is")
+            print(f"   [SUCCESS] Using pre-cleaned data as-is")
             
             # Get Account name from bank configuration
             account_name = self._get_account_name(bank_info, filename)
@@ -237,12 +237,12 @@ class TransformationService:
             for row in csv_file_data:
                 row['Account'] = account_name
             
-            print(f"   ✅ Account field '{account_name}' set for all {len(csv_file_data)} rows")
+            print(f"   [SUCCESS] Account field '{account_name}' set for all {len(csv_file_data)} rows")
             
             # Add cleaned data to combined results
             all_transformed_data.extend(csv_file_data)
         
-        print(f"\n📈 Combined data from all CSVs: {len(all_transformed_data)} total rows")
+        print(f"\n Combined data from all CSVs: {len(all_transformed_data)} total rows")
         
         # Pass ALL cleaned data fields to transformer - no filtering
         # This ensures backup fields (BackupDate, BackupTitle) and any other
@@ -277,9 +277,9 @@ class TransformationService:
                         for section in bank_config.sections():
                             config_dict[section] = dict(bank_config.items(section))
                         configs[detected_bank] = config_dict
-                        print(f"   🔧 Loaded config for {detected_bank}")
+                        print(f"    Loaded config for {detected_bank}")
                 except Exception as e:
-                    print(f"   ⚠️  Error loading config for {detected_bank}: {e}")
+                    print(f"   [WARNING]  Error loading config for {detected_bank}: {e}")
         
         return configs
     
@@ -307,18 +307,18 @@ class TransformationService:
                         cashew_account = bank_config.get('bank_info', 'cashew_account', fallback=None)
                         if cashew_account:
                             account_name = cashew_account
-                            print(f"   🏦 Using cashew_account from {detected_bank} config: '{account_name}'")
+                            print(f"    Using cashew_account from {detected_bank} config: '{account_name}'")
                         else:
-                            print(f"   ⚠️  No cashew_account in {detected_bank} config")
+                            print(f"   [WARNING]  No cashew_account in {detected_bank} config")
                     else:
-                        print(f"   ⚠️  Could not load config for {detected_bank}")
+                        print(f"   [WARNING]  Could not load config for {detected_bank}")
                 except Exception as e:
-                    print(f"   ⚠️  Error loading config for {detected_bank}: {e}")
+                    print(f"   [WARNING]  Error loading config for {detected_bank}: {e}")
         
         # Fallback to filename if config loading failed
         if account_name == 'Unknown':
             account_name = filename.replace('.csv', '').replace('_', ' ').replace('-', ' ').title()
-            print(f"   🏦 Using filename fallback: '{account_name}'")
+            print(f"    Using filename fallback: '{account_name}'")
         
         return account_name
     
@@ -349,20 +349,20 @@ class TransformationService:
     def _apply_standard_description_cleaning(self, data: list, raw_data: dict):
         """Apply bank-specific description cleaning to data"""
         print(f"🧹 Applying description cleaning...")
-        print(f"   📊 Data rows to clean: {len(data)}")
+        print(f"   [DATA] Data rows to clean: {len(data)}")
         
         # DEBUG: Print the bank_configs from the shared_transfer_config
-        # print(f"   🐞 DEBUG: self.shared_transfer_config.bank_configs: {self.shared_transfer_config.bank_configs}")
-        # print(f"   🐞 DEBUG: self.shared_transfer_config.list_configured_banks(): {self.shared_transfer_config.list_configured_banks()}")
-        # print(f"   🐞 DEBUG: self.shared_transfer_config.config_dir: {self.shared_transfer_config.config_dir}")
+        # print(f"    DEBUG: self.shared_transfer_config.bank_configs: {self.shared_transfer_config.bank_configs}")
+        # print(f"    DEBUG: self.shared_transfer_config.list_configured_banks(): {self.shared_transfer_config.list_configured_banks()}")
+        # print(f"    DEBUG: self.shared_transfer_config.config_dir: {self.shared_transfer_config.config_dir}")
 
         # DEBUG: Show sample data structure
         if data:
-            print(f"   📄 Sample row: {data[0]}")
+            print(f"    Sample row: {data[0]}")
         
         # Get CSV data list to determine bank types for each transaction
         csv_data_list = raw_data.get('csv_data_list', [])
-        print(f"   📂 CSV data list count: {len(csv_data_list)}")
+        print(f"    CSV data list count: {len(csv_data_list)}")
         
         # Track cleaning results
         cleaned_count = 0
@@ -372,13 +372,13 @@ class TransformationService:
             account = row.get('Account', '')
             bank_name = None
             
-            print(f"   🔍 Row {row_idx + 1}: Account='{account}', Title='{row.get('Title', '')}'")
+            print(f"    Row {row_idx + 1}: Account='{account}', Title='{row.get('Title', '')}'")
             
             # Find bank type based on Account name
             for csv_idx, csv_data in enumerate(csv_data_list):
                 bank_info = csv_data.get('bank_info', {})
                 detected_bank = bank_info.get('bank_name', bank_info.get('detected_bank'))
-                print(f"      📁 CSV {csv_idx}: detected_bank='{detected_bank}'")
+                print(f"       CSV {csv_idx}: detected_bank='{detected_bank}'")
                 
                 if detected_bank and detected_bank != 'unknown':
                     # Get cashew account name for this bank
@@ -386,13 +386,13 @@ class TransformationService:
                         bank_config = self.bank_config_manager.get_bank_config(detected_bank)
                         if bank_config and bank_config.has_section('bank_info'):
                             cashew_account = bank_config.get('bank_info', 'cashew_account', fallback=None)
-                            print(f"         🏦 Bank config cashew_account: '{cashew_account}'")
+                            print(f"          Bank config cashew_account: '{cashew_account}'")
                             if detected_bank and detected_bank != 'unknown':
                                 bank_name = detected_bank  # Use detected bank directly
-                                print(f"         ✅ MATCH! Using bank: {bank_name}")
+                                print(f"         [SUCCESS] MATCH! Using bank: {bank_name}")
                                 break  # Found our match
                     except Exception as e:
-                        print(f"         ⚠️  Error getting bank config: {e}")
+                        print(f"         [WARNING]  Error getting bank config: {e}")
                         continue
             
             if bank_name:
@@ -409,13 +409,13 @@ class TransformationService:
                     row['Title'] = cleaned_title
                     cleaned_count += 1
                 else:
-                    print(f"      ⚪ No change: '{original_title_for_row}'")
+                    print(f"       No change: '{original_title_for_row}'")
             else:
-                print(f"      ❌ No bank match for account: '{account}'")
+                print(f"      [ERROR]  No bank match for account: '{account}'")
         
-        print(f"   📊 Description cleaning summary:")
+        print(f"   [DATA] Description cleaning summary:")
         print(f"      🧹 Total rows cleaned: {cleaned_count}")
-        print(f"      🏦 Bank matches: {bank_matches}")
+        print(f"       Bank matches: {bank_matches}")
         
         return data
     
@@ -479,7 +479,7 @@ class TransformationService:
                     new_title = rule.get('set_description')
                     if new_title and current_title != new_title:
                         rule_name_display = rule.get('name', rule.get('set_description', 'Unnamed Rule')) # Get a display name for the rule
-                        print(f"      ✨ CONDITIONAL OVERRIDE (Row {row_idx + 1}, Bank: {bank_name_for_row}, Rule: {rule_name_display}): '{current_title}' → '{new_title}'")
+                        print(f"       CONDITIONAL OVERRIDE (Row {row_idx + 1}, Bank: {bank_name_for_row}, Rule: {rule_name_display}): '{current_title}' → '{new_title}'")
                         row['Title'] = new_title
                         conditional_changes_count += 1
                         break # Apply only the first matching conditional rule for this row
@@ -490,7 +490,7 @@ class TransformationService:
 
     def _apply_keyword_categorization(self, data: list, raw_data: dict) -> list:
         """Apply keyword-based categorization from .conf files using final descriptions."""
-        print(f"🏷️ Applying keyword-based categorization (post-cleaning)...")
+        print(f"️ Applying keyword-based categorization (post-cleaning)...")
         categorized_count = 0
         
         csv_data_list = raw_data.get('csv_data_list', [])
@@ -523,24 +523,24 @@ class TransformationService:
             if category:
                 # Log only if category changes or is newly set by this step
                 if row.get('Category') != category: 
-                    print(f"      🏷️ CATEGORIZED (Row {row_idx + 1}, Bank: {bank_name_for_row}): Desc='{description[:50]}...' → Category='{category}'")
+                    print(f"      ️ CATEGORIZED (Row {row_idx + 1}, Bank: {bank_name_for_row}): Desc='{description[:50]}...' → Category='{category}'")
                     row['Category'] = category
                     categorized_count += 1
-        print(f"   🏷️ Applied keyword categorization to {categorized_count} rows (post-cleaning).")
+        print(f"   ️ Applied keyword categorization to {categorized_count} rows (post-cleaning).")
         return data
 
     def _run_transfer_detection(self, data: list, raw_data: dict):
         """Run transfer detection on the processed data"""
-        print(f"🔍 Running transfer detection...")
-        print(f"   📊 Input data rows: {len(data)}")
+        print(f" Running transfer detection...")
+        print(f"   [DATA] Input data rows: {len(data)}")
         
         # DEBUG: Show sample data structure
         if data:
-            print(f"   📄 Sample row keys: {list(data[0].keys())}")
-            print(f"   📄 Sample row: {data[0]}")
+            print(f"    Sample row keys: {list(data[0].keys())}")
+            print(f"    Sample row: {data[0]}")
         
         # DEBUG: Show actual transaction descriptions for pattern matching
-        print(f"   🔍 DEBUG: Sample transaction descriptions for pattern matching:")
+        print(f"    DEBUG: Sample transaction descriptions for pattern matching:")
         for i, row in enumerate(data[:10]):  # Show first 10 transactions
             title = row.get('Title', '')
             amount = row.get('Amount', '')
@@ -558,7 +558,7 @@ class TransformationService:
                 accounts[account] = []
             accounts[account].append(row)
         
-        print(f"   🏦 Accounts found: {list(accounts.keys())}")
+        print(f"    Accounts found: {list(accounts.keys())}")
         
         # Create csv_data_list format for transfer detector with bank info
         csv_data_items = raw_data.get('csv_data_list', [])
@@ -589,7 +589,7 @@ class TransformationService:
                 'template_config': {}
             }
             csv_data_list.append(csv_data)
-            print(f"      📁 Account '{account}': {len(rows)} transactions")
+            print(f"       Account '{account}': {len(rows)} transactions")
             
             # DEBUG: Show sample transactions from each account
             print(f"         Sample transactions from {account}:")
@@ -599,17 +599,17 @@ class TransformationService:
                 date = row.get('Date', '')
                 print(f"           {j+1}. Date='{date}', Amount='{amount}', Title='{title}'")
         
-        print(f"   📂 Prepared {len(csv_data_list)} CSV data items for transfer detection")
+        print(f"    Prepared {len(csv_data_list)} CSV data items for transfer detection")
         
         try:
             # Run transfer detection
-            print(f"   🔍 Calling TransferDetector.detect_transfers()...")
+            print(f"    Calling TransferDetector.detect_transfers()...")
             detection_result = self.transfer_detector.detect_transfers(csv_data_list)
             
-            print(f"   📊 Transfer detection results:")
-            print(f"      📋 Summary: {detection_result.get('summary', {})}")
-            print(f"      🔄 Transfer pairs: {len(detection_result.get('transfers', []))}")
-            print(f"      💭 Potential transfers: {len(detection_result.get('potential_transfers', []))}")
+            print(f"   [DATA] Transfer detection results:")
+            print(f"       Summary: {detection_result.get('summary', {})}")
+            print(f"       Transfer pairs: {len(detection_result.get('transfers', []))}")
+            print(f"       Potential transfers: {len(detection_result.get('potential_transfers', []))}")
             
             return {
                 "summary": detection_result.get('summary', {}),
@@ -620,9 +620,9 @@ class TransformationService:
                 "flagged_transactions": detection_result.get('flagged_transactions', []) # Ensure these are also passed through
             }
         except Exception as e:
-            print(f"⚠️ Transfer detection error: {e}")
+            print(f"[WARNING] Transfer detection error: {e}")
             import traceback
-            print(f"📖 Transfer detection traceback: {traceback.format_exc()}")
+            print(f" Transfer detection traceback: {traceback.format_exc()}")
             return {
                 "summary": {
                     "transfer_pairs_found": 0,
@@ -640,7 +640,7 @@ class TransformationService:
     
     def _apply_transfer_specific_categorization(self, data: list, transfer_analysis: dict) -> list:
         """Apply configured category to detected transfers and update notes."""
-        print(f"🏷️ Applying transfer categorization...")
+        print(f"️ Applying transfer categorization...")
         
         transfer_pairs = transfer_analysis.get('transfers', [])
         # Get the configured category for transfers from the shared ConfigurationManager
@@ -693,5 +693,5 @@ class TransformationService:
                 
                 matches_applied += 1
         
-        print(f"   ✅ Applied '{transfer_category}' category and updated notes for {matches_applied} transactions.")
+        print(f"   [SUCCESS] Applied '{transfer_category}' category and updated notes for {matches_applied} transactions.")
         return data

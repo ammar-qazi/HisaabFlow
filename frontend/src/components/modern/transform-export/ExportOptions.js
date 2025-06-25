@@ -10,7 +10,7 @@ function ExportOptions({ transformedData, exportData }) {
   const [selectedFormat, setSelectedFormat] = useState('csv'); // Default to CSV
 
   // Add debugging and handle multiple data structures
-  console.log('🔍 ExportOptions Debug:', {
+  console.log(' ExportOptions Debug:', {
     transformedData,
     transformedDataType: Array.isArray(transformedData) ? 'array' : typeof transformedData,
     transformedDataLength: Array.isArray(transformedData) ? transformedData.length : 'not array'
@@ -46,7 +46,7 @@ function ExportOptions({ transformedData, exportData }) {
     }
   }
 
-  console.log('📊 ExportOptions Computed:', { isDataAvailable });
+  console.log('[DATA] ExportOptions Computed:', { isDataAvailable });
 
   return (
     <Card style={{ padding: theme.spacing.xl }}>

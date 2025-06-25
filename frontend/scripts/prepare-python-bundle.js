@@ -19,7 +19,7 @@ class PythonBundlePreparator {
   }
 
   async preparePythonBundle() {
-    console.log('🐍 Preparing Python runtime bundle with python-build-standalone...');
+    console.log(' Preparing Python runtime bundle with python-build-standalone...');
     
     try {
       // Clean previous bundle
@@ -34,17 +34,17 @@ class PythonBundlePreparator {
       // Install dependencies
       await this.installDependencies();
       
-      console.log('✅ Python bundle prepared successfully');
+      console.log('[SUCCESS] Python bundle prepared successfully');
       return true;
       
     } catch (error) {
-      console.error('❌ Failed to prepare Python bundle:', error);
+      console.error('[ERROR]  Failed to prepare Python bundle:', error);
       return false;
     }
   }
 
   async downloadPortablePython() {
-    console.log(`📦 Downloading portable Python for ${this.platform}-${this.arch}...`);
+    console.log(` Downloading portable Python for ${this.platform}-${this.arch}...`);
     
     const downloadUrl = this.getPythonDownloadUrl();
     const fileName = path.basename(new URL(downloadUrl).pathname);
@@ -53,13 +53,13 @@ class PythonBundlePreparator {
     console.log(`⬇️ Downloading: ${downloadUrl}`);
     await this.downloadFile(downloadUrl, downloadPath);
     
-    console.log('📂 Extracting Python bundle...');
+    console.log(' Extracting Python bundle...');
     await this.extractPythonBundle(downloadPath);
     
     // Clean up download file
     fs.unlinkSync(downloadPath);
     
-    console.log('✅ Portable Python setup complete');
+    console.log('[SUCCESS] Portable Python setup complete');
   }
 
   getPythonDownloadUrl() {
@@ -103,7 +103,7 @@ class PythonBundlePreparator {
   }
 
   async installDependencies() {
-    console.log('📦 Installing Python dependencies...');
+    console.log(' Installing Python dependencies...');
     
     const requirementsPath = path.join(__dirname, '../../backend/requirements.txt');
     if (!fs.existsSync(requirementsPath)) {
@@ -115,26 +115,26 @@ class PythonBundlePreparator {
     // Verify Python works
     console.log('🧪 Testing portable Python...');
     const testResult = await this.runCommand(pythonPath, ['--version']);
-    console.log(`✅ Python test: ${testResult.stdout.trim()}`);
+    console.log(`[SUCCESS] Python test: ${testResult.stdout.trim()}`);
     
     // Install pip if not present (shouldn't be needed with python-build-standalone)
     try {
       await this.runCommand(pythonPath, ['-m', 'pip', '--version']);
-      console.log('✅ pip is available');
+      console.log('[SUCCESS] pip is available');
     } catch (error) {
-      console.log('📦 Installing pip...');
+      console.log(' Installing pip...');
       await this.installPip(pythonPath);
     }
     
     // Install dependencies
-    console.log('📦 Installing backend dependencies...');
+    console.log(' Installing backend dependencies...');
     await this.runCommand(pythonPath, [
       '-m', 'pip', 'install', '-r', requirementsPath,
       '--only-binary=:all:',  // Prefer binary wheels
       '--no-cache-dir'        // Don't cache in portable environment
     ]);
     
-    console.log('✅ Dependencies installed');
+    console.log('[SUCCESS] Dependencies installed');
   }
 
   async installPip(pythonPath) {
@@ -147,7 +147,7 @@ class PythonBundlePreparator {
     
     // Clean up
     fs.unlinkSync(getPipPath);
-    console.log('✅ pip installed');
+    console.log('[SUCCESS] pip installed');
   }
 
   getPythonExecutable() {
@@ -190,7 +190,7 @@ class PythonBundlePreparator {
           downloadedSize += chunk.length;
           if (totalSize) {
             const percent = Math.round((downloadedSize / totalSize) * 100);
-            process.stdout.write(`\r📊 Progress: ${percent}% (${Math.round(downloadedSize / 1024 / 1024)}MB)`);
+            process.stdout.write(`\r[DATA] Progress: ${percent}% (${Math.round(downloadedSize / 1024 / 1024)}MB)`);
           }
         });
         
@@ -212,7 +212,7 @@ class PythonBundlePreparator {
 
   async runCommand(command, args, options = {}) {
     return new Promise((resolve, reject) => {
-      console.log(`🔧 Running: ${command} ${args.join(' ')}`);
+      console.log(` Running: ${command} ${args.join(' ')}`);
       
       const process = spawn(command, args, {
         stdio: 'pipe',
@@ -252,11 +252,11 @@ if (require.main === module) {
   const preparator = new PythonBundlePreparator();
   preparator.preparePythonBundle()
     .then(() => {
-      console.log('🎉 Python bundle preparation complete!');
+      console.log(' Python bundle preparation complete!');
       process.exit(0);
     })
     .catch((error) => {
-      console.error('💥 Bundle preparation failed:', error);
+      console.error(' Bundle preparation failed:', error);
       process.exit(1);
     });
 }

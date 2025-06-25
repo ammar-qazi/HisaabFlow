@@ -23,7 +23,7 @@ try:
     from backend.api.middleware import setup_logging_middleware
     ROUTERS_AVAILABLE = True
 except ImportError as e:
-    print(f"⚠️  Router import failed: {e}")
+    print(f"[WARNING]  Router import failed: {e}")
     ROUTERS_AVAILABLE = False
     config_router = None
     file_router = None
@@ -54,9 +54,9 @@ else:
     # Basic logging middleware fallback
     @app.middleware("http")
     async def log_requests(request, call_next):
-        print(f"🔍 {request.method} {request.url}")
+        print(f" {request.method} {request.url}")
         response = await call_next(request)
-        print(f"📤 Response: {response.status_code}")
+        print(f"[OUT] Response: {response.status_code}")
         return response
 
 # Register API routers if available
@@ -75,7 +75,7 @@ if ROUTERS_AVAILABLE:
     # Add v3 compatibility routes for legacy frontend
     app.include_router(config_router, prefix="/api/v3", tags=["legacy-v3"])
 else:
-    print("⚠️  No API routers available - using minimal endpoints only")
+    print("[WARNING]  No API routers available - using minimal endpoints only")
 
 @app.get("/")
 async def root():
@@ -98,14 +98,14 @@ async def health_check():
 
 # All routers loaded successfully - no fallback endpoints needed
 if not ROUTERS_AVAILABLE:
-    print("⚠️  Routers not available - this should not happen after import fixes")
+    print("[WARNING]  Routers not available - this should not happen after import fixes")
 else:
-    print("✅ All API routers loaded successfully - complete functionality available")
+    print("[SUCCESS] All API routers loaded successfully - complete functionality available")
 
 # Exception handler
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
-    print(f"❌ Unhandled exception: {str(exc)}")
+    print(f"[ERROR]  Unhandled exception: {str(exc)}")
     return JSONResponse(
         status_code=500,
         content={"detail": f"Internal server error: {str(exc)}"}
@@ -114,12 +114,12 @@ async def global_exception_handler(request, exc):
 if __name__ == "__main__":
     import uvicorn
     
-    print("\n🌟 Starting HisaabFlow Configuration-Based FastAPI Server...")
-    print("   📡 Backend: http://127.0.0.1:8000")
-    print("   📋 API docs: http://127.0.0.1:8000/docs")
-    print("   ⚙️  Architecture: Modular API routers")
-    print("   📏 Main file: Under 300 lines")
-    print("   🎯 Mode: Nuitka compiled executable")
+    print("\n Starting HisaabFlow Configuration-Based FastAPI Server...")
+    print("    Backend: http://127.0.0.1:8000")
+    print("    API docs: http://127.0.0.1:8000/docs")
+    print("   ️  Architecture: Modular API routers")
+    print("    Main file: Under 300 lines")
+    print("   Mode: Nuitka compiled executable")
     print("   ⏹️  Press Ctrl+C to stop")
     print("")
     
@@ -142,5 +142,5 @@ if __name__ == "__main__":
             log_level="info"
         )
     except Exception as e:
-        print(f"❌ Failed to start server: {e}")
+        print(f"[ERROR]  Failed to start server: {e}")
         sys.exit(1)

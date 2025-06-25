@@ -36,20 +36,20 @@ class UnifiedCSVParser:
         Returns:
             dict: Preview result compatible with existing PreviewService
         """
-        print(f"🔍 UnifiedCSVParser preview: {file_path}")
+        print(f" UnifiedCSVParser preview: {file_path}")
         
         try:
             # Step 1: Detect encoding
             if encoding is None:
                 encoding_result = self.encoding_detector.detect_encoding(file_path)
                 encoding = encoding_result['encoding']
-                print(f"   📝 Detected encoding: {encoding}")
+                print(f"    Detected encoding: {encoding}")
             else:
-                print(f"   📝 Using provided encoding: {encoding}")
+                print(f"    Using provided encoding: {encoding}")
             
             # Step 2: Detect dialect
             dialect_result = self.dialect_detector.detect_dialect(file_path, encoding)
-            print(f"   🎯 Detected dialect: delimiter='{dialect_result['delimiter']}', quoting={dialect_result['quoting']}")
+            print(f"   Detected dialect: delimiter='{dialect_result['delimiter']}', quoting={dialect_result['quoting']}")
             
             # Step 3: Parse with strategies
             parsing_result = self.parsing_strategies.parse_with_fallbacks(
@@ -62,7 +62,7 @@ class UnifiedCSVParser:
                     'error': parsing_result['error']
                 }
             
-            print(f"   ✅ Parsing succeeded with {parsing_result['strategy_used']} strategy")
+            print(f"   [SUCCESS] Parsing succeeded with {parsing_result['strategy_used']} strategy")
             
             # Step 4: Process data
             processing_result = self.data_processor.process_raw_data(
@@ -93,7 +93,7 @@ class UnifiedCSVParser:
             }
             
         except Exception as e:
-            print(f"❌ Preview failed: {str(e)}")
+            print(f"[ERROR]  Preview failed: {str(e)}")
             return {
                 'success': False,
                 'error': str(e)
@@ -111,7 +111,7 @@ class UnifiedCSVParser:
         Returns:
             dict: Complete parsing result
         """
-        print(f"📊 UnifiedCSVParser full parse: {file_path}")
+        print(f"[DATA] UnifiedCSVParser full parse: {file_path}")
         
         try:
             # Extract options
@@ -174,7 +174,7 @@ class UnifiedCSVParser:
         Returns:
             dict: Structure detection result
         """
-        print(f"🔍 Structure detection: {file_path}")
+        print(f" Structure detection: {file_path}")
         
         try:
             # Detect encoding if needed
@@ -223,7 +223,7 @@ class UnifiedCSVParser:
         Returns:
             dict: Validation result
         """
-        print(f"✅ CSV validation: {file_path}")
+        print(f"[SUCCESS] CSV validation: {file_path}")
         
         try:
             # Get structure analysis
@@ -270,7 +270,7 @@ class UnifiedCSVParser:
         Returns:
             dict: Data range detection result
         """
-        print(f"🔍 Data range detection: {file_path}")
+        print(f" Data range detection: {file_path}")
         
         try:
             # Use structure detection to find header row

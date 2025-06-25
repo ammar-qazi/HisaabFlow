@@ -28,11 +28,11 @@ class PreviewService:
         Returns:
             dict: Preview result with bank detection info
         """
-        print(f"🕵️‍♂️ Preview request for file: {filename}")
+        print(f"️‍️ Preview request for file: {filename}")
         
         try:
             # Step 1: Detect bank first for header detection
-            print(f"🔍 Step 1: Detecting bank for header detection...")
+            print(f" Step 1: Detecting bank for header detection...")
             
             # If encoding is not provided by the user, it will be None,
             # allowing UnifiedCSVParser to auto-detect it.
@@ -42,7 +42,7 @@ class PreviewService:
             # and the filename is known to often have other encodings (e.g., Forint Bank),
             # force auto-detection by setting encoding to None.
             if initial_encoding_to_use == "utf-8" and filename.startswith("11600006-"):
-                print(f"⚠️ [PreviewService] Forcing encoding auto-detection for Forint Bank pattern file '{filename}' due to 'utf-8' input potentially masking true encoding.")
+                print(f"[WARNING] [PreviewService] Forcing encoding auto-detection for Forint Bank pattern file '{filename}' due to 'utf-8' input potentially masking true encoding.")
                 initial_encoding_to_use = None
             
             # Read first few lines for bank detection
@@ -74,14 +74,14 @@ class PreviewService:
             content_for_detection = '\n'.join(content_lines)
             # Detect bank using filename, content, and the headers extracted by the parser at the initial header_row (0)
             bank_detection = self.bank_detector.detect_bank(filename, content_for_detection, headers_for_detection)
-            print(f"🏦 Detected bank: {bank_detection.bank_name} (confidence: {bank_detection.confidence:.2f})")
+            print(f" Detected bank: {bank_detection.bank_name} (confidence: {bank_detection.confidence:.2f})")
             
             # Step 2: Use bank-specific header detection if available
             detected_header_row = header_row
             header_detection_info = None
             
             if bank_detection.bank_name != 'unknown' and bank_detection.confidence > 0.5:
-                print(f"🔍 Step 2: Using bank-specific header detection for {bank_detection.bank_name}")
+                print(f" Step 2: Using bank-specific header detection for {bank_detection.bank_name}")
                 header_detection_result = self.bank_config_manager.detect_header_row(
                     file_path, bank_detection.bank_name, effective_encoding
                 )
@@ -89,12 +89,12 @@ class PreviewService:
                 if header_detection_result['success']:
                     detected_header_row = header_detection_result['header_row']
                     header_detection_info = header_detection_result
-                    print(f"📋 Bank-specific header detection: row {detected_header_row}")
+                    print(f" Bank-specific header detection: row {detected_header_row}")
                 else:
-                    print(f"⚠️ Bank-specific header detection failed: {header_detection_result.get('error', 'Unknown error')}")
+                    print(f"[WARNING] Bank-specific header detection failed: {header_detection_result.get('error', 'Unknown error')}")
             
             # Step 3: Generate enhanced preview with proper headers
-            print(f"🔍 Step 3: Generating enhanced preview with header_row={detected_header_row}")
+            print(f" Step 3: Generating enhanced preview with header_row={detected_header_row}")
             
             # Use the detected header row for the final preview
             print(f"ℹ️ [PreviewService] Calling unified_parser.preview_csv for final preview. Effective header_row: {detected_header_row}. Effective encoding: {effective_encoding}. Detected bank: {bank_detection.bank_name}")
@@ -117,13 +117,13 @@ class PreviewService:
                 result['suggested_header_row'] = header_detection_info['header_row']
                 result['suggested_data_start_row'] = header_detection_info['data_start_row']
             
-            print(f"✅ Enhanced preview completed with {len(result['column_names'])} columns")
+            print(f"[SUCCESS] Enhanced preview completed with {len(result['column_names'])} columns")
             return result
             
         except Exception as e:
-            print(f"❌ Preview exception: {str(e)}")
+            print(f"[ERROR]  Preview exception: {str(e)}")
             import traceback
-            print(f"📚 Traceback: {traceback.format_exc()}")
+            print(f" Traceback: {traceback.format_exc()}")
             return {
                 'success': False,
                 'error': str(e)
@@ -140,7 +140,7 @@ class PreviewService:
         Returns:
             dict: Data range detection result
         """
-        print(f"🔍 Detect range request for file: {file_path}")
+        print(f" Detect range request for file: {file_path}")
         
         try:
             # If encoding is None, UnifiedCSVParser will auto-detect.
@@ -156,7 +156,7 @@ class PreviewService:
                 }
             return result
         except Exception as e:
-            print(f"❌ Detect range exception: {str(e)}")
+            print(f"[ERROR]  Detect range exception: {str(e)}")
             return {
                 'success': False,
                 'error': str(e)

@@ -3,7 +3,7 @@ import React from 'react';
 function ParsedDataSummary({ parsedResults }) {
   return (
     <div className="parsed-summary">
-      <h4>📊 Parsing Summary</h4>
+      <h4>[DATA] Parsing Summary</h4>
       {parsedResults.length > 0 ? (
         <div className="summary-grid">
           {parsedResults.map((result, index) => (
@@ -11,8 +11,8 @@ function ParsedDataSummary({ parsedResults }) {
               <h5>{result.filename}</h5>
               {result.parse_result ? (
                 <>
-                  <p>✅ {result.parse_result.row_count || 0} transactions</p>
-                  <p>📋 {result.parse_result.headers?.length || 0} columns</p>
+                  <p>[SUCCESS] {result.parse_result.row_count || 0} transactions</p>
+                  <p> {result.parse_result.headers?.length || 0} columns</p>
                   {!result.parse_result.headers && (
                     <p className="error">Warning: No headers found</p>
                   )}
@@ -35,7 +35,7 @@ function ParsedDataTabs({ parsedResults, activeTab }) {
     <div className="parsed-data-tabs">
       {parsedResults.map((result, index) => (
         <div key={index} className={`parsed-tab ${activeTab === index ? 'active' : 'hidden'}`}>
-          <h5>📋 {result.filename} - Parsed Data</h5>
+          <h5> {result.filename} - Parsed Data</h5>
           {result.parse_result && result.parse_result.headers && result.parse_result.data ? (
             <table className="data-table">
               <thead>
@@ -89,7 +89,7 @@ function DataReviewStep({
           onClick={transformAllFiles}
           disabled={loading}
         >
-          {loading ? '🔄 Transforming...' : '🔄 Transform & Detect Transfers'}
+          {loading ? ' Transforming...' : ' Transform & Detect Transfers'}
         </button>
       </div>
     </div>

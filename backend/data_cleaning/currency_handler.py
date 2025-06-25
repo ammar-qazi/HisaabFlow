@@ -43,19 +43,19 @@ class CurrencyHandler:
         Returns:
             List[Dict]: Data with currency column added if needed
         """
-        print(f"   💱 Step 3: Adding currency column if needed")
+        print(f"    Step 3: Adding currency column if needed")
         
         if not data:
             return []
         
         # Check if currency column already exists
         if self._has_currency_column(data):
-            print(f"      ✅ Currency column already exists, skipping...")
+            print(f"      [SUCCESS] Currency column already exists, skipping...")
             return data
         
         # Determine default currency
         default_currency = self._determine_default_currency(template_config)
-        print(f"      💰 Adding currency column with default: {default_currency}")
+        print(f"       Adding currency column with default: {default_currency}")
         
         # Add currency column to all rows
         currency_added_data = []
@@ -64,7 +64,7 @@ class CurrencyHandler:
             new_row['Currency'] = default_currency  # Use Title case for consistency
             currency_added_data.append(new_row)
         
-        print(f"      ✅ Currency column added: {default_currency}")
+        print(f"      [SUCCESS] Currency column added: {default_currency}")
         return currency_added_data
     
     def _has_currency_column(self, data: List[Dict]) -> bool:
@@ -128,4 +128,4 @@ class CurrencyHandler:
             currency: Currency code
         """
         self.currency_mappings[bank_name.lower()] = currency.upper()
-        print(f"      ➕ Added currency mapping: {bank_name} → {currency}")
+        print(f"       Added currency mapping: {bank_name} → {currency}")

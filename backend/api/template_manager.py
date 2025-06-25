@@ -42,15 +42,15 @@ class TemplateManager:
             
         self.enhanced_config_manager = EnhancedConfigurationManager(self.config_dir)
         
-        print(f"🔧 TemplateManager (config-based) initialized")
-        print(f"⚙️  Config dir: {config_dir}")
-        print(f"🏦 Available configs: {self.enhanced_config_manager.list_configured_banks()}")
-        print(f"📢 Templates are now configuration-based - no more .json files needed!")
+        print(f" TemplateManager (config-based) initialized")
+        print(f"️  Config dir: {config_dir}")
+        print(f" Available configs: {self.enhanced_config_manager.list_configured_banks()}")
+        print(f" Templates are now configuration-based - no more .json files needed!")
     
     def save_template(self, request: SaveTemplateRequest) -> Dict[str, any]:
         """Save parsing template (now saves as config suggestion)"""
-        print(f"💡 Template save requested: {request.template_name}")
-        print(f"💡 Consider creating a config file instead: configs/{request.template_name.lower()}.conf")
+        print(f" Template save requested: {request.template_name}")
+        print(f" Consider creating a config file instead: configs/{request.template_name.lower()}.conf")
         
         # For now, return success but suggest using configs
         return {
@@ -85,20 +85,20 @@ class TemplateManager:
     
     def load_template(self, template_name: str) -> Dict[str, any]:
         """Load configuration (replaces template loading)"""
-        print(f"🔍 Loading template/config: {template_name}")
-        print(f"🔍 DEBUG: Input template_name = '{template_name}' (type: {type(template_name)})")
+        print(f" Loading template/config: {template_name}")
+        print(f" DEBUG: Input template_name = '{template_name}' (type: {type(template_name)})")
         
         try:
             # Find matching bank configuration
-            print(f"🔍 DEBUG: Searching for matching bank config for: '{template_name}'")
+            print(f" DEBUG: Searching for matching bank config for: '{template_name}'")
             bank_name = self._find_matching_bank_config(template_name)
-            print(f"🔍 DEBUG: Found bank_name = '{bank_name}'")
+            print(f" DEBUG: Found bank_name = '{bank_name}'")
             
             if bank_name:
-                print(f"✅ Found matching bank config: {bank_name}")
-                print(f"🔍 DEBUG: Getting config for bank_name = '{bank_name}'")
+                print(f"[SUCCESS] Found matching bank config: {bank_name}")
+                print(f" DEBUG: Getting config for bank_name = '{bank_name}'")
                 config = self.enhanced_config_manager.get_bank_config(bank_name)
-                print(f"🔍 DEBUG: Retrieved config = {config is not None}")
+                print(f" DEBUG: Retrieved config = {config is not None}")
                 
                 # Convert to template-style format for backward compatibility
                 template_style_config = self._convert_config_to_template_format(config)
@@ -110,13 +110,13 @@ class TemplateManager:
                     "bank_name": bank_name,
                     "message": f"Loaded from config: {bank_name}.conf"
                 }
-                print(f"🔍 DEBUG: Returning template result with bank_name = '{result['bank_name']}'")
+                print(f" DEBUG: Returning template result with bank_name = '{result['bank_name']}'")
                 return result
             
             # No matching config found
-            print(f"❌ No matching config found for: {template_name}")
+            print(f"[ERROR]  No matching config found for: {template_name}")
             available_configs = self.enhanced_config_manager.list_configured_banks()
-            print(f"🏦 Available configs: {available_configs}")
+            print(f" Available configs: {available_configs}")
             
             raise HTTPException(
                 status_code=404, 
@@ -126,40 +126,40 @@ class TemplateManager:
         except HTTPException:
             raise
         except Exception as e:
-            print(f"❌ Config load error: {str(e)}")
+            print(f"[ERROR]  Config load error: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Error loading configuration: {str(e)}")
     
     def _find_matching_bank_config(self, template_name: str) -> Optional[str]:
         """Find matching bank configuration for template name"""
-        print(f"🔍 DEBUG: _find_matching_bank_config called with: '{template_name}'")
+        print(f" DEBUG: _find_matching_bank_config called with: '{template_name}'")
         template_name_lower = template_name.lower()
-        print(f"🔍 DEBUG: template_name_lower = '{template_name_lower}'")
+        print(f" DEBUG: template_name_lower = '{template_name_lower}'")
         
         available_banks = self.enhanced_config_manager.list_configured_banks()
-        print(f"🔍 DEBUG: Available banks = {available_banks}")
+        print(f" DEBUG: Available banks = {available_banks}")
         
         # Direct name match first
-        print(f"🔍 DEBUG: Trying direct name match...")
+        print(f" DEBUG: Trying direct name match...")
         for bank_name in available_banks:
-            print(f"🔍 DEBUG: Checking direct match: '{bank_name.lower()}' == '{template_name_lower}'")
+            print(f" DEBUG: Checking direct match: '{bank_name.lower()}' == '{template_name_lower}'")
             if bank_name.lower() == template_name_lower:
-                print(f"🔍 DEBUG: Direct match found: {bank_name}")
+                print(f" DEBUG: Direct match found: {bank_name}")
                 return bank_name
         
         # Pattern matching - check if template name contains bank patterns
-        print(f"🔍 DEBUG: Trying pattern matching...")
+        print(f" DEBUG: Trying pattern matching...")
         for bank_name in available_banks:
             bank_config = self.enhanced_config_manager.get_bank_config(bank_name)
             if bank_config:
-                print(f"🔍 DEBUG: Bank {bank_name} patterns: {bank_config.file_patterns}")
+                print(f" DEBUG: Bank {bank_name} patterns: {bank_config.file_patterns}")
                 for pattern in bank_config.file_patterns:
-                    print(f"🔍 DEBUG: Checking pattern: '{pattern.lower()}' in '{template_name_lower}'")
+                    print(f" DEBUG: Checking pattern: '{pattern.lower()}' in '{template_name_lower}'")
                     if pattern.lower() in template_name_lower:
-                        print(f"🔍 DEBUG: Pattern match found: {bank_name} (pattern: {pattern})")
+                        print(f" DEBUG: Pattern match found: {bank_name} (pattern: {pattern})")
                         return bank_name
         
         # Fuzzy matching for common template names
-        print(f"🔍 DEBUG: Trying fuzzy matching...")
+        print(f" DEBUG: Trying fuzzy matching...")
         fuzzy_matches = {
             'wise': 'wise_usd',
             'transferwise': 'wise_usd', 
@@ -169,19 +169,19 @@ class TemplateManager:
             'nayapay_universal': 'nayapay',
             'nayapay_cleaned': 'nayapay'
         }
-        print(f"🔍 DEBUG: Fuzzy match dictionary: {fuzzy_matches}")
+        print(f" DEBUG: Fuzzy match dictionary: {fuzzy_matches}")
         
         for fuzzy_name, bank_name in fuzzy_matches.items():
-            print(f"🔍 DEBUG: Checking fuzzy: '{fuzzy_name}' in '{template_name_lower}'")
+            print(f" DEBUG: Checking fuzzy: '{fuzzy_name}' in '{template_name_lower}'")
             if fuzzy_name in template_name_lower:
-                print(f"🔍 DEBUG: Fuzzy match found for '{fuzzy_name}' -> '{bank_name}'")
+                print(f" DEBUG: Fuzzy match found for '{fuzzy_name}' -> '{bank_name}'")
                 if bank_name in available_banks:
-                    print(f"🔍 DEBUG: Fuzzy match confirmed: {bank_name}")
+                    print(f" DEBUG: Fuzzy match confirmed: {bank_name}")
                     return bank_name
                 else:
-                    print(f"🔍 DEBUG: Fuzzy match '{bank_name}' not in available banks")
+                    print(f" DEBUG: Fuzzy match '{bank_name}' not in available banks")
         
-        print(f"🔍 DEBUG: No match found for '{template_name}'")
+        print(f" DEBUG: No match found for '{template_name}'")
         return None
     
     def _convert_config_to_template_format(self, config) -> Dict[str, any]:

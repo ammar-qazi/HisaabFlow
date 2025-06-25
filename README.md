@@ -75,7 +75,7 @@ chmod +x start_app.sh
 ```
 
 The start script will:
-1. ✅ Check system requirements
+1. [SUCCESS] Check system requirements
 2. 🔧 Set up Python virtual environment
 3. 📦 Install all dependencies automatically
 4. 🚀 Launch both backend and frontend
@@ -219,12 +219,12 @@ HisaabFlow currently includes configurations for:
 
 | Bank | Currency | Status | Sample Format |
 |------|----------|--------|---------------|
-| **Wise (TransferWise)** | USD | ✅ Full Support | `statement_20141677_USD_2025-01-04_2025-06-02.csv` |
-| **Wise (TransferWise)** | EUR | ✅ Full Support | `statement_23243482_EUR_2025-01-04_2025-06-02.csv` |
-| **Wise (TransferWise)** | PKR | ✅ Full Support | N/A |
-| **Wise (TransferWise)** | HUF | ✅ Full Support | N/A |
-| **NayaPay** | PKR | ✅ Full Support | `m-02-2025.csv` |
-| **Erste Bank** | HUF | ✅ Full Support | `12345678-00000000-87654321_2025-06-01_2025-06-30.csv` |
+| **Wise (TransferWise)** | USD | [SUCCESS] Full Support | `statement_20141677_USD_2025-01-04_2025-06-02.csv` |
+| **Wise (TransferWise)** | EUR | [SUCCESS] Full Support | `statement_23243482_EUR_2025-01-04_2025-06-02.csv` |
+| **Wise (TransferWise)** | PKR | [SUCCESS] Full Support | N/A |
+| **Wise (TransferWise)** | HUF | [SUCCESS] Full Support | N/A |
+| **NayaPay** | PKR | [SUCCESS] Full Support | `m-02-2025.csv` |
+| **Erste Bank** | HUF | [SUCCESS] Full Support | `12345678-00000000-87654321_2025-06-01_2025-06-30.csv` |
 | **Revolut** | Multiple | 🚧 Coming Next | In development |
 
 **Planning to add your bank?** HisaabFlow's flexible .conf system is designed to support new banks, though it's currently experimental as each bank format has required adjustments to the universal parsing system so far.

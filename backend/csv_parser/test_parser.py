@@ -20,9 +20,9 @@ def test_unified_parser():
     result = parser.preview_csv(test_file, max_rows=10)
     
     if result['success']:
-        print(f"✅ SUCCESS: Parsed {result['total_rows']} rows, {result['total_columns']} columns")
-        print(f"📋 Headers: {result['column_names']}")
-        print(f"🔍 Detection info:")
+        print(f"[SUCCESS] SUCCESS: Parsed {result['total_rows']} rows, {result['total_columns']} columns")
+        print(f" Headers: {result['column_names']}")
+        print(f" Detection info:")
         detection = result.get('detection_info', {})
         if 'encoding' in detection:
             print(f"   Encoding: {detection['encoding']['encoding']} (confidence: {detection['encoding']['confidence']:.2f})")
@@ -30,19 +30,19 @@ def test_unified_parser():
             d = detection['dialect']
             print(f"   Dialect: delimiter='{d['delimiter']}', quoting={d['quoting']}, confidence={d['confidence']:.2f}")
         
-        print(f"📊 Sample data:")
+        print(f"[DATA] Sample data:")
         for i, row in enumerate(result['preview_data'][:3]):
             print(f"   Row {i}: {row}")
     else:
-        print(f"❌ FAILED: {result['error']}")
+        print(f"[ERROR]  FAILED: {result['error']}")
     
     print("\n2. Testing structure detection")
     structure = parser.detect_structure(test_file)
     if structure['success']:
-        print(f"✅ Structure detected successfully")
+        print(f"[SUCCESS] Structure detected successfully")
         print(f"   Suggested header row: {structure['structure']['suggested_header_row']}")
     else:
-        print(f"❌ Structure detection failed: {structure['error']}")
+        print(f"[ERROR]  Structure detection failed: {structure['error']}")
 
 if __name__ == "__main__":
     test_unified_parser()

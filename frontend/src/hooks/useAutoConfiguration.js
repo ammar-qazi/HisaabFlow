@@ -17,7 +17,7 @@ export const useAutoConfiguration = () => {
    */
   const updateBankConfigMapping = (configurations, rawBankNames) => {
     if (!configurations || !rawBankNames || !Array.isArray(configurations) || !Array.isArray(rawBankNames)) {
-      console.log('⚠️ Missing or invalid configurations/rawBankNames for mapping update');
+      console.log('[WARNING] Missing or invalid configurations/rawBankNames for mapping update');
       return;
     }
 
@@ -27,12 +27,12 @@ export const useAutoConfiguration = () => {
     rawBankNames.forEach((bankName, index) => {
       if (configurations[index]) {
         mapping[bankName] = configurations[index];
-        console.log(`🗺️ Bank mapping: '${bankName}' → '${configurations[index]}'`);
+        console.log(`️ Bank mapping: '${bankName}' → '${configurations[index]}'`);
       }
     });
     
     setBankConfigMapping(mapping);
-    console.log('🗺️ Updated bank config mapping:', mapping);
+    console.log('️ Updated bank config mapping:', mapping);
   };
 
   /**

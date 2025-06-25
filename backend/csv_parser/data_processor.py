@@ -52,7 +52,7 @@ class DataProcessor:
                 'processing_info': dict
             }
         """
-        print(f"📊 Processing {len(raw_rows)} raw rows")
+        print(f"[DATA] Processing {len(raw_rows)} raw rows")
         
         try:
             if not raw_rows:
@@ -66,20 +66,20 @@ class DataProcessor:
             
             # Normalize column counts across all rows and clean headers
             normalized_rows = normalize_column_count(raw_rows)
-            print(f"   📏 Normalized to {len(normalized_rows[0]) if normalized_rows else 0} columns per row")
+            print(f"    Normalized to {len(normalized_rows[0]) if normalized_rows else 0} columns per row")
             
             # Extract headers using helper
             headers_result = _extract_headers(normalized_rows, header_row, self.header_indicators)
             headers = headers_result['headers']
             actual_header_row = headers_result['header_row_used']
             
-            print(f"   📋 Extracted {len(headers)} headers from row {actual_header_row}")
+            print(f"    Extracted {len(headers)} headers from row {actual_header_row}")
             
             # Extract data rows
             data_rows_result = _extract_data_rows(normalized_rows, actual_header_row)
             data_rows = data_rows_result['data_rows']
             
-            print(f"   📊 Extracted {len(data_rows)} data rows")
+            print(f"   [DATA] Extracted {len(data_rows)} data rows")
             
             # Convert to dictionaries
             data_dicts = _convert_to_dictionaries(headers, data_rows)
@@ -118,7 +118,7 @@ class DataProcessor:
             }
             
         except Exception as e:
-            print(f"❌ Data processing failed: {str(e)}")
+            print(f"[ERROR]  Data processing failed: {str(e)}")
             return {
                 'success': False,
                 'headers': [],
@@ -133,7 +133,7 @@ class DataProcessor:
         This is a critical step for type safety, converting strings to typed objects.
         """
         converted_data = []
-        print(f"   ⚙️ Applying type conversion to {len(data_dicts)} rows...")
+        print(f"   ️ Applying type conversion to {len(data_dicts)} rows...")
         for row_dict in data_dicts:
             new_row = row_dict.copy()
             for key, value in row_dict.items():
@@ -147,14 +147,14 @@ class DataProcessor:
                         new_row[key] = self.parse_date(value)
                     except ValueError:
                         # If parsing fails, keep the original string and log a warning
-                        print(f"   ⚠️  Could not parse date '{value}' in column '{key}'. Keeping as string.")
+                        print(f"   [WARNING]  Could not parse date '{value}' in column '{key}'. Keeping as string.")
                         pass
                 elif 'amount' in key_lower or 'balance' in key_lower or 'debit' in key_lower or 'credit' in key_lower:
                     try:
                         new_row[key] = self.parse_amount(value)
                     except (ValueError, InvalidOperation):
                         # If parsing fails, keep the original string and log a warning
-                        print(f"   ⚠️  Could not parse amount '{value}' in column '{key}'. Keeping as string.")
+                        print(f"   [WARNING]  Could not parse amount '{value}' in column '{key}'. Keeping as string.")
                         pass
             converted_data.append(new_row)
         return converted_data

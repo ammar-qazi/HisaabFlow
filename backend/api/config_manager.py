@@ -48,20 +48,20 @@ class ConfigManager:
             self.config_dir = config_dir
         self.enhanced_config_manager = EnhancedConfigurationManager(self.config_dir)
         
-        print(f"🔧 [api.ConfigManager] Initialized (no more templates!)")
-        print(f"⚙️  [api.ConfigManager] Effective config directory: {self.config_dir}")
-        print(f"🏦 Available bank configurations: {self.enhanced_config_manager.list_configured_banks()}")    
+        print(f" [api.ConfigManager] Initialized (no more templates!)")
+        print(f"️  [api.ConfigManager] Effective config directory: {self.config_dir}")
+        print(f" Available bank configurations: {self.enhanced_config_manager.list_configured_banks()}")    
     def save_config(self, request: SaveTemplateRequest) -> Dict[str, any]:
         """Save bank configuration (replaces save_template)"""
-        print(f"💾 Saving bank configuration: {request.template_name}")
+        print(f" Saving bank configuration: {request.template_name}")
         
         try:
             # For now, suggest manual config creation
             # TODO: Implement automatic config file generation
             config_filename = f"{request.template_name.lower().replace(' ', '_')}.conf"
             
-            print(f"💡 Configuration should be saved to: {self.config_dir}/{config_filename}")
-            print(f"💡 Template data: {request.config}")
+            print(f" Configuration should be saved to: {self.config_dir}/{config_filename}")
+            print(f" Template data: {request.config}")
             
             return {
                 "success": True,
@@ -70,16 +70,16 @@ class ConfigManager:
                 "suggestion": "Consider manually creating the .conf file for better control"
             }
         except Exception as e:
-            print(f"❌ Config save error: {str(e)}")
+            print(f"[ERROR]  Config save error: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Error saving configuration: {str(e)}")
     
     def list_configs(self) -> Dict[str, List[str]]:
         """List available bank configurations"""
-        print(f"📋 [api.ConfigManager] Listing available bank configurations...")
+        print(f" [api.ConfigManager] Listing available bank configurations...")
         
         try:
             available_configs = self.enhanced_config_manager.list_configured_banks()
-            print(f"🔍 [api.ConfigManager] Raw banks from EnhancedConfigurationManager: {available_configs}")
+            print(f" [api.ConfigManager] Raw banks from EnhancedConfigurationManager: {available_configs}")
             
             # Return user-friendly names
             config_display_names = []
@@ -88,9 +88,9 @@ class ConfigManager:
                 if config:
                     display_name = f"{config.name.title()} Configuration"
                     config_display_names.append(display_name)
-                    print(f"📋 [api.ConfigManager] Processing for display: {display_name} (from {bank_name}.conf)")
+                    print(f" [api.ConfigManager] Processing for display: {display_name} (from {bank_name}.conf)")
             
-            print(f"📋 [api.ConfigManager] Total configurations to be returned: {len(config_display_names)}")
+            print(f" [api.ConfigManager] Total configurations to be returned: {len(config_display_names)}")
             
             return {
                 "configurations": config_display_names,
@@ -98,17 +98,17 @@ class ConfigManager:
                 "count": len(config_display_names)
             }
         except Exception as e:
-            print(f"❌ [api.ConfigManager] Config list error: {str(e)}")
+            print(f"[ERROR]  [api.ConfigManager] Config list error: {str(e)}")
             raise HTTPException(status_code=500, detail=str(e))
     
     def load_config(self, config_name: str) -> Dict[str, any]:
         """Load bank configuration by display name or bank name"""
-        print(f"🔍 Loading configuration: '{config_name}'")
+        print(f" Loading configuration: '{config_name}'")
         
         try:
             # Find matching bank name
             bank_name = self._find_matching_bank_name(config_name)
-            print(f"🔍 Matched bank name: '{bank_name}'")
+            print(f" Matched bank name: '{bank_name}'")
             
             if not bank_name:
                 available = self.enhanced_config_manager.list_configured_banks()
@@ -136,18 +136,18 @@ class ConfigManager:
                 "source": f"{bank_name}.conf"
             }
             
-            print(f"✅ Configuration loaded successfully: {result['display_name']}")
+            print(f"[SUCCESS] Configuration loaded successfully: {result['display_name']}")
             return result
             
         except HTTPException:
             raise
         except Exception as e:
-            print(f"❌ Config load error: {str(e)}")
+            print(f"[ERROR]  Config load error: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Error loading configuration: {str(e)}")
     
     def _find_matching_bank_name(self, config_name: str) -> Optional[str]:
         """Find bank name from configuration display name or direct name"""
-        print(f"🔍 Finding bank name for: '{config_name}'")
+        print(f" Finding bank name for: '{config_name}'")
         
         config_name_lower = config_name.lower()
         available_banks = self.enhanced_config_manager.list_configured_banks()
@@ -156,14 +156,14 @@ class ConfigManager:
         if config_name_lower in [bank.lower() for bank in available_banks]:
             for bank in available_banks:
                 if bank.lower() == config_name_lower:
-                    print(f"✅ Direct match: {bank}")
+                    print(f"[SUCCESS] Direct match: {bank}")
                     return bank
         
         # Display name match (e.g., "NayaPay Configuration" -> "nayapay")
         for bank_name in available_banks:
             display_name = f"{bank_name.title()} Configuration".lower()
             if config_name_lower == display_name:
-                print(f"✅ Display name match: {bank_name}")
+                print(f"[SUCCESS] Display name match: {bank_name}")
                 return bank_name
         
         # Pattern matching
@@ -172,15 +172,15 @@ class ConfigManager:
             if config:
                 for pattern in config.file_patterns:
                     if pattern.lower() in config_name_lower:
-                        print(f"✅ Pattern match: {bank_name} (pattern: {pattern})")
+                        print(f"[SUCCESS] Pattern match: {bank_name} (pattern: {pattern})")
                         return bank_name
         
-        print(f"❌ No match found for: '{config_name}'")
+        print(f"[ERROR]  No match found for: '{config_name}'")
         return None
     
     def _convert_to_frontend_format(self, config) -> Dict[str, any]:
         """Convert bank config to simplified format for frontend"""
-        print(f"🔄 Converting config for frontend: {config.name}")
+        print(f" Converting config for frontend: {config.name}")
         
         frontend_config = {
             # Range settings
@@ -211,5 +211,5 @@ class ConfigManager:
             }
         }
         
-        print(f"✅ Frontend config prepared for: {config.name}")
+        print(f"[SUCCESS] Frontend config prepared for: {config.name}")
         return frontend_config

@@ -7,7 +7,7 @@ function TransformationResults({ transformedData, transferAnalysis }) {
   const theme = useTheme();
 
   // Add comprehensive debugging
-  console.log('🔍 TransformationResults Debug:', {
+  console.log(' TransformationResults Debug:', {
     transformedData,
     transformedDataType: Array.isArray(transformedData) ? 'array' : typeof transformedData,
     transformedDataLength: Array.isArray(transformedData) ? transformedData.length : 'not array',
@@ -68,7 +68,7 @@ function TransformationResults({ transformedData, transferAnalysis }) {
     }
   }
 
-  console.log('📊 TransformationResults Computed Summary:', { summary, hasData });
+  console.log('[DATA] TransformationResults Computed Summary:', { summary, hasData });
 
   return (
     <Card style={{ padding: theme.spacing.xl, marginBottom: theme.spacing.lg }}>

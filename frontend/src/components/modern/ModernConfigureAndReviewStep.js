@@ -75,8 +75,8 @@ function ModernConfigureAndReviewStep({
   const autoParseResults = parsedResults;
   
   // Debug logging
-  console.log('🔍 ModernConfigureAndReviewStep - parsedResults:', parsedResults);
-  console.log('🔍 ModernConfigureAndReviewStep - autoParseResults:', autoParseResults);
+  console.log(' ModernConfigureAndReviewStep - parsedResults:', parsedResults);
+  console.log(' ModernConfigureAndReviewStep - autoParseResults:', autoParseResults);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing.lg }}>

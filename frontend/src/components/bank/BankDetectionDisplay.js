@@ -5,7 +5,7 @@ import React from 'react';
  * Shows detected bank, confidence level, and auto-configuration status
  */
 function BankDetectionDisplay({ bankDetection, preview, parsedData, loading }) {
-  console.log('🔍 DEBUG: BankDetectionDisplay render with:', {
+  console.log(' DEBUG: BankDetectionDisplay render with:', {
     bankDetection: bankDetection,
     preview: preview ? 'preview exists' : 'no preview',
     parsedData: parsedData ? 'parsedData exists' : 'no parsedData',
@@ -23,7 +23,7 @@ function BankDetectionDisplay({ bankDetection, preview, parsedData, loading }) {
       source: 'Backend (Parse)'
     };
     source = 'backend';
-    console.log('🏦 DEBUG: Using bank info from parsed data:', parsedData.bank_info);
+    console.log(' DEBUG: Using bank info from parsed data:', parsedData.bank_info);
   } else if (preview?.bank_detection && preview.bank_detection.detected_bank) {
     // Use 'bank_detection' from preview response
     displayInfo = {
@@ -32,7 +32,7 @@ function BankDetectionDisplay({ bankDetection, preview, parsedData, loading }) {
       source: 'Backend (Preview)'
     };
     source = 'backend';
-    console.log('🏦 DEBUG: Using bank_detection from preview:', preview.bank_detection);
+    console.log(' DEBUG: Using bank_detection from preview:', preview.bank_detection);
   } else if (preview?.bank_info && Object.keys(preview.bank_info).length > 0) {
     // Fallback: original bank_info check for backward compatibility
     displayInfo = {
@@ -41,7 +41,7 @@ function BankDetectionDisplay({ bankDetection, preview, parsedData, loading }) {
       source: 'Backend (Preview)'
     };
     source = 'backend';
-    console.log('🏦 DEBUG: Using bank info from preview:', preview.bank_info);
+    console.log(' DEBUG: Using bank info from preview:', preview.bank_info);
   } else if (bankDetection && bankDetection.detected_bank) {
     // Check if bankDetection has detected_bank (from stored bank detection data)
     displayInfo = {
@@ -50,7 +50,7 @@ function BankDetectionDisplay({ bankDetection, preview, parsedData, loading }) {
       source: 'Backend (Stored)'
     };
     source = 'backend';
-    console.log('🏦 DEBUG: Using stored bank detection:', bankDetection);
+    console.log(' DEBUG: Using stored bank detection:', bankDetection);
   } else if (bankDetection && bankDetection.bankType) {
     // Legacy frontend detection
     displayInfo = {
@@ -58,19 +58,19 @@ function BankDetectionDisplay({ bankDetection, preview, parsedData, loading }) {
       confidence: null,
       source: 'Frontend (Filename)'
     };
-    console.log('🏦 DEBUG: Using frontend bank detection:', bankDetection);
+    console.log(' DEBUG: Using frontend bank detection:', bankDetection);
   } else {
-    console.log('🏦 DEBUG: No bank detection data found anywhere');
+    console.log(' DEBUG: No bank detection data found anywhere');
   }
   
   // Loading state
   if (!displayInfo && loading) {
     return (
       <div className="bank-detection">
-        <h5>🏦 Bank Detection</h5>
+        <h5> Bank Detection</h5>
         <div className="detection-results">
           <span className="bank-badge detecting">
-            🔍 Detecting...
+             Detecting...
           </span>
           <span className="detection-source">
             (Analyzing file content)
@@ -84,7 +84,7 @@ function BankDetectionDisplay({ bankDetection, preview, parsedData, loading }) {
   if (!displayInfo) {
     return (
       <div className="bank-detection">
-        <h5>🏦 Bank Detection</h5>
+        <h5> Bank Detection</h5>
         <div className="detection-results">
           <span className="bank-badge unknown">
             UNKNOWN
@@ -102,7 +102,7 @@ function BankDetectionDisplay({ bankDetection, preview, parsedData, loading }) {
   
   return (
     <div className="bank-detection">
-      <h5>🏦 Bank Detection</h5>
+      <h5> Bank Detection</h5>
       <div className="detection-results">
         <span className={`bank-badge ${displayBankType.toLowerCase().replace(/\s+/g, '-')}`}>
           {displayBankType}
@@ -117,7 +117,7 @@ function BankDetectionDisplay({ bankDetection, preview, parsedData, loading }) {
         </span>
         {isDetected && preview && (
           <span className="detection-note">
-            ✅ Auto-configured: Headers Row {preview.suggested_header_row || 0}, Data Row {preview.suggested_data_start_row || 0}
+            [SUCCESS] Auto-configured: Headers Row {preview.suggested_header_row || 0}, Data Row {preview.suggested_data_start_row || 0}
           </span>
         )}
       </div>

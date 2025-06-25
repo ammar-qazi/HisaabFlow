@@ -56,7 +56,7 @@ class MultiCSVService:
             
             # Process each file
             for i, (file_info, config) in enumerate(zip(file_infos, parse_configs)):
-                print(f"📁 Processing file {i+1}/{len(file_infos)}: {file_info['file_id']}")
+                print(f" Processing file {i+1}/{len(file_infos)}: {file_info['file_id']}")
                 
                 file_path = file_info["temp_path"]
                 filename = file_info["original_name"]
@@ -71,7 +71,7 @@ class MultiCSVService:
                     print(f"ℹ️ [MultiCSVService] Config encoding is '{effective_encoding}'. Detecting encoding for '{filename}'.")
                     detection_result = self.encoding_detector.detect_encoding(file_path)
                     effective_encoding = detection_result['encoding']
-                    print(f"👍 [MultiCSVService] Detected encoding for '{filename}': {effective_encoding} (confidence: {detection_result['confidence']:.2f})")
+                    print(f" [MultiCSVService] Detected encoding for '{filename}': {effective_encoding} (confidence: {detection_result['confidence']:.2f})")
                 
                 # Update config with the effective encoding to be used by subsequent steps
                 current_config = {**config, 'encoding': effective_encoding}
@@ -123,9 +123,9 @@ class MultiCSVService:
                             pydantic_data = self._map_to_pydantic_rows(final_data_for_response, column_mapping)
                             final_data_for_response = pydantic_data
                             data_type_for_response = 'pydantic'
-                            print(f"  ✨ Mapped {len(pydantic_data)} rows to CSVRow models for {filename}.")
+                            print(f"   Mapped {len(pydantic_data)} rows to CSVRow models for {filename}.")
                         except Exception as e:
-                            print(f"  ⚠️ Pydantic mapping failed for {filename}: {e}. Returning raw typed dictionaries.")
+                            print(f"  [WARNING] Pydantic mapping failed for {filename}: {e}. Returning raw typed dictionaries.")
 
                 results.append({
                     "file_id": file_info["file_id"],
@@ -141,7 +141,7 @@ class MultiCSVService:
                     "config": current_config, # Store the config that was actually used
                 })
             
-            print(f"🎉 Successfully parsed all {len(results)} files")
+            print(f" Successfully parsed all {len(results)} files")
             return {
                 "success": True,
                 "parsed_csvs": results,
@@ -149,9 +149,9 @@ class MultiCSVService:
             }
             
         except Exception as e:
-            print(f"❌ Multi-CSV parse exception: {str(e)}")
+            print(f"[ERROR]  Multi-CSV parse exception: {str(e)}")
             import traceback
-            print(f"📖 Full traceback: {traceback.format_exc()}")
+            print(f" Full traceback: {traceback.format_exc()}")
             return {
                 "success": False,
                 "error": str(e)
@@ -159,7 +159,7 @@ class MultiCSVService:
     
     def _apply_preprocessing(self, file_path: str, config: dict):
         """Apply generic CSV preprocessing"""
-        print(f"🔧 Step 1: Generic CSV preprocessing (bank-agnostic)")
+        print(f" Step 1: Generic CSV preprocessing (bank-agnostic)")
         
         # Apply generic CSV preprocessing (fixes multiline fields, encoding, etc.)
         # Ensure the preprocessor uses the provided encoding from config
@@ -181,10 +181,10 @@ class MultiCSVService:
                 'original_rows': preprocessing_result['original_rows'],
                 'processed_rows': preprocessing_result['processed_rows']
             }
-            print(f"✅ Generic preprocessing applied: {len(preprocessing_result['issues_fixed'])} issues fixed")
-            print(f"   📊 Rows: {preprocessing_result['original_rows']} → {preprocessing_result['processed_rows']}")
+            print(f"[SUCCESS] Generic preprocessing applied: {len(preprocessing_result['issues_fixed'])} issues fixed")
+            print(f"   [DATA] Rows: {preprocessing_result['original_rows']} → {preprocessing_result['processed_rows']}")
         else:
-            print(f"📝 Generic preprocessing skipped (no issues found)")
+            print(f" Generic preprocessing skipped (no issues found)")
         
         return {
             'file_path': actual_file_path,
@@ -193,7 +193,7 @@ class MultiCSVService:
     
     def _detect_bank_and_headers(self, file_path: str, filename: str, current_file_config: dict, file_encoding: str, preprocessing_applied: bool):
         """Detect bank and determine effective header_row and data_start_row, considering preprocessing."""
-        print(f"🔧 Step 2: Detecting bank and headers for {filename} with encoding {file_encoding}")
+        print(f" Step 2: Detecting bank and headers for {filename} with encoding {file_encoding}")
 
         user_header_row = current_file_config.get('header_row')
         user_data_start_row = current_file_config.get('start_row') # This is the 'start_row' from the input parse_configs
@@ -211,7 +211,7 @@ class MultiCSVService:
                     sample_headers_for_detection = [h.strip() for h in line.split(',')] # Basic CSV split
                     break
         except Exception as e:
-            print(f"  ⚠️ Warning: Could not read initial lines from {file_path} for bank detection: {e}")
+            print(f"  [WARNING] Warning: Could not read initial lines from {file_path} for bank detection: {e}")
 
         bank_detection_result = self.bank_detector.detect_bank(filename, content_for_detection, sample_headers_for_detection)
 
@@ -220,7 +220,7 @@ class MultiCSVService:
 
         if bank_detection_result.bank_name != 'unknown' and bank_detection_result.confidence > 0.1:
             detected_bank_name = bank_detection_result.bank_name
-            print(f"🏦 Tentatively detected bank: {detected_bank_name} (confidence: {bank_detection_result.confidence:.2f})")
+            print(f" Tentatively detected bank: {detected_bank_name} (confidence: {bank_detection_result.confidence:.2f})")
 
             bank_csv_config = self.bank_config_manager.get_csv_config(detected_bank_name)
             bank_config_header_row = bank_csv_config.get('header_row')
@@ -253,7 +253,7 @@ class MultiCSVService:
                     effective_data_start_row = bank_config_data_start_row
                     print(f"  Dynamic detection failed. Using header_row {effective_header_row} from {detected_bank_name} config as fallback.")
                 else:
-                    print(f"  ⚠️ Dynamic header detection using BankConfigManager failed for {detected_bank_name}. Error: {header_detection_cfg_result.get('error')}")
+                    print(f"  [WARNING] Dynamic header detection using BankConfigManager failed for {detected_bank_name}. Error: {header_detection_cfg_result.get('error')}")
                     # effective_header_row remains None or its previous value
             elif bank_config_header_row is not None: # No user override, no preprocessing (or preproc didn't trigger dynamic), but bank_config_header_row exists
                 effective_header_row = bank_config_header_row
@@ -267,7 +267,7 @@ class MultiCSVService:
                 print(f"  Applying user-provided data_start_row: {effective_data_start_row} (as user_header_row was not set).")
 
         else:
-            print(f"📝 No specific bank detected with sufficient confidence, or bank is 'unknown'. Using user-provided or default header/data start rows.")
+            print(f" No specific bank detected with sufficient confidence, or bank is 'unknown'. Using user-provided or default header/data start rows.")
             # If user_header_row or user_data_start_row were provided, they are already set in effective_header_row/effective_data_start_row
 
         # Final adjustments for data_start_row if it's still not sensible
@@ -288,7 +288,7 @@ class MultiCSVService:
     
     def _find_headers_dynamically(self, file_path: str, bank_name: str, config: dict):
         """DEPRECATED: Find headers dynamically. BankConfigManager.detect_header_row is preferred."""
-        print(f"⚠️ [MultiCSVService] _find_headers_dynamically is deprecated and should not be called directly. Using BankConfigManager.detect_header_row instead.")
+        print(f"[WARNING] [MultiCSVService] _find_headers_dynamically is deprecated and should not be called directly. Using BankConfigManager.detect_header_row instead.")
         # Fallback to BankConfigManager's method if somehow called.
         header_detection_result = self.bank_config_manager.detect_header_row(file_path, bank_name, config.get('encoding', 'utf-8'))
         if header_detection_result['success']:
@@ -308,7 +308,7 @@ class MultiCSVService:
             max_rows_for_unified = config.get('end_row') - header_row_for_unified
         
         if config.get('start_col', 0) != 0 or config.get('end_col') is not None:
-            print(f"⚠️ [MIGRATION][MultiCSVService] Column range (start_col={config.get('start_col', 0)}, end_col={config.get('end_col')}) is not supported by UnifiedCSVParser. All columns will be parsed.")
+            print(f"[WARNING] [MIGRATION][MultiCSVService] Column range (start_col={config.get('start_col', 0)}, end_col={config.get('end_col')}) is not supported by UnifiedCSVParser. All columns will be parsed.")
 
         print(f"  UnifiedParser params: encoding='{config['encoding']}', header_row={header_row_for_unified}, max_rows={max_rows_for_unified}")
 
@@ -333,14 +333,14 @@ class MultiCSVService:
     def _finalize_bank_detection(self, filename: str, parse_result: dict, 
                                 bank_detection, preprocessing_info: dict):
         """Finalize bank detection on parsed data"""
-        print(f"🔍 Step 4: Final bank detection on parsed data for {filename}")
+        print(f" Step 4: Final bank detection on parsed data for {filename}")
         
         detection_result = self.bank_detector.detect_bank_from_data(
             filename, 
             parse_result['data']
         )
-        print(f"🎯 Final bank detected: {detection_result.bank_name} (confidence={detection_result.confidence:.2f})")
-        print(f"📋 Detection reasons: {detection_result.reasons}")
+        print(f"Final bank detected: {detection_result.bank_name} (confidence={detection_result.confidence:.2f})")
+        print(f" Detection reasons: {detection_result.reasons}")
         
         # Store comprehensive bank detection info
         return {
@@ -370,7 +370,7 @@ class MultiCSVService:
                     'bank_name': bank_info['detected_bank'],
                     'expected_headers': bank_csv_cfg.get('expected_headers', []) # Pass expected_headers
                 }
-                print(f"🗺️ Using bank-specific cleaning config for {bank_info['detected_bank']}: {bank_cleaning_config}")
+                print(f"️ Using bank-specific cleaning config for {bank_info['detected_bank']}: {bank_cleaning_config}")
             
             cleaning_result = self.data_cleaner.clean_parsed_data(parse_result, bank_cleaning_config)
             
@@ -386,9 +386,9 @@ class MultiCSVService:
                     'original_headers': parse_result.get('headers', []),
                     'bank_info': bank_info
                 }
-                print(f"✅ Data cleaning successful: {cleaning_result['row_count']} clean rows")
+                print(f"[SUCCESS] Data cleaning successful: {cleaning_result['row_count']} clean rows")
             else:
-                print(f"⚠️ Data cleaning failed, using uncleaned data")
+                print(f"[WARNING] Data cleaning failed, using uncleaned data")
                 final_result['cleaning_applied'] = False
                 final_result['bank_info'] = bank_info
         else:
@@ -436,6 +436,6 @@ class MultiCSVService:
                 )
                 csv_rows.append(csv_row)
             except Exception as e:
-                print(f"⚠️ Skipping row due to CSVRow conversion error: {e}. Row: {row_dict}")
+                print(f"[WARNING] Skipping row due to CSVRow conversion error: {e}. Row: {row_dict}")
                 continue
         return csv_rows

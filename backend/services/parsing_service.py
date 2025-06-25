@@ -55,7 +55,7 @@ class ParsingService:
                 max_rows_for_unified = config.end_row - header_row_for_unified
             
             if config.start_col != 0 or config.end_col is not None:
-                print(f"⚠️ [MIGRATION][ParsingService] Column range (start_col={config.start_col}, end_col={config.end_col}) is not supported by UnifiedCSVParser. All columns will be parsed.")
+                print(f"[WARNING] [MIGRATION][ParsingService] Column range (start_col={config.start_col}, end_col={config.end_col}) is not supported by UnifiedCSVParser. All columns will be parsed.")
 
             print(f"  UnifiedParser params: encoding='{config.encoding}', header_row={header_row_for_unified}, max_rows={max_rows_for_unified}")
             
@@ -75,12 +75,12 @@ class ParsingService:
                 }
             
             # Bank detection on raw data (before cleaning)
-            print(f"🔍 Detecting bank for single file using RAW CSV data...")
+            print(f" Detecting bank for single file using RAW CSV data...")
             detection_result = self.bank_detector.detect_bank_from_data(
                 filename, 
                 parse_result['data']
             )
-            print(f"🎯 Single file bank detected: {detection_result.bank_name} (confidence={detection_result.confidence:.2f})")
+            print(f"Single file bank detected: {detection_result.bank_name} (confidence={detection_result.confidence:.2f})")
             
             # Store bank detection info
             bank_info = {
@@ -103,7 +103,7 @@ class ParsingService:
                         'column_mapping': bank_column_mapping,
                         'bank_name': bank_info['detected_bank']
                     }
-                    print(f"🗺️ Using bank-specific cleaning config: {bank_cleaning_config}")
+                    print(f"️ Using bank-specific cleaning config: {bank_cleaning_config}")
                 
                 cleaning_result = self.data_cleaner.clean_parsed_data(parse_result, bank_cleaning_config)
                 
@@ -119,9 +119,9 @@ class ParsingService:
                         'original_headers': parse_result.get('headers', []),
                         'bank_info': bank_info
                     }
-                    print(f"✅ Data cleaning successful")
+                    print(f"[SUCCESS] Data cleaning successful")
                 else:
-                    print(f"⚠️ Data cleaning failed, using uncleaned data")
+                    print(f"[WARNING] Data cleaning failed, using uncleaned data")
                     final_result['cleaning_applied'] = False
                     final_result['bank_info'] = bank_info
             else:
@@ -131,7 +131,7 @@ class ParsingService:
             return final_result
             
         except Exception as e:
-            print(f"❌ Parse exception: {str(e)}")
+            print(f"[ERROR]  Parse exception: {str(e)}")
             return {
                 'success': False,
                 'error': str(e)

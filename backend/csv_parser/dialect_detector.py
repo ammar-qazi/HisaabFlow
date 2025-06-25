@@ -39,7 +39,7 @@ class DialectDetector:
                 'detected_patterns': dict
             }
         """
-        print(f"🔍 Detecting CSV dialect for file: {file_path}")
+        print(f" Detecting CSV dialect for file: {file_path}")
         
         try:
             # Read sample content
@@ -53,19 +53,19 @@ class DialectDetector:
             if not lines:
                 raise DialectDetectionError("No lines found in file", file_path)
             
-            print(f"   📊 Analyzing {len(lines)} sample lines")
+            print(f"   [DATA] Analyzing {len(lines)} sample lines")
             
             # Detect delimiter
             delimiter_result = self._detect_delimiter(lines)
-            print(f"   ✅ Delimiter: '{delimiter_result['delimiter']}' (confidence: {delimiter_result['confidence']:.2f})")
+            print(f"   [SUCCESS] Delimiter: '{delimiter_result['delimiter']}' (confidence: {delimiter_result['confidence']:.2f})")
             
             # Detect quote character and quoting mode
             quote_result = self._detect_quoting(lines, delimiter_result['delimiter'])
-            print(f"   ✅ Quoting: char='{quote_result['quotechar']}', mode={quote_result['quoting']} (confidence: {quote_result['confidence']:.2f})")
+            print(f"   [SUCCESS] Quoting: char='{quote_result['quotechar']}', mode={quote_result['quoting']} (confidence: {quote_result['confidence']:.2f})")
             
             # Detect line terminator
             line_terminator = self._detect_line_terminator(file_path, encoding)
-            print(f"   ✅ Line terminator: {repr(line_terminator)}")
+            print(f"   [SUCCESS] Line terminator: {repr(line_terminator)}")
             
             # Calculate overall confidence
             overall_confidence = (delimiter_result['confidence'] + quote_result['confidence']) / 2
@@ -84,7 +84,7 @@ class DialectDetector:
             }
             
         except Exception as e:
-            print(f"❌ Dialect detection failed: {str(e)}")
+            print(f"[ERROR]  Dialect detection failed: {str(e)}")
             # Return safe defaults
             return {
                 'delimiter': ',',
@@ -217,7 +217,7 @@ class DialectDetector:
                 # If most/all fields are quoted, this suggests quote-all
                 if quoted_fields >= max(4, non_empty_trailing * 0.8):  # At least 80% of fields quoted
                     quote_all_lines += 1
-                    print(f"   📝 Line {total_lines}: {quoted_fields} quoted fields detected as quote-all pattern")
+                    print(f"    Line {total_lines}: {quoted_fields} quoted fields detected as quote-all pattern")
         
         if total_lines == 0:
             return csv.QUOTE_MINIMAL
@@ -225,10 +225,10 @@ class DialectDetector:
         quote_all_ratio = quote_all_lines / total_lines
         
         if quote_all_ratio >= 0.75:  # 75%+ of lines follow quote-all pattern
-            print(f"   🎯 Quote-all pattern detected (ratio: {quote_all_ratio:.2f})")
+            print(f"   Quote-all pattern detected (ratio: {quote_all_ratio:.2f})")
             return csv.QUOTE_ALL
         else:
-            print(f"   📝 Selective quoting detected (quote-all ratio: {quote_all_ratio:.2f})")
+            print(f"    Selective quoting detected (quote-all ratio: {quote_all_ratio:.2f})")
             return csv.QUOTE_MINIMAL
     
     def _detect_line_terminator(self, file_path: str, encoding: str) -> str:

@@ -14,7 +14,7 @@ function AutoParseHandler({
   // Auto-parse when component mounts or files change
   useEffect(() => {
     if (uploadedFiles.length > 0 && (!autoParseResults || autoParseResults.length === 0)) {
-      console.log('🚀 Auto-parsing files with smart defaults...');
+      console.log('[START] Auto-parsing files with smart defaults...');
       parseAllFilesWithDefaults();
     }
   }, [uploadedFiles]);
@@ -28,12 +28,12 @@ function AutoParseHandler({
         return confidence < 0.8 || !hasData;
       });
       
-      console.log('📊 Checking parsed results for config needs:', autoParseResults.length, 'files');
-      console.log('📊 AutoParseResults content:', autoParseResults);
-      console.log('⚙️ Needs manual config:', needsConfig);
+      console.log('[DATA] Checking parsed results for config needs:', autoParseResults.length, 'files');
+      console.log('[DATA] AutoParseResults content:', autoParseResults);
+      console.log('️ Needs manual config:', needsConfig);
       setShowAdvancedConfig(needsConfig);
     } else {
-      console.log('📊 No autoParseResults yet, current value:', autoParseResults);
+      console.log('[DATA] No autoParseResults yet, current value:', autoParseResults);
     }
   }, [autoParseResults]);
 
@@ -41,10 +41,10 @@ function AutoParseHandler({
     try {
       // Call parseAllFiles - it will update parsedResults in parent state
       await parseAllFiles(true); // Pass true to indicate auto-parse
-      console.log('📊 Auto-parse call completed');
+      console.log('[DATA] Auto-parse call completed');
       
     } catch (error) {
-      console.error('❌ Auto-parse failed:', error);
+      console.error('[ERROR]  Auto-parse failed:', error);
       setShowAdvancedConfig(true); // Show config panel on error
     }
   };

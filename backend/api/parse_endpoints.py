@@ -43,11 +43,11 @@ class ParseRangeRequest(BaseModel):
 @parse_router.get("/preview/{file_id}")
 async def preview_csv(file_id: str, encoding: str = "utf-8", header_row: int = None):
     """Preview uploaded CSV file with bank-aware header detection"""
-    print(f"🕵️‍♂️ Preview request for file_id: {file_id}, header_row: {header_row}")
+    print(f"️‍️ Preview request for file_id: {file_id}, header_row: {header_row}")
     
     file_info = get_uploaded_file(file_id)
     if not file_info:
-        print(f"❌ File {file_id} not found")
+        print(f"[ERROR]  File {file_id} not found")
         raise HTTPException(status_code=404, detail="File not found")
     
     file_path = file_info["temp_path"]
@@ -65,7 +65,7 @@ async def preview_csv(file_id: str, encoding: str = "utf-8", header_row: int = N
 @parse_router.get("/detect-range/{file_id}")
 async def detect_data_range(file_id: str, encoding: str = "utf-8"):
     """Auto-detect data range in CSV"""
-    print(f"🔍 Detect range request for file_id: {file_id}")
+    print(f" Detect range request for file_id: {file_id}")
     
     file_info = get_uploaded_file(file_id)
     if not file_info:
@@ -85,7 +85,7 @@ async def detect_data_range(file_id: str, encoding: str = "utf-8"):
 @parse_router.post("/parse-range/{file_id}")
 async def parse_range(file_id: str, request: ParseRangeRequest):
     """Parse CSV with specified range and data cleaning"""
-    print(f"🕵️‍♂️ Parse range request for file_id: {file_id}")
+    print(f"️‍️ Parse range request for file_id: {file_id}")
     
     file_info = get_uploaded_file(file_id)
     if not file_info:
@@ -119,7 +119,7 @@ async def parse_multiple_csvs(
     use_pydantic: bool = Query(False, description="Return Pydantic models instead of dicts")
 ):
     """Parse multiple CSV files"""
-    print(f"🚀 Multi-CSV parse request for {len(request.file_ids)} files")
+    print(f"[START] Multi-CSV parse request for {len(request.file_ids)} files")
     
     try:
         # Validate all file IDs exist and add file_id to file_info
@@ -152,7 +152,7 @@ async def parse_multiple_csvs(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Multi-CSV parse exception: {str(e)}")
+        print(f"[ERROR]  Multi-CSV parse exception: {str(e)}")
         import traceback
-        print(f"📖 Full traceback: {traceback.format_exc()}")
+        print(f" Full traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e))

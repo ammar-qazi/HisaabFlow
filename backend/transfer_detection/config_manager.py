@@ -41,7 +41,7 @@ class ConfigurationManager:
             config.read(app_config_path)
         else:
             # Default configuration if file missing
-            print("⚠️  app.conf not found. Creating default configuration.")
+            print("[WARNING]  app.conf not found. Creating default configuration.")
             config['general'] = {
                 'date_tolerance_hours': '72'
             }
@@ -60,7 +60,7 @@ class ConfigurationManager:
             config.read(config_file)
             
             family_configs[family_name] = config
-            print(f"✅ Loaded {family_name}_family.conf")
+            print(f"[SUCCESS] Loaded {family_name}_family.conf")
         
         return family_configs
     
@@ -101,7 +101,7 @@ class ConfigurationManager:
                                 try:
                                     rule_details[k_num] = float(rule_details[k_num])
                                 except ValueError:
-                                    print(f"⚠️  Warning: Invalid number for {k_num} in rule {section_name} for {bank_name}. Skipping this condition field.")
+                                    print(f"[WARNING]  Warning: Invalid number for {k_num} in rule {section_name} for {bank_name}. Skipping this condition field.")
                                     del rule_details[k_num] # Remove invalid field
                         conditional_overrides.append(rule_details)
 
@@ -125,16 +125,16 @@ class ConfigurationManager:
                 )
                 
                 bank_configs[bank_name] = bank_config
-                print(f"✅ Loaded {bank_name} config")
+                print(f"[SUCCESS] Loaded {bank_name} config")
                 # DEBUG: Show transfer patterns loaded
-                print(f"   📤 Outgoing patterns: {list(outgoing_patterns.values())}")
-                print(f"   📥 Incoming patterns: {list(incoming_patterns.values())}")
-                print(f"   🏷️ Categorization rules count: {len(bank_config.categorization_rules)}")
+                print(f"   [OUT] Outgoing patterns: {list(outgoing_patterns.values())}")
+                print(f"   [IN] Incoming patterns: {list(incoming_patterns.values())}")
+                print(f"   ️ Categorization rules count: {len(bank_config.categorization_rules)}")
                 print(f"   🧹 Description cleaning rules count: {len(bank_config.description_cleaning_rules)}")
                 print(f"   🧠 Conditional overrides count: {len(bank_config.conditional_description_overrides)}")
                 
             except Exception as e:
-                print(f"❌ Error loading {bank_name}.conf: {e}")
+                print(f"[ERROR]  Error loading {bank_name}.conf: {e}")
         
         return bank_configs
     

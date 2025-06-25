@@ -24,7 +24,7 @@ class QualityChecker:
         if not data:
             return {'error': 'No data provided'}
         
-        print(f"      🔍 Checking data quality...")
+        print(f"       Checking data quality...")
         
         quality_report = {
             'total_rows': len(data),
@@ -44,11 +44,11 @@ class QualityChecker:
         
         # Report results
         if quality_report['issues']:
-            print(f"      ⚠️ Data quality issues detected:")
+            print(f"      [WARNING] Data quality issues detected:")
             for issue in quality_report['issues']:
                 print(f"         • {issue}")
         else:
-            print(f"      ✅ Data quality check passed")
+            print(f"      [SUCCESS] Data quality check passed")
         
         return quality_report
     

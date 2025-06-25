@@ -31,14 +31,14 @@ class CSVProcessor:
             result = self.unified_parser.preview_csv(file_path, encoding=encoding)
             
             if not result['success']:
-                print(f"❌ Preview failed: {result.get('error', 'Unknown error')}")
+                print(f"[ERROR]  Preview failed: {result.get('error', 'Unknown error')}")
                 raise HTTPException(status_code=400, detail=result['error'])
             
             # UnifiedCSVParser returns 'total_rows' within preview_csv's own structure
-            print(f"✅ Preview successful using UnifiedParser: {result.get('total_rows', 'N/A')} rows")
+            print(f"[SUCCESS] Preview successful using UnifiedParser: {result.get('total_rows', 'N/A')} rows")
             return result
         except Exception as e:
-            print(f"❌ Preview exception: {str(e)}")
+            print(f"[ERROR]  Preview exception: {str(e)}")
             raise HTTPException(status_code=500, detail=str(e))
     
     def detect_data_range(self, file_path: str, encoding: str = "utf-8") -> Dict[str, Any]:
@@ -72,13 +72,13 @@ class CSVProcessor:
             max_rows_to_read_initially = None
             if request.end_row is not None:
                 if request.end_row < request.start_row:
-                    print(f"⚠️ [MIGRATION][CSVProcessor] end_row ({request.end_row}) is less than start_row ({request.start_row}). Parsing up to header row to extract headers, data rows will be empty.")
+                    print(f"[WARNING] [MIGRATION][CSVProcessor] end_row ({request.end_row}) is less than start_row ({request.start_row}). Parsing up to header row to extract headers, data rows will be empty.")
                     max_rows_to_read_initially = request.start_row + 1 # Read enough to get the header
                 else:
                     max_rows_to_read_initially = request.end_row + 1 # Read up to and including the specified end_row
             
             if request.start_col != 0 or request.end_col is not None:
-                print(f"⚠️ [MIGRATION][CSVProcessor] Column range (start_col={request.start_col}, end_col={request.end_col}) is not supported by UnifiedCSVParser. All columns will be parsed.")
+                print(f"[WARNING] [MIGRATION][CSVProcessor] Column range (start_col={request.start_col}, end_col={request.end_col}) is not supported by UnifiedCSVParser. All columns will be parsed.")
 
             print(f"  UnifiedParser params: encoding='{request.encoding}', header_row={header_row_for_unified}, max_rows (to read initially)={max_rows_to_read_initially}")
             parse_result = self.unified_parser.parse_csv(
@@ -91,11 +91,11 @@ class CSVProcessor:
             
             if not parse_result['success']:
                 error_detail = parse_result.get('error', 'Unknown parsing error from UnifiedCSVParser')
-                print(f"❌ UnifiedCSVParser failed: {error_detail}")
+                print(f"[ERROR]  UnifiedCSVParser failed: {error_detail}")
                 raise HTTPException(status_code=400, detail=f"Parsing failed: {error_detail}")
             
             parser_used = "unified" # Always unified now
-            print(f"✅ Parse successful using UnifiedCSVParser: {parse_result.get('row_count', 0)} rows")
+            print(f"[SUCCESS] Parse successful using UnifiedCSVParser: {parse_result.get('row_count', 0)} rows")
             
             # STEP 2: DATA CLEANING
             final_result = parse_result
@@ -119,19 +119,19 @@ class CSVProcessor:
                         'updated_column_mapping': cleaning_result.get('updated_column_mapping', {}),
                         'original_headers': parse_result.get('headers', [])
                     }
-                    print(f"✅ Data cleaning successful: {cleaning_result['row_count']} clean rows")
+                    print(f"[SUCCESS] Data cleaning successful: {cleaning_result['row_count']} clean rows")
                 else:
-                    print(f"⚠️  Data cleaning failed: {cleaning_result.get('error', 'Unknown error')}")
-                    print("🔄 Continuing with uncleaned data...")
+                    print(f"[WARNING]  Data cleaning failed: {cleaning_result.get('error', 'Unknown error')}")
+                    print(" Continuing with uncleaned data...")
                     final_result['cleaning_applied'] = False
                     final_result['cleaning_error'] = cleaning_result.get('error', 'Unknown error') # Keep original error key
             else:
-                print("🚫 Data cleaning skipped")
+                print(" Data cleaning skipped")
                 final_result['cleaning_applied'] = False
             
             print(f"ℹ️ [MIGRATION][CSVProcessor] parse_range completed. Final rows: {final_result.get('row_count', 0)}")
             return final_result
             
         except Exception as e:
-            print(f"❌ Parse exception: {str(e)}")
+            print(f"[ERROR]  Parse exception: {str(e)}")
             raise HTTPException(status_code=500, detail=str(e))

@@ -34,7 +34,7 @@ class DataValidator:
                 valid_data.append(row)
         
         removed_count = original_count - len(valid_data)
-        print(f"      ✅ Removed {removed_count} invalid rows, kept {len(valid_data)} valid rows")
+        print(f"      [SUCCESS] Removed {removed_count} invalid rows, kept {len(valid_data)} valid rows")
         
         return valid_data
     

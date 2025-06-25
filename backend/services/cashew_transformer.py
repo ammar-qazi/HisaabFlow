@@ -15,7 +15,7 @@ class CashewTransformer:
     """
 
     def __init__(self):
-        print("🚀 [CashewTransformer] Initializing clean standalone transformer...")
+        print("[START] [CashewTransformer] Initializing clean standalone transformer...")
 
     def transform_to_cashew(self, data: List[Dict], column_mapping: Dict[str, str],
                            bank_name: str = "", categorization_rules: List[Dict] = None,
@@ -33,8 +33,8 @@ class CashewTransformer:
         Returns:
             List of transformed Cashew format rows
         """
-        print(f"🔄 [CashewTransformer] Starting clean transformation for bank: '{bank_name}'")
-        print(f"   📊 Input rows: {len(data)}, Column mapping: {column_mapping}")
+        print(f" [CashewTransformer] Starting clean transformation for bank: '{bank_name}'")
+        print(f"   [DATA] Input rows: {len(data)}, Column mapping: {column_mapping}")
         
         cashew_data = []
         
@@ -59,7 +59,7 @@ class CashewTransformer:
                         parsed_amount = self.parse_amount(original_amount)
                         cashew_row[cashew_col] = parsed_amount
                         if idx < 3: 
-                            print(f"   💰 Row {idx} Amount: '{original_amount}' → '{parsed_amount}'")
+                            print(f"    Row {idx} Amount: '{original_amount}' → '{parsed_amount}'")
                     elif cashew_col == 'Account' and account_mapping:
                         currency = str(row[source_col])
                         cashew_row[cashew_col] = account_mapping.get(currency, bank_name)
@@ -79,23 +79,23 @@ class CashewTransformer:
                             cashew_row[cashew_field] = str(fallback_value)
                         
                         if idx < 3:
-                            print(f"   🔄 Row {idx} Used Backup{cashew_field}: '{fallback_value}' → '{cashew_row[cashew_field]}'")
+                            print(f"    Row {idx} Used Backup{cashew_field}: '{fallback_value}' → '{cashew_row[cashew_field]}'")
             
             # Apply basic categorization
             self.apply_basic_categorization(cashew_row)
             
             # Debug output for first few rows
             if idx < 3:
-                print(f"   📋 Row {idx}: Date='{cashew_row['Date']}', Amount='{cashew_row['Amount']}', Title='{cashew_row['Title'][:50]}...'")
+                print(f"    Row {idx}: Date='{cashew_row['Date']}', Amount='{cashew_row['Amount']}', Title='{cashew_row['Title'][:50]}...'")
             
             # Only include rows with valid amounts
             if cashew_row['Amount'] and cashew_row['Amount'] != '0':
                 cashew_data.append(cashew_row)
             else:
                 if idx < 5:
-                    print(f"   ⚠️  Skipping row {idx}: Invalid/zero amount '{cashew_row['Amount']}'")
+                    print(f"   [WARNING]  Skipping row {idx}: Invalid/zero amount '{cashew_row['Amount']}'")
         
-        print(f"   ✅ Clean transformation complete: {len(cashew_data)} valid rows")
+        print(f"   [SUCCESS] Clean transformation complete: {len(cashew_data)} valid rows")
         return cashew_data
 
     def resolve_field_with_fallback(self, row, primary_field):
@@ -178,7 +178,7 @@ class CashewTransformer:
             return date_str
             
         except Exception as e:
-            print(f"⚠️  Date parsing error for '{date_str}': {e}")
+            print(f"[WARNING]  Date parsing error for '{date_str}': {e}")
             return date_str
 
     def parse_amount(self, amount_str: str) -> str:
@@ -227,5 +227,5 @@ class CashewTransformer:
                 return '0'
                 
         except Exception as e:
-            print(f"⚠️  Amount parsing error for '{amount_str}': {e}")
+            print(f"[WARNING]  Amount parsing error for '{amount_str}': {e}")
             return '0'

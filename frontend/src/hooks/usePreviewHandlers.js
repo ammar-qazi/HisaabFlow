@@ -28,12 +28,12 @@ export const usePreviewHandlers = (
 
     setLoading(true);
     try {
-      console.log(`🔍 DEBUG: Requesting bank-aware preview for ${fileData.fileName}`);
+      console.log(` DEBUG: Requesting bank-aware preview for ${fileData.fileName}`);
       
       // CORRECTED API ENDPOINT
       const response = await axios.get(`${API_V1_BASE}/preview/${fileData.fileId}`);
       
-      console.log('🔍 DEBUG: Preview response:', response.data);
+      console.log(' DEBUG: Preview response:', response.data);
       
       setUploadedFiles(prev => {
         const updated = [...prev];
@@ -57,8 +57,8 @@ export const usePreviewHandlers = (
           const headerRow = response.data.suggested_header_row;
           const dataRow = response.data.suggested_data_start_row;
           
-          console.log(`🏦 Bank detected: ${detectedBank} (${confidence.toFixed(2)} confidence)`);
-          console.log(`📋 Headers at row ${headerRow}, data starts at row ${dataRow}`);
+          console.log(` Bank detected: ${detectedBank} (${confidence.toFixed(2)} confidence)`);
+          console.log(` Headers at row ${headerRow}, data starts at row ${dataRow}`);
           
           setUploadedFiles(prev => {
             const updated = [...prev];
@@ -86,7 +86,7 @@ export const usePreviewHandlers = (
       }
       
     } catch (err) {
-      console.error('❌ Preview error:', err);
+      console.error('[ERROR]  Preview error:', err);
       setError(`Preview failed for ${fileData.fileName}: ${err.response?.data?.detail || err.message}`);
     } finally {
       setLoading(false);

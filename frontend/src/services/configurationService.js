@@ -15,16 +15,16 @@ export class ConfigurationService {
    */
   static async loadConfigurations() {
     try {
-      console.log('🔍 Loading bank configurations from /api/v1/configs');
+      console.log(' Loading bank configurations from /api/v1/configs');
       const response = await axios.get(`${API_BASE}/api/v1/configs`);
-      console.log('✅ Configurations loaded:', response.data);
+      console.log('[SUCCESS] Configurations loaded:', response.data);
       return {
         success: true,
         configurations: response.data.configurations,
         raw_bank_names: response.data.raw_bank_names || []
       };
     } catch (err) {
-      console.error('❌ Failed to load configurations:', err);
+      console.error('[ERROR]  Failed to load configurations:', err);
       return {
         success: false,
         error: 'Failed to load bank configurations. Please check if the backend is running.',
@@ -39,7 +39,7 @@ export class ConfigurationService {
    */
   static async loadConfiguration(configName) {
     if (!configName) {
-      console.log('🔍 No configuration selected - user will use manual column mapping with standard Cashew fields');
+      console.log(' No configuration selected - user will use manual column mapping with standard Cashew fields');
       return {
         success: true,
         config: null,
@@ -48,14 +48,14 @@ export class ConfigurationService {
     }
     
     try {
-      console.log(`🔍 Loading configuration: ${configName}`);
+      console.log(` Loading configuration: ${configName}`);
       const response = await axios.get(`${API_BASE}/api/v1/config/${encodeURIComponent(configName)}`);
       const config = response.data.config;
       
-      console.log(`📋 Configuration ${configName} loaded:`, config);
+      console.log(` Configuration ${configName} loaded:`, config);
       
       // Debug column mapping
-      console.log('🔍 Configuration Load Debug:');
+      console.log(' Configuration Load Debug:');
       console.log('  - config.column_mapping:', config.column_mapping);
       console.log('  - Will set columnMapping to:', config.column_mapping || {});
       
@@ -66,8 +66,8 @@ export class ConfigurationService {
       };
       
     } catch (err) {
-      console.error('❌ Configuration load failed:', err);
-      console.log('🔍 Configuration load failed - user will use manual column mapping with standard Cashew fields');
+      console.error('[ERROR]  Configuration load failed:', err);
+      console.log(' Configuration load failed - user will use manual column mapping with standard Cashew fields');
       return {
         success: false,
         config: null,

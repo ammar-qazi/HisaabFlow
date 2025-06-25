@@ -38,14 +38,14 @@ class DateCleaner:
         Returns:
             List[Dict]: Data with cleaned date values
         """
-        print(f"   📅 Step 5: Cleaning date columns")
+        print(f"    Step 5: Cleaning date columns")
         
         if not data:
             return []
         
         # Identify date columns
         date_cols = self._identify_date_columns(data)
-        print(f"      📋 Date columns found: {date_cols}")
+        print(f"       Date columns found: {date_cols}")
         
         cleaned_data = []
         for row_idx, row in enumerate(data):
@@ -57,13 +57,13 @@ class DateCleaner:
                     
                     # Debug first few rows
                     if row_idx < 3:
-                        print(f"      📆 Row {row_idx} {col}: '{value}' → '{cleaned_value}'")
+                        print(f"       Row {row_idx} {col}: '{value}' → '{cleaned_value}'")
                 else:
                     cleaned_row[col] = value
             
             cleaned_data.append(cleaned_row)
         
-        print(f"      ✅ Date cleaning complete")
+        print(f"      [SUCCESS] Date cleaning complete")
         return cleaned_data
     
     def _identify_date_columns(self, data: List[Dict]) -> List[str]:
@@ -140,7 +140,7 @@ class DateCleaner:
             return value_str
             
         except Exception as e:
-            print(f"      ⚠️  Could not parse date value: '{value}' - {e}")
+            print(f"      [WARNING]  Could not parse date value: '{value}' - {e}")
             return str(value) if value else ''
     
     def add_custom_date_format(self, date_format: str):
@@ -152,4 +152,4 @@ class DateCleaner:
         """
         if date_format not in self.date_formats:
             self.date_formats.append(date_format)
-            print(f"      ➕ Added custom date format: {date_format}")
+            print(f"       Added custom date format: {date_format}")

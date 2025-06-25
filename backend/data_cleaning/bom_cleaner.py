@@ -35,11 +35,11 @@ class BOMCleaner:
         
         # Check first row for BOM characters
         if not self.has_bom_characters(data):
-            print(f"      ✅ No BOM characters detected, skipping BOM cleanup")
+            print(f"      [SUCCESS] No BOM characters detected, skipping BOM cleanup")
             return data
         
         print(f"      🧹 BOM characters detected, cleaning column names...")
-        print(f"      💡 RECOMMENDATION: Use utf-8-sig encoding when reading CSV files")
+        print(f"       RECOMMENDATION: Use utf-8-sig encoding when reading CSV files")
         
         # Strip BOM from all column names
         cleaned_data = []
@@ -52,11 +52,11 @@ class BOMCleaner:
                 
                 # Debug first few BOM cleanups
                 if len(cleaned_data) < 3 and clean_col != str(col):
-                    print(f"      🔧 BOM cleanup: '{col}' → '{clean_col}'")
+                    print(f"       BOM cleanup: '{col}' → '{clean_col}'")
             
             cleaned_data.append(cleaned_row)
         
-        print(f"      ✅ BOM cleanup complete: {len(cleaned_data)} rows processed")
+        print(f"      [SUCCESS] BOM cleanup complete: {len(cleaned_data)} rows processed")
         return cleaned_data
     
     def has_bom_characters(self, data: List[Dict]) -> bool:

@@ -10,9 +10,9 @@ const API_BASE = window.BACKEND_URL || 'http://127.0.0.1:8000';
  * Auto-configures a file based on bank detection results
  */
 export const autoConfigureFile = async (fileId, bankDetection, previewData, setUploadedFiles, setError, dynamicBankMapping = null) => {
-  console.log(`🔧 DEBUG: autoConfigureFile called for fileId: ${fileId}`);
-  console.log(`🔧 DEBUG: bankDetection:`, bankDetection);
-  console.log(`🔧 DEBUG: previewData headers:`, previewData.column_names);
+  console.log(` DEBUG: autoConfigureFile called for fileId: ${fileId}`);
+  console.log(` DEBUG: bankDetection:`, bankDetection);
+  console.log(` DEBUG: previewData headers:`, previewData.column_names);
   
   const detectedBank = bankDetection.detected_bank;
   const confidence = bankDetection.confidence;
@@ -32,28 +32,28 @@ export const autoConfigureFile = async (fileId, bankDetection, previewData, setU
   const configName = bankToConfigMap[detectedBank];
   
   if (!configName || confidence < 0.1) {
-    console.log(`🔧 DEBUG: Skipping auto-configuration - no config or low confidence`);
-    console.log(`🔧 DEBUG: configName: ${configName}, confidence: ${confidence}, detectedBank: ${detectedBank}`);
-    console.log(`🔧 DEBUG: Available mappings:`, bankToConfigMap);
+    console.log(` DEBUG: Skipping auto-configuration - no config or low confidence`);
+    console.log(` DEBUG: configName: ${configName}, confidence: ${confidence}, detectedBank: ${detectedBank}`);
+    console.log(` DEBUG: Available mappings:`, bankToConfigMap);
     return;
   }
   
   try {
     // Load the configuration
-    console.log(`🔧 DEBUG: Loading configuration: ${configName}`);
+    console.log(` DEBUG: Loading configuration: ${configName}`);
     const configResponse = await axios.get(`${API_BASE}/api/v3/config/${encodeURIComponent(configName)}`);
     const config = configResponse.data.config;
     
     // Auto-map columns based on detected headers
     const autoColumnMapping = generateAutoColumnMapping(previewData.column_names || []);
     
-    console.log(`🔧 DEBUG: Auto-generated column mapping:`, autoColumnMapping);
+    console.log(` DEBUG: Auto-generated column mapping:`, autoColumnMapping);
     
     // Update the file with auto-configuration
     setUploadedFiles(prev => {
       const updated = prev.map(file => {
         if (file.fileId === fileId) {
-          console.log(`🔧 DEBUG: Auto-configuring file: ${file.fileName}`);
+          console.log(` DEBUG: Auto-configuring file: ${file.fileName}`);
           return {
             ...file,
             selectedConfiguration: configName,
@@ -80,7 +80,7 @@ export const autoConfigureFile = async (fileId, bankDetection, previewData, setU
     });
     
   } catch (error) {
-    console.error(`❌ DEBUG: Auto-configuration failed:`, error);
+    console.error(`[ERROR]  DEBUG: Auto-configuration failed:`, error);
     setError(`Auto-configuration failed for ${detectedBank}: ${error.message}`);
   }
 };
@@ -113,26 +113,26 @@ export const generateAutoColumnMapping = (headers) => {
  * Triggers auto-detection and configuration for newly uploaded files
  */
 export const triggerAutoDetection = async (newFiles, setUploadedFiles, setError, dynamicBankMapping = null) => {
-  console.log(`🔧 DEBUG: Starting auto-detection for ${newFiles.length} newly uploaded files`);
+  console.log(` DEBUG: Starting auto-detection for ${newFiles.length} newly uploaded files`);
   
   for (let i = 0; i < newFiles.length; i++) {
     const newFile = newFiles[i];
-    console.log(`🔍 DEBUG: Auto-detecting for: ${newFile.fileName} with fileId: ${newFile.fileId}`);
+    console.log(` DEBUG: Auto-detecting for: ${newFile.fileName} with fileId: ${newFile.fileId}`);
     
     try {
       // Call backend detection API
       const detectionResponse = await axios.get(`${API_BASE}/preview/${newFile.fileId}`);
-      console.log(`✅ DEBUG: Detection response for ${newFile.fileName}:`, detectionResponse.data);
+      console.log(`[SUCCESS] DEBUG: Detection response for ${newFile.fileName}:`, detectionResponse.data);
       
       const backendDetection = detectionResponse.data.bank_detection;
       if (backendDetection && backendDetection.detected_bank !== 'unknown') {
-        console.log(`🏦 DEBUG: Bank detected: ${backendDetection.detected_bank} (confidence: ${backendDetection.confidence})`);
+        console.log(` DEBUG: Bank detected: ${backendDetection.detected_bank} (confidence: ${backendDetection.confidence})`);
         
         // Auto-configure the file with dynamic mapping
         await autoConfigureFile(newFile.fileId, backendDetection, detectionResponse.data, setUploadedFiles, setError, dynamicBankMapping);
       }
     } catch (error) {
-      console.error(`❌ DEBUG: Auto-detection failed for ${newFile.fileName}:`, error);
+      console.error(`[ERROR]  DEBUG: Auto-detection failed for ${newFile.fileName}:`, error);
     }
     
     // Small delay between detections
@@ -140,5 +140,5 @@ export const triggerAutoDetection = async (newFiles, setUploadedFiles, setError,
       await new Promise(resolve => setTimeout(resolve, 500));
     }
   }
-  console.log(`🔧 DEBUG: All auto-detections completed`);
+  console.log(` DEBUG: All auto-detections completed`);
 };

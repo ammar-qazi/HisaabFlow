@@ -28,18 +28,18 @@ function DetectedTransfers({ transfers }) {
   
   return (
     <div className="detected-transfers">
-      <h5>💸 Detected Transfer Pairs</h5>
+      <h5> Detected Transfer Pairs</h5>
       {transfers.map((pair, index) => (
         <div key={index} className="transfer-pair">
           <div className="transfer-out">
-            <span className="transfer-label">📤 OUT:</span>
+            <span className="transfer-label">[OUT] OUT:</span>
             <span className="transfer-desc">{pair.outgoing.Description}</span>
             <span className="transfer-amount">-{pair.amount}</span>
             <span className="transfer-account">({pair.outgoing._csv_name})</span>
           </div>
           <div className="transfer-arrow">↓</div>
           <div className="transfer-in">
-            <span className="transfer-label">📥 IN:</span>
+            <span className="transfer-label">[IN] IN:</span>
             <span className="transfer-desc">{pair.incoming.Description}</span>
             <span className="transfer-amount">+{pair.incoming.Amount}</span>
             <span className="transfer-account">({pair.incoming._csv_name})</span>
@@ -58,7 +58,7 @@ function TransferConflicts({ conflicts }) {
   
   return (
     <div className="transfer-conflicts">
-      <h5>⚠️ Transfer Conflicts</h5>
+      <h5>[WARNING] Transfer Conflicts</h5>
       <p>These transactions have multiple potential matches and need manual review:</p>
       {conflicts.map((conflict, index) => (
         <div key={index} className="conflict-item">
@@ -75,7 +75,7 @@ function TransferAnalysis({ transferAnalysis }) {
   
   return (
     <div className="transfer-analysis">
-      <h4>🔄 Transfer Detection Results</h4>
+      <h4> Transfer Detection Results</h4>
       <div className="transfer-summary">
         <TransferSummaryStats summary={transferAnalysis.summary} />
         <DetectedTransfers transfers={transferAnalysis.transfers} />

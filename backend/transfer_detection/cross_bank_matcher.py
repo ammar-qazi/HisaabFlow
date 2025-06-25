@@ -24,7 +24,7 @@ class CrossBankMatcher:
         self.exchange_analyzer = ExchangeAnalyzer()
         self.confidence_calculator = ConfidenceCalculator()
         
-        print(f"🔧 CrossBankMatcher: Banks: {', '.join(self.config.list_configured_banks())}")
+        print(f" CrossBankMatcher: Banks: {', '.join(self.config.list_configured_banks())}")
     
     def find_transfer_candidates(self, transactions: List[Dict]) -> List[Dict]:
         """Find transactions that match configured transfer patterns"""
@@ -86,7 +86,7 @@ class CrossBankMatcher:
             existing_transaction_ids.add(pair['outgoing']['_transaction_index'])
             existing_transaction_ids.add(pair['incoming']['_transaction_index'])
         
-        print(f"🔄 MATCHING CROSS-BANK TRANSFERS...")
+        print(f" MATCHING CROSS-BANK TRANSFERS...")
         
         # Filter available transactions
         available_outgoing = [t for t in potential_transfers 
@@ -121,7 +121,7 @@ class CrossBankMatcher:
             if best_match and best_match['confidence'] >= self.confidence_threshold:
                 transfer_pair = self._create_transfer_pair(outgoing, best_match, len(transfer_pairs))
                 
-                print(f"🎉 PAIR: {outgoing['_csv_name']} | -{transfer_pair['amount']} → "
+                print(f" PAIR: {outgoing['_csv_name']} | -{transfer_pair['amount']} → "
                       f"{best_match['incoming']['_csv_name']} | {best_match['incoming_amount']} "
                       f"({best_match['type']}, {best_match['confidence']:.2f})")
                 
@@ -129,7 +129,7 @@ class CrossBankMatcher:
                 existing_transaction_ids.add(outgoing['_transaction_index'])
                 existing_transaction_ids.add(best_match['incoming']['_transaction_index'])
         
-        print(f"✅ Created {len(transfer_pairs)} cross-bank transfer pairs")
+        print(f"[SUCCESS] Created {len(transfer_pairs)} cross-bank transfer pairs")
         return transfer_pairs
     
     def _find_best_match(self, outgoing: Dict, available_incoming: List[Dict], 
@@ -343,7 +343,7 @@ class CrossBankMatcher:
         """Detect bank type using configuration"""
         bank_type = self.config.detect_bank_type(file_name)
         if not bank_type:
-            print(f"⚠️  Unknown bank type for file: {file_name}. Add configuration in configs/")
+            print(f"[WARNING]  Unknown bank type for file: {file_name}. Add configuration in configs/")
             return 'unknown'
         return bank_type
     

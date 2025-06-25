@@ -17,9 +17,9 @@ class EnhancedConfigurationManager:
         self.app_config = self.config_loader.load_app_config()
         self.bank_configs: Dict[str, EnhancedBankConfig] = self.config_loader.load_bank_configs()
         
-        print(f"🔧 Enhanced Configuration Manager initialized")
-        print(f"📁 Config directory: {config_dir}")
-        print(f"🏦 Loaded {len(self.bank_configs)} bank configurations")
+        print(f" Enhanced Configuration Manager initialized")
+        print(f" Config directory: {config_dir}")
+        print(f" Loaded {len(self.bank_configs)} bank configurations")
     
     # ========== Legacy Methods (for backward compatibility) ==========
     

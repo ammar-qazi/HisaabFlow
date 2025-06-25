@@ -7,9 +7,9 @@ function ResultsSummary({ transformedData }) {
   
   return (
     <div className="results-summary">
-      <p>✅ Total transactions: <strong>{totalTransactions}</strong></p>
-      <p>🔄 Balance corrections: <strong>{balanceCorrections}</strong></p>
-      <p>📊 Regular transactions: <strong>{regularTransactions}</strong></p>
+      <p>[SUCCESS] Total transactions: <strong>{totalTransactions}</strong></p>
+      <p> Balance corrections: <strong>{balanceCorrections}</strong></p>
+      <p>[DATA] Regular transactions: <strong>{regularTransactions}</strong></p>
     </div>
   );
 }
@@ -30,7 +30,7 @@ function ResultsTable({ transformedData }) {
       <tbody>
         {transformedData.slice(0, 20).map((row, idx) => (
           <tr key={idx} className={row.Category === 'Balance Correction' ? 'transfer-row' : ''}>
-            <td>{row.Category === 'Balance Correction' ? '🔄' : '💰'}</td>
+            <td>{row.Category === 'Balance Correction' ? '' : ''}</td>
             <td>{row.Date}</td>
             <td>{row.Amount}</td>
             <td>{row.Category}</td>
@@ -50,7 +50,7 @@ function ResultsActions({ exportData, onStartOver }) {
         className="btn btn-success" 
         onClick={exportData}
       >
-        📥 Export Unified CSV
+        [IN] Export Unified CSV
       </button>
       
       <button 
@@ -58,7 +58,7 @@ function ResultsActions({ exportData, onStartOver }) {
         onClick={onStartOver}
         style={{ marginLeft: '10px' }}
       >
-        🔄 Start Over
+         Start Over
       </button>
     </div>
   );
@@ -67,7 +67,7 @@ function ResultsActions({ exportData, onStartOver }) {
 function FinalResults({ transformedData, exportData, onStartOver }) {
   return (
     <div className="final-results">
-      <h4>📋 Final Converted Data</h4>
+      <h4> Final Converted Data</h4>
       <ResultsSummary transformedData={transformedData} />
       <ResultsTable transformedData={transformedData} />
       <ResultsActions exportData={exportData} onStartOver={onStartOver} />

@@ -19,7 +19,7 @@ function FileUploadStep({
         className="file-upload multi-file"
         onClick={() => fileInputRef.current?.click()}
       >
-        <div className="file-upload-icon">📁📁📁</div>
+        <div className="file-upload-icon"></div>
         <div className="file-upload-text">
           Click to select multiple CSV files (Ctrl/Cmd + Click)
         </div>
@@ -39,7 +39,7 @@ function FileUploadStep({
       
       {uploadedFiles.length > 0 && (
         <div className="uploaded-files">
-          <h4>📋 Uploaded Files ({uploadedFiles.length})</h4>
+          <h4> Uploaded Files ({uploadedFiles.length})</h4>
           <div className="file-tabs">
             {uploadedFiles.map((file, index) => (
               <div 

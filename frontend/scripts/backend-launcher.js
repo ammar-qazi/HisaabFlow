@@ -26,8 +26,8 @@ class BackendLauncher {
   }
 
   async startCompiledBackend(exePath) {
-    console.log('🎯 Using compiled backend executable');
-    console.log(`📂 Executable path: ${exePath}`);
+    console.log('Using compiled backend executable');
+    console.log(` Executable path: ${exePath}`);
     
     try {
       // Set up environment with user configs directory
@@ -36,7 +36,7 @@ class BackendLauncher {
       if (this.userDir) {
         env.HISAABFLOW_USER_DIR = this.userDir;
         env.HISAABFLOW_CONFIG_DIR = path.join(this.userDir, 'configs');
-        console.log(`📁 Using user configs: ${env.HISAABFLOW_CONFIG_DIR}`);
+        console.log(` Using user configs: ${env.HISAABFLOW_CONFIG_DIR}`);
       }
       
       // Start the compiled executable
@@ -51,20 +51,20 @@ class BackendLauncher {
       await this.waitForBackend();
       this.isRunning = true;
       
-      console.log('✅ Compiled backend started successfully');
+      console.log('[SUCCESS] Compiled backend started successfully');
       return true;
       
     } catch (error) {
-      console.error('❌ Failed to start compiled backend:', error);
+      console.error('[ERROR]  Failed to start compiled backend:', error);
       return false;
     }
   }
 
   async startBackend() {
-    console.log('🚀 Starting HisaabFlow backend...');
-    console.log('🔍 DEBUG: Platform:', process.platform);
-    console.log('🔍 DEBUG: resourcesPath:', process.resourcesPath);
-    console.log('🔍 DEBUG: __dirname:', __dirname);
+    console.log('[START] Starting HisaabFlow backend...');
+    console.log(' DEBUG: Platform:', process.platform);
+    console.log(' DEBUG: resourcesPath:', process.resourcesPath);
+    console.log(' DEBUG: __dirname:', __dirname);
     
     // Check for compiled executable first (ALL platforms in production)
     const backendExe = this.getBackendExecutable();
@@ -78,22 +78,22 @@ class BackendLauncher {
   }
 
   async startPythonBackend() {
-    console.log('🐍 Using Python backend approach (development mode)');
+    console.log(' Using Python backend approach (development mode)');
     
     try {
       const backendPath = this.getBackendPath();
-      console.log(`📂 Backend path: ${backendPath}`);
-      console.log(`📂 Backend exists: ${require('fs').existsSync(backendPath)}`);
+      console.log(` Backend path: ${backendPath}`);
+      console.log(` Backend exists: ${require('fs').existsSync(backendPath)}`);
       
       if (require('fs').existsSync(backendPath)) {
         const backendFiles = require('fs').readdirSync(backendPath);
-        console.log(`📂 Backend files: ${backendFiles.join(', ')}`);
+        console.log(` Backend files: ${backendFiles.join(', ')}`);
       }
       
       // Ensure virtual environment exists and get Python path
       const pythonPath = await this.ensureVenv();
-      console.log(`🐍 Python path: ${pythonPath}`);
-      console.log(`🐍 Python exists: ${require('fs').existsSync(pythonPath)}`);
+      console.log(` Python path: ${pythonPath}`);
+      console.log(` Python exists: ${require('fs').existsSync(pythonPath)}`);
       
       // Test Python execution
       console.log('🧪 Testing Python execution...');
@@ -110,7 +110,7 @@ class BackendLauncher {
       if (this.userDir) {
         env.HISAABFLOW_USER_DIR = this.userDir;
         env.HISAABFLOW_CONFIG_DIR = path.join(this.userDir, 'configs');
-        console.log(`📁 Using user configs: ${env.HISAABFLOW_CONFIG_DIR}`);
+        console.log(` Using user configs: ${env.HISAABFLOW_CONFIG_DIR}`);
       }
       
       this.backendProcess = spawn(pythonPath, [
@@ -130,26 +130,26 @@ class BackendLauncher {
       await this.waitForBackend();
       this.isRunning = true;
       
-      console.log('✅ Python backend started successfully');
+      console.log('[SUCCESS] Python backend started successfully');
       return true;
       
     } catch (error) {
-      console.error('❌ Failed to start Python backend:', error);
+      console.error('[ERROR]  Failed to start Python backend:', error);
       return false;
     }
   }
 
   setupProcessHandlers() {
     this.backendProcess.stdout.on('data', (data) => {
-      console.log(`🔧 Backend: ${data.toString().trim()}`);
+      console.log(` Backend: ${data.toString().trim()}`);
     });
 
     this.backendProcess.stderr.on('data', (data) => {
-      console.error(`⚠️ Backend error: ${data.toString().trim()}`);
+      console.error(`[WARNING] Backend error: ${data.toString().trim()}`);
     });
 
     this.backendProcess.on('close', (code) => {
-      console.log(`🔄 Backend process exited with code ${code}`);
+      console.log(` Backend process exited with code ${code}`);
       this.isRunning = false;
     });
   }
@@ -183,7 +183,7 @@ class BackendLauncher {
 
   getBundledPythonPath() {
     const isDev = require('electron-is-dev');
-    console.log(`🔍 isDev: ${isDev}`);
+    console.log(` isDev: ${isDev}`);
     
     if (isDev) {
       // Development: check for local python bundle first
@@ -192,19 +192,19 @@ class BackendLauncher {
         const pythonExe = process.platform === 'win32' 
           ? path.join(localBundle, 'python.exe')
           : path.join(localBundle, 'bin', 'python3');
-        console.log(`🔍 Dev bundle Python: ${pythonExe}`);
+        console.log(` Dev bundle Python: ${pythonExe}`);
         return pythonExe;
       }
       return null; // Fall back to system Python in development
     } else {
       // Production: use bundled python-build-standalone Python (not used with Nuitka)
       const bundlePath = path.join(process.resourcesPath, 'python-bundle/python');
-      console.log(`🔍 Production bundle path: ${bundlePath}`);
+      console.log(` Production bundle path: ${bundlePath}`);
       
       const pythonExe = process.platform === 'win32' 
         ? path.join(bundlePath, 'python.exe')
         : path.join(bundlePath, 'bin', 'python3');
-      console.log(`🔍 Production Python executable: ${pythonExe}`);
+      console.log(` Production Python executable: ${pythonExe}`);
       return pythonExe;
     }
   }
@@ -223,31 +223,31 @@ class BackendLauncher {
   async ensureVenv() {
     // First check if we have bundled Python
     const bundledPython = this.getBundledPythonPath();
-    console.log(`🔍 Bundled Python path: ${bundledPython}`);
+    console.log(` Bundled Python path: ${bundledPython}`);
     
     if (bundledPython && require('fs').existsSync(bundledPython)) {
-      console.log('✅ Using bundled Python runtime');
+      console.log('[SUCCESS] Using bundled Python runtime');
       return bundledPython;
     } else {
-      console.log(`⚠️ Bundled Python not found at: ${bundledPython}`);
+      console.log(`[WARNING] Bundled Python not found at: ${bundledPython}`);
       if (bundledPython) {
         const bundleDir = require('path').dirname(bundledPython);
-        console.log(`🔍 Bundle directory exists: ${require('fs').existsSync(bundleDir)}`);
+        console.log(` Bundle directory exists: ${require('fs').existsSync(bundleDir)}`);
         if (require('fs').existsSync(bundleDir)) {
           const bundleFiles = require('fs').readdirSync(bundleDir);
-          console.log(`🔍 Files in bundle dir: ${bundleFiles.join(', ')}`);
+          console.log(` Files in bundle dir: ${bundleFiles.join(', ')}`);
         }
       }
     }
     
     // Fall back to virtual environment approach (for development)
-    console.log('⚠️ Bundled Python not found, using virtual environment...');
+    console.log('[WARNING] Bundled Python not found, using virtual environment...');
     const venvPath = this.getVenvPath();
     
     if (!require('fs').existsSync(venvPath)) {
-      console.log('📦 Creating HisaabFlow virtual environment...');
+      console.log(' Creating HisaabFlow virtual environment...');
       await this.createVenv();
-      console.log('📦 Installing dependencies...');
+      console.log(' Installing dependencies...');
       await this.installDependencies();
     }
     
@@ -262,7 +262,7 @@ class BackendLauncher {
       
       create.on('close', (code) => {
         if (code === 0) {
-          console.log('✅ Virtual environment created');
+          console.log('[SUCCESS] Virtual environment created');
           resolve();
         } else {
           reject(new Error('Failed to create virtual environment'));
@@ -282,10 +282,10 @@ class BackendLauncher {
       
       install.on('close', (code) => {
         if (code === 0) {
-          console.log('✅ Dependencies installed successfully');
+          console.log('[SUCCESS] Dependencies installed successfully');
           resolve();
         } else {
-          console.warn('⚠️ Some dependencies failed, trying core only...');
+          console.warn('[WARNING] Some dependencies failed, trying core only...');
           this.installCoreDependencies().then(resolve).catch(reject);
         }
       });
@@ -302,7 +302,7 @@ class BackendLauncher {
       
       install.on('close', (code) => {
         if (code === 0) {
-          console.log('✅ Core dependencies installed');
+          console.log('[SUCCESS] Core dependencies installed');
           resolve();
         } else {
           reject(new Error('Failed to install core dependencies'));
@@ -313,7 +313,7 @@ class BackendLauncher {
 
   stopBackend() {
     if (this.backendProcess && this.isRunning) {
-      console.log('🛑 Stopping backend...');
+      console.log(' Stopping backend...');
       
       try {
         // Try graceful shutdown first
@@ -322,17 +322,17 @@ class BackendLauncher {
         // Force kill after timeout
         setTimeout(() => {
           if (this.backendProcess && this.isRunning) {
-            console.log('⚡ Force killing backend process...');
+            console.log(' Force killing backend process...');
             this.backendProcess.kill('SIGKILL');
           }
         }, 3000); // 3 second timeout
         
       } catch (error) {
-        console.error('⚠️ Error stopping backend:', error.message);
+        console.error('[WARNING] Error stopping backend:', error.message);
       }
       
       this.isRunning = false;
-      console.log('✅ Backend shutdown initiated');
+      console.log('[SUCCESS] Backend shutdown initiated');
     }
   }
 

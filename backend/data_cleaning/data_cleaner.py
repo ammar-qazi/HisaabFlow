@@ -53,7 +53,7 @@ class DataCleaner:
         """
         try:
             print(f"\n🧹 STARTING DATA CLEANING")
-            print(f"   📊 Input: {parsed_data.get('row_count', 0)} rows")
+            print(f"   [DATA] Input: {parsed_data.get('row_count', 0)} rows")
             
             if not parsed_data.get('success', False) or not parsed_data.get('data'):
                 return {
@@ -98,8 +98,8 @@ class DataCleaner:
             # Step 9: Quality assessment
             quality_report = self.quality_checker.check_data_quality(valid_data)
             
-            print(f"   ✅ Cleaning complete: {len(valid_data)} clean rows")
-            print(f"   🗺️ Updated column mapping: {updated_column_mapping}")
+            print(f"   [SUCCESS] Cleaning complete: {len(valid_data)} clean rows")
+            print(f"   ️ Updated column mapping: {updated_column_mapping}")
             
             return {
                 'success': True,
@@ -119,9 +119,9 @@ class DataCleaner:
             }
             
         except Exception as e:
-            print(f"   ❌ Cleaning error: {str(e)}")
+            print(f"   [ERROR]  Cleaning error: {str(e)}")
             import traceback
-            print(f"   📚 Traceback: {traceback.format_exc()}")
+            print(f"    Traceback: {traceback.format_exc()}")
             return {
                 'success': False,
                 'error': f'Data cleaning failed: {str(e)}'
@@ -131,7 +131,7 @@ class DataCleaner:
         """
         Step 1: Focus on target data only - remove unwanted columns and rows
         """
-        print(f"   🎯 Step 1: Focusing target data")
+        print(f"   Step 1: Focusing target data")
         
         if not data:
             return []
@@ -162,7 +162,7 @@ class DataCleaner:
         if not target_columns:
             target_columns = set(headers)
         
-        print(f"      📋 Target columns: {sorted(target_columns)}")
+        print(f"       Target columns: {sorted(target_columns)}")
         
         # Filter data to only include target columns
         focused_data = []
@@ -176,7 +176,7 @@ class DataCleaner:
             if any(str(value).strip() for value in focused_row.values()):
                 focused_data.append(focused_row)
         
-        print(f"      ✅ Focused data: {len(focused_data)} rows, {len(target_columns)} columns")
+        print(f"      [SUCCESS] Focused data: {len(focused_data)} rows, {len(target_columns)} columns")
         return focused_data
     
     def _count_numeric_columns(self, data: List[Dict]) -> int:
@@ -241,6 +241,6 @@ if __name__ == "__main__":
     print("🧪 Testing Modular Data Cleaner")
     result = cleaner.clean_parsed_data(sample_parsed_data, template_config)
     
-    print(f"\n📊 Cleaning Result:")
+    print(f"\n[DATA] Cleaning Result:")
     import json
     print(json.dumps(result, indent=2, default=str))

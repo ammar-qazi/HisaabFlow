@@ -446,7 +446,7 @@ function ModernDataReviewStep({
                     </div>
                   </div>
                   <Badge variant="success">
-                    ✓ Parsed
+                     Parsed
                   </Badge>
                 </div>
               </div>

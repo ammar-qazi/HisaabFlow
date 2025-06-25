@@ -8,7 +8,7 @@ def setup_logging_middleware(app):
     
     @app.middleware("http")
     async def log_requests(request: Request, call_next):
-        print(f"🔍 {request.method} {request.url} - Origin: {request.headers.get('origin', 'None')}")
+        print(f" {request.method} {request.url} - Origin: {request.headers.get('origin', 'None')}")
         response = await call_next(request)
-        print(f"📤 Response: {response.status_code}")
+        print(f"Response: {response.status_code}")
         return response

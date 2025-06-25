@@ -17,7 +17,7 @@ function InteractiveDataTable({
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(isReviewMode ? 10 : defaultItemsPerPage);
 
-  console.log('🔍 InteractiveDataTable Debug:', {
+  console.log(' InteractiveDataTable Debug:', {
     rawData,
     isReviewMode,
   });
@@ -30,7 +30,7 @@ function InteractiveDataTable({
     if (rawData && Array.isArray(rawData.processed_transactions)) {
       return rawData.processed_transactions;
     }
-    console.log('⚠️ TransformedData is not an array, using empty array');
+    console.log('[WARNING] TransformedData is not an array, using empty array');
     return [];
   }, [rawData]);
 

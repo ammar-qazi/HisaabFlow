@@ -38,8 +38,8 @@ class GenericCSVPreprocessor:
             'warnings': List[str]
         }
         """
-        print(f"\n🔧 GENERIC CSV PREPROCESSING")
-        print(f"   📂 Input file: {file_path}")
+        print(f"\n GENERIC CSV PREPROCESSING")
+        print(f"    Input file: {file_path}")
         
         issues_fixed = []
         warnings = []
@@ -69,10 +69,10 @@ class GenericCSVPreprocessor:
             processed_file_path = self._create_temp_file(file_path, '_cleaned')
             self._write_content(processed_file_path, cleaned_content, encoding)
             
-            print(f"   ✅ Generic preprocessing complete:")
-            print(f"      📊 Original lines: {original_line_count}")
-            print(f"      📊 Processed lines: {processed_row_count}")
-            print(f"      🔧 Issues fixed: {len(issues_fixed)}")
+            print(f"   [SUCCESS] Generic preprocessing complete:")
+            print(f"      [DATA] Original lines: {original_line_count}")
+            print(f"      [DATA] Processed lines: {processed_row_count}")
+            print(f"       Issues fixed: {len(issues_fixed)}")
             
             for issue in issues_fixed:
                 print(f"         - {issue}")
@@ -87,7 +87,7 @@ class GenericCSVPreprocessor:
             }
             
         except Exception as e:
-            print(f"   ❌ Generic preprocessing failed: {str(e)}")
+            print(f"   [ERROR]  Generic preprocessing failed: {str(e)}")
             return {
                 'success': False,
                 'error': str(e),
@@ -277,5 +277,5 @@ class CSVPreprocessor:
         """
         Bank-agnostic preprocessing (bank_type parameter ignored)
         """
-        print(f"🔧 Using bank-agnostic CSV preprocessing (bank_type '{bank_type}' ignored)")
+        print(f" Using bank-agnostic CSV preprocessing (bank_type '{bank_type}' ignored)")
         return self.generic_preprocessor.preprocess_csv(file_path, encoding)

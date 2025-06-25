@@ -30,7 +30,7 @@ class StructureAnalyzer:
     
     def analyze_structure(self, sample_rows: List[List[str]]) -> Dict:
         """Analyze CSV structure comprehensively"""
-        print(f"🔍 Analyzing structure of {len(sample_rows)} sample rows")
+        print(f" Analyzing structure of {len(sample_rows)} sample rows")
         
         try:
             if not sample_rows:
@@ -71,7 +71,7 @@ class StructureAnalyzer:
             }
             
         except Exception as e:
-            print(f"❌ Structure analysis failed: {str(e)}")
+            print(f"[ERROR]  Structure analysis failed: {str(e)}")
             return {'success': False, 'error': f"Structure analysis failed: {str(e)}"}
     
     def detect_header_row(self, sample_rows: List[List[str]]) -> Dict:

@@ -28,10 +28,10 @@ export const createFileHandlers = (state) => {
   } = state;
 
   const handleFileSelect = async (selectedFiles) => {
-    console.log('🔍 DEBUG: handleFileSelect called with', selectedFiles?.length, 'files');
+    console.log(' DEBUG: handleFileSelect called with', selectedFiles?.length, 'files');
     
     if (!selectedFiles || selectedFiles.length === 0) {
-      console.log('❌ DEBUG: No files selected, returning early');
+      console.log('[ERROR]  DEBUG: No files selected, returning early');
       return;
     }
     
@@ -43,7 +43,7 @@ export const createFileHandlers = (state) => {
       
       for (let i = 0; i < selectedFiles.length; i++) {
         const file = selectedFiles[i];
-        console.log(`🔍 DEBUG: Processing file ${i + 1}/${selectedFiles.length}: ${file.name}`);
+        console.log(` DEBUG: Processing file ${i + 1}/${selectedFiles.length}: ${file.name}`);
         
         const formData = new FormData();
         formData.append('file', file);
@@ -53,10 +53,10 @@ export const createFileHandlers = (state) => {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
         
-        console.log(`✅ DEBUG: Upload response for ${file.name}:`, response.data);
+        console.log(`[SUCCESS] DEBUG: Upload response for ${file.name}:`, response.data);
         
         const bankDetection = detectBankFromFilename(file.name);
-        console.log(`🏦 DEBUG: Frontend bank detection for ${file.name}:`, bankDetection);
+        console.log(` DEBUG: Frontend bank detection for ${file.name}:`, bankDetection);
         
         newFiles.push({
           file: file,
@@ -76,15 +76,15 @@ export const createFileHandlers = (state) => {
           bankDetection: bankDetection
         });
         
-        console.log(`🔍 DEBUG: Created file object for ${file.name} with fileId: ${response.data.file_id}`);
+        console.log(` DEBUG: Created file object for ${file.name} with fileId: ${response.data.file_id}`);
       }
       
-      console.log(`🔍 DEBUG: About to update uploadedFiles. Current length: ${uploadedFiles.length}, adding: ${newFiles.length}`);
+      console.log(` DEBUG: About to update uploadedFiles. Current length: ${uploadedFiles.length}, adding: ${newFiles.length}`);
       
       setUploadedFiles(prev => {
-        console.log(`🔍 DEBUG: setUploadedFiles callback - prev length: ${prev.length}`);
+        console.log(` DEBUG: setUploadedFiles callback - prev length: ${prev.length}`);
         const updated = [...prev, ...newFiles];
-        console.log(`🔍 DEBUG: setUploadedFiles callback - new length: ${updated.length}`);
+        console.log(` DEBUG: setUploadedFiles callback - new length: ${updated.length}`);
         
         setTimeout(() => {
           triggerAutoDetection(newFiles, setUploadedFiles, setError, dynamicBankMapping); // setSuccess removed
@@ -95,7 +95,7 @@ export const createFileHandlers = (state) => {
       
       toast.success(`Successfully uploaded ${selectedFiles.length} file(s).`);
     } catch (err) {
-      console.error(`❌ DEBUG: Upload error:`, err);
+      console.error(`[ERROR]  DEBUG: Upload error:`, err);
       setError(`Upload failed: ${err.response?.data?.detail || err.message}`);
     } finally {
       setLoading(false);

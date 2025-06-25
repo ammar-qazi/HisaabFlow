@@ -52,12 +52,12 @@ async def transform_data(request: TransformRequest):
 @transform_router.post("/multi-csv/transform")
 async def transform_multi_csv_data(request: Request):
     """Transform multi-CSV data to Cashew format"""
-    print(f"🔄 Multi-CSV transform request received")
+    print(f" Multi-CSV transform request received")
     
     try:
         # Get raw request body for debugging
         body = await request.body()
-        print(f"📖 Raw request body size: {len(body)} bytes")
+        print(f" Raw request body size: {len(body)} bytes")
         
         # Parse JSON manually for debugging
         raw_data = json.loads(body)
@@ -71,19 +71,19 @@ async def transform_multi_csv_data(request: Request):
         return result
         
     except json.JSONDecodeError as e:
-        print(f"❌ JSON decode error: {str(e)}")
+        print(f"[ERROR]  JSON decode error: {str(e)}")
         raise HTTPException(status_code=422, detail=f"Invalid JSON: {str(e)}")
     except Exception as e:
-        print(f"❌ Multi-CSV transform exception: {str(e)}")
+        print(f"[ERROR]  Multi-CSV transform exception: {str(e)}")
         import traceback
-        print(f"📖 Full traceback: {traceback.format_exc()}")
+        print(f" Full traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @transform_router.post("/export")
 async def export_csv_data(request: Request):
     """Export transformed data as CSV file"""
-    print(f"📥 Export request received")
+    print(f"[IN] Export request received")
     
     try:
         # Parse the request body
@@ -94,10 +94,10 @@ async def export_csv_data(request: Request):
         return export_service.export_to_csv(data)
         
     except json.JSONDecodeError as e:
-        print(f"❌ JSON decode error: {str(e)}")
+        print(f"[ERROR]  JSON decode error: {str(e)}")
         raise HTTPException(status_code=400, detail=f"Invalid JSON: {str(e)}")
     except Exception as e:
-        print(f"❌ Export error: {str(e)}")
+        print(f"[ERROR]  Export error: {str(e)}")
         import traceback
-        print(f"📖 Full traceback: {traceback.format_exc()}")
+        print(f" Full traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e))

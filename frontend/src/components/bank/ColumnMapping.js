@@ -1,17 +1,17 @@
 import React from 'react';
 
 function ColumnMapping({ headers, columnMapping, onMappingChange }) {
-  console.log('🔗 ColumnMapping - Headers available:', headers?.length || 0);
-  console.log('🔗 ColumnMapping - Column mapping:', columnMapping);
+  console.log(' ColumnMapping - Headers available:', headers?.length || 0);
+  console.log(' ColumnMapping - Column mapping:', columnMapping);
   
   // Early return if no headers are available
   if (!headers || headers.length === 0) {
-    console.log('❌ NO HEADERS AVAILABLE - Component will not render');
+    console.log('[ERROR]  NO HEADERS AVAILABLE - Component will not render');
     return (
       <div className="mapping-section">
-        <h5>🔗 Column Mapping</h5>
+        <h5> Column Mapping</h5>
         <div className="mapping-info">
-          <span className="mapping-status manual-mapping">⚠️ No headers available - Preview file first</span>
+          <span className="mapping-status manual-mapping">[WARNING] No headers available - Preview file first</span>
         </div>
       </div>
     );
@@ -30,12 +30,12 @@ function ColumnMapping({ headers, columnMapping, onMappingChange }) {
   
   return (
     <div className="mapping-section">
-      <h5>🔗 Column Mapping</h5>
+      <h5> Column Mapping</h5>
       <div className="mapping-info">
         {Object.keys(columnMapping || {}).length > 0 ? (
-          <span className="mapping-status config-applied">✅ Auto-mapped columns detected</span>
+          <span className="mapping-status config-applied">[SUCCESS] Auto-mapped columns detected</span>
         ) : (
-          <span className="mapping-status manual-mapping">📝 Manual Mapping (Standard Cashew Fields)</span>
+          <span className="mapping-status manual-mapping"> Manual Mapping (Standard Cashew Fields)</span>
         )}
       </div>
       <div className="mapping-grid">

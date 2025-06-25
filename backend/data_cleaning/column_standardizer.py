@@ -34,7 +34,7 @@ class ColumnStandardizer:
         Returns:
             Tuple: (standardized_data, column_name_mapping)
         """
-        print(f"   📝 Step 2: Standardizing column names")
+        print(f"    Step 2: Standardizing column names")
         
         if not data:
             return [], {}
@@ -42,12 +42,12 @@ class ColumnStandardizer:
         # Create column mapping for standardization
         column_mapping = self._create_column_mapping(data, template_config)
         
-        print(f"      🔄 Column name mapping: {column_mapping}")
+        print(f"       Column name mapping: {column_mapping}")
         
         # Apply column renaming
         standardized_data = self._apply_column_mapping(data, column_mapping)
         
-        print(f"      ✅ Standardized columns: {list(standardized_data[0].keys()) if standardized_data else []}")
+        print(f"      [SUCCESS] Standardized columns: {list(standardized_data[0].keys()) if standardized_data else []}")
         return standardized_data, column_mapping
     
     def _create_column_mapping(self, data: List[Dict], template_config: Dict = None) -> Dict[str, str]:
@@ -121,7 +121,7 @@ class ColumnStandardizer:
         Returns:
             Dict[str, str]: Mapping for Cashew transformation
         """
-        print(f"   🗺️ Creating Cashew column mapping")
+        print(f"   ️ Creating Cashew column mapping")
         
         # Start with template mapping if available
         original_mapping = {}
@@ -154,5 +154,5 @@ class ColumnStandardizer:
             if cashew_col not in updated_mapping:
                 updated_mapping[cashew_col] = default_col
         
-        print(f"      ✅ Cashew mapping created: {updated_mapping}")
+        print(f"      [SUCCESS] Cashew mapping created: {updated_mapping}")
         return updated_mapping

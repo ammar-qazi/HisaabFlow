@@ -62,15 +62,15 @@ class MultiCSVProcessor:
                 use_pydantic=True # Request Pydantic models
             )
             
-            print(f"🎉 Successfully parsed all {len(service_result.get('parsed_csvs', []))} files")
+            print(f" Successfully parsed all {len(service_result.get('parsed_csvs', []))} files")
             return service_result # Return the result directly from the service
             
         except HTTPException:
             raise
         except Exception as e:
-            print(f"💥 Unexpected error in multi-CSV parse: {str(e)}")
+            print(f" Unexpected error in multi-CSV parse: {str(e)}")
             import traceback
-            print(f"📚 Full traceback: {traceback.format_exc()}")
+            print(f" Full traceback: {traceback.format_exc()}")
             raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
     
     def transform_multiple_csvs(self, request: MultiCSVTransformRequest) -> Dict[str, Any]:
@@ -98,9 +98,9 @@ class MultiCSVProcessor:
         except HTTPException:
             raise
         except Exception as e:
-            print(f"💥 Unexpected transform error: {str(e)}")
+            print(f" Unexpected transform error: {str(e)}")
             import traceback
-            print(f"📚 Full traceback: {traceback.format_exc()}")
+            print(f" Full traceback: {traceback.format_exc()}")
             raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
     
     def _validate_parse_request(self, request: MultiCSVParseRequest):
@@ -121,13 +121,13 @@ class MultiCSVProcessor:
         transformation_results = []
         
         for i, csv_data in enumerate(request.csv_data_list):
-            print(f"📁 Processing CSV: {csv_data.get('file_name', 'Unknown')}")
+            print(f" Processing CSV: {csv_data.get('file_name', 'Unknown')}")
             
             # Get configuration (supports both new config and legacy template)
             config_data = csv_data.get('config_config', csv_data.get('template_config', {}))
-            print(f"🔍 DEBUG: Config keys = {list(config_data.keys())}")
-            print(f"🔍 DEBUG: Config name = '{config_data.get('name', 'NONE')}'")
-            print(f"🔍 DEBUG: Config bank_name = '{config_data.get('bank_name', 'NONE')}'")
+            print(f" DEBUG: Config keys = {list(config_data.keys())}")
+            print(f" DEBUG: Config name = '{config_data.get('name', 'NONE')}'")
+            print(f" DEBUG: Config bank_name = '{config_data.get('bank_name', 'NONE')}'")
             
             column_mapping = config_data.get('column_mapping', {})
             bank_name = config_data.get('bank_name', csv_data.get('file_name', 'Unknown'))
@@ -135,10 +135,10 @@ class MultiCSVProcessor:
             default_category_rules = config_data.get('default_category_rules')
             account_mapping = config_data.get('account_mapping')
             
-            print(f"🔍 DEBUG: Final bank_name for processing = '{bank_name}'")
-            print(f"🔧 Using configuration-based system (template support as fallback)")
+            print(f" DEBUG: Final bank_name for processing = '{bank_name}'")
+            print(f" Using configuration-based system (template support as fallback)")
             
-            print(f"🏦 Bank: {bank_name}, Rules: {len(categorization_rules)}, Rows: {len(csv_data.get('data', []))}")
+            print(f" Bank: {bank_name}, Rules: {len(categorization_rules)}, Rows: {len(csv_data.get('data', []))}")
             print(f"ℹ️ [MIGRATION][MultiCSVProcessor] _transform_all_csvs: Transforming for bank {bank_name} using CashewTransformer.")
             
             # Transform data
@@ -155,7 +155,7 @@ class MultiCSVProcessor:
                 print(f"  Transformed {len(transformed)} transactions for {csv_data.get('file_name')}")
                 
                 config_name_used = config_data.get('name', 'None')
-                print(f"🔍 DEBUG: Recording config_used = '{config_name_used}'")
+                print(f" DEBUG: Recording config_used = '{config_name_used}'")
                 
                 transformation_results.append({
                     "file_name": csv_data.get('file_name'),
@@ -170,7 +170,7 @@ class MultiCSVProcessor:
                     csv_data['data'][j].update(transformed_row)
 
             except Exception as transform_error:
-                print(f"❌ Transform error for {csv_data.get('file_name')}: {str(transform_error)}")
+                print(f"[ERROR]  Transform error for {csv_data.get('file_name')}: {str(transform_error)}")
                 raise HTTPException(status_code=500, detail=f"Transform error for {csv_data.get('file_name')}: {str(transform_error)}")
         
         return all_transformed_data, transformation_results

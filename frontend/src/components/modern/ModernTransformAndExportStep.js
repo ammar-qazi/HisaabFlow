@@ -35,7 +35,7 @@ function ModernTransformAndExportStep({
   );
 
   // Debug logging
-  console.log('🔍 ModernTransformAndExportStep Debug:', {
+  console.log(' ModernTransformAndExportStep Debug:', {
     currentStep,
     hasTransformedData: !!transformedData,
     transformedDataType: Array.isArray(transformedData) ? 'array' : typeof transformedData,

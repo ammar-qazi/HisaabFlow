@@ -22,10 +22,10 @@ class ConfigLoader:
         
         if app_config_path.exists():
             config.read(app_config_path)
-            print("✅ app.conf loaded")
+            print("[SUCCESS] app.conf loaded")
         else:
             # Default configuration if file missing
-            print("⚠️  app.conf not found. Using defaults")
+            print("[WARNING]  app.conf not found. Using defaults")
             config['general'] = {
                 'user_name': 'Your Name Here',
                 'date_tolerance_hours': '72'
@@ -54,10 +54,10 @@ class ConfigLoader:
             try:
                 enhanced_config = self._parse_bank_config(config, bank_name)
                 bank_configs[bank_name] = enhanced_config
-                print(f"✅ Loaded enhanced {bank_name} config")
+                print(f"[SUCCESS] Loaded enhanced {bank_name} config")
                 
             except Exception as e:
-                print(f"❌ Error loading enhanced {bank_name}.conf: {e}")
+                print(f"[ERROR]  Error loading enhanced {bank_name}.conf: {e}")
                 import traceback
                 traceback.print_exc()
         

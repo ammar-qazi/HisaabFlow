@@ -14,7 +14,7 @@ function ConfigurationSelection({
 }) {
   return (
     <div className="configuration-section">
-      <h5>📋 Bank Configuration</h5>
+      <h5> Bank Configuration</h5>
       <div className="configuration-controls">
         <select 
           value={selectedConfiguration} 
@@ -30,12 +30,12 @@ function ConfigurationSelection({
           onClick={onPreview}
           disabled={loading}
         >
-          🔍 Preview
+           Preview
         </button>
       </div>
       {isAutoConfigured && selectedConfiguration && (
         <div className="auto-config-notice">
-          ✅ Auto-configured with "{selectedConfiguration}"
+          [SUCCESS] Auto-configured with "{selectedConfiguration}"
         </div>
       )}
     </div>

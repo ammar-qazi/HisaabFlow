@@ -8,7 +8,7 @@ function TransferAnalysisPanel({ transferAnalysis }) {
   const [expandedTransfers, setExpandedTransfers] = useState({});
 
   // Add debugging
-  console.log('🔍 TransferAnalysisPanel Debug:', {
+  console.log(' TransferAnalysisPanel Debug:', {
     transferAnalysis,
     transferAnalysisType: typeof transferAnalysis,
     transferAnalysisKeys: transferAnalysis ? Object.keys(transferAnalysis) : null
@@ -51,7 +51,7 @@ function TransferAnalysisPanel({ transferAnalysis }) {
     }
   }
 
-  console.log('📊 TransferAnalysisPanel Computed:', { 
+  console.log('[DATA] TransferAnalysisPanel Computed:', { 
     transferPairs, 
     hasTransfers, 
     transferPairsLength: transferPairs.length 

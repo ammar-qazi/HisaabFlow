@@ -33,7 +33,7 @@ function FileConfigurationStep({
       
       {uploadedFiles.map((file, index) => (
         <div key={index} className={`file-config ${activeTab === index ? 'active' : 'hidden'}`}>
-          <h4>🔧 Configure: {file.fileName}</h4>
+          <h4> Configure: {file.fileName}</h4>
           
           <BankDetectionDisplay 
             bankDetection={file.bankDetection}
@@ -70,7 +70,7 @@ function FileConfigurationStep({
           {/* Preview Data */}
           {file.preview && (
             <div className="data-preview">
-              <h5>👁️ Preview: {file.fileName}</h5>
+              <h5>️ Preview: {file.fileName}</h5>
               <table className="data-table">
                 <thead>
                   <tr>
@@ -102,7 +102,7 @@ function FileConfigurationStep({
           onClick={parseAllFiles}
           disabled={loading || uploadedFiles.length === 0}
         >
-          {loading ? '🔄 Parsing...' : '📊 Parse All Files'}
+          {loading ? ' Parsing...' : '[DATA] Parse All Files'}
         </button>
       </div>
     </div>

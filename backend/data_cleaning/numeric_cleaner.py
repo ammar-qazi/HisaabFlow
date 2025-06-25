@@ -25,14 +25,14 @@ class NumericCleaner:
         Returns:
             List[Dict]: Data with cleaned numeric values
         """
-        print(f"   💰 Step 4: Cleaning numeric columns")
+        print(f"    Step 4: Cleaning numeric columns")
         
         if not data:
             return []
         
         # Identify numeric columns
         numeric_cols = self._identify_numeric_columns(data)
-        print(f"      📊 Numeric columns found: {numeric_cols}")
+        print(f"      [DATA] Numeric columns found: {numeric_cols}")
         
         cleaned_data = []
         for row_idx, row in enumerate(data):
@@ -44,13 +44,13 @@ class NumericCleaner:
                     
                     # Debug first few rows
                     if row_idx < 3:
-                        print(f"      💱 Row {row_idx} {col}: '{value}' → {cleaned_value}")
+                        print(f"       Row {row_idx} {col}: '{value}' → {cleaned_value}")
                 else:
                     cleaned_row[col] = value
             
             cleaned_data.append(cleaned_row)
         
-        print(f"      ✅ Numeric cleaning complete")
+        print(f"      [SUCCESS] Numeric cleaning complete")
         return cleaned_data
     
     def _identify_numeric_columns(self, data: List[Dict]) -> List[str]:
@@ -146,5 +146,5 @@ class NumericCleaner:
                 return 0.0
                 
         except (ValueError, TypeError):
-            print(f"      ⚠️  Could not parse numeric value: '{value}'")
+            print(f"      [WARNING]  Could not parse numeric value: '{value}'")
             return 0.0

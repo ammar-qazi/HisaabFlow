@@ -34,9 +34,9 @@ def create_app() -> FastAPI:
     # Add logging middleware
     @app.middleware("http")
     async def log_requests(request: Request, call_next):
-        print(f"🔍 {request.method} {request.url} - Origin: {request.headers.get('origin', 'None')}")
+        print(f" {request.method} {request.url} - Origin: {request.headers.get('origin', 'None')}")
         response = await call_next(request)
-        print(f"📤 Response: {response.status_code}")
+        print(f"Response: {response.status_code}")
         return response
     
     # Initialize components
@@ -68,7 +68,7 @@ def create_app() -> FastAPI:
     @app.get("/preview/{file_id}")
     async def preview_csv(file_id: str, encoding: str = "utf-8"):
         """Preview uploaded CSV file"""
-        print(f"🕵️‍♂️ Preview request for file_id: {file_id}")
+        print(f"️‍️ Preview request for file_id: {file_id}")
         file_path = file_manager.get_file_path(file_id)
         return csv_processor.preview_csv(file_path, encoding)
     
@@ -81,7 +81,7 @@ def create_app() -> FastAPI:
     @app.post("/parse-range/{file_id}")
     async def parse_range(file_id: str, request: ParseRangeRequest):
         """Parse CSV with specified range and optional data cleaning"""
-        print(f"🕵️‍♂️ Parse range request for file_id: {file_id}")
+        print(f"️‍️ Parse range request for file_id: {file_id}")
         file_path = file_manager.get_file_path(file_id)
         return csv_processor.parse_range(file_path, request)
     
@@ -153,26 +153,26 @@ def create_app() -> FastAPI:
     @app.post("/save-config")
     async def save_config(request: SaveTemplateRequest):
         """Save bank configuration"""
-        print(f"💾 API: Saving bank configuration: {request.template_name}")
+        print(f" API: Saving bank configuration: {request.template_name}")
         return config_manager.save_config(request)
     
     @app.get("/configs")
     async def list_configs():
         """List available bank configurations"""
-        print(f"📋 API: Listing available bank configurations...")
+        print(f" API: Listing available bank configurations...")
         result = config_manager.list_configs()
-        print(f"📋 API: Found {len(result.get('configurations', []))} configurations")
-        print(f"📋 API: Configurations = {result.get('configurations', [])}")
+        print(f" API: Found {len(result.get('configurations', []))} configurations")
+        print(f" API: Configurations = {result.get('configurations', [])}")
         return result
     
     @app.get("/config/{config_name}")
     async def load_config(config_name: str):
         """Load bank configuration"""
-        print(f"🔍 API: Loading bank configuration '{config_name}'")
+        print(f" API: Loading bank configuration '{config_name}'")
         result = config_manager.load_config(config_name)
-        print(f"🔍 API: Configuration load success = {result.get('success', False)}")
+        print(f" API: Configuration load success = {result.get('success', False)}")
         if result.get('success'):
-            print(f"🔍 API: Loaded bank = '{result.get('bank_name', 'UNKNOWN')}'")
+            print(f" API: Loaded bank = '{result.get('bank_name', 'UNKNOWN')}'")
         return result
     
     return app

@@ -113,12 +113,12 @@ jobs:
           if (Test-Path "frontend/compiled-backend/hisaabflow-backend.exe") {
             $size = (Get-Item "frontend/compiled-backend/hisaabflow-backend.exe").Length
             $sizeMB = [math]::Round($size / 1MB, 1)
-            Write-Host "✅ Executable created successfully: $sizeMB MB"
+            Write-Host "[SUCCESS] Executable created successfully: $sizeMB MB"
             
             if ($sizeMB -lt 100) {
               Write-Host "⚠️ WARNING: Executable size ($sizeMB MB) is unusually small - backend may not be included"
             } else {
-              Write-Host "✅ Executable size looks correct"
+              Write-Host "[SUCCESS] Executable size looks correct"
             }
           } else {
             Write-Host "❌ ERROR: hisaabflow-backend.exe not found!"
@@ -130,7 +130,7 @@ jobs:
           try {
             $proc = Start-Process -FilePath "frontend/compiled-backend/hisaabflow-backend.exe" -ArgumentList "--help" -Wait -PassThru -NoNewWindow
             if ($proc.ExitCode -eq 0) {
-              Write-Host "✅ Executable startup test passed"
+              Write-Host "[SUCCESS] Executable startup test passed"
             } else {
               Write-Host "⚠️ WARNING: Executable startup test failed with exit code $($proc.ExitCode)"
             }

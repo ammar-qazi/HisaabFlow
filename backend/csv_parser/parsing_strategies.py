@@ -29,41 +29,41 @@ class ParsingStrategies:
         Returns:
             dict: {'success': bool, 'raw_rows': List[List[str]], 'error': str, 'strategy_used': str}
         """
-        print(f"🔄 Trying parsing strategies for file: {file_path}")
+        print(f" Trying parsing strategies for file: {file_path}")
         
         last_error = None
         
         # Strategy 1: Try Pandas first
-        print("   📊 Strategy 1: Pandas")
+        print("   [DATA] Strategy 1: Pandas")
         result = self._parse_with_pandas(file_path, encoding, dialect_result, header_row, max_rows)
         if result['success']:
-            print(f"   ✅ Pandas parsing succeeded")
+            print(f"   [SUCCESS] Pandas parsing succeeded")
             result['strategy_used'] = 'pandas'
             return result
         else:
-            print(f"   ❌ Pandas failed: {result['error']}")
+            print(f"   [ERROR]  Pandas failed: {result['error']}")
             last_error = result['error']
         
         # Strategy 2: Try CSV module
-        print("   📋 Strategy 2: CSV module")
+        print("    Strategy 2: CSV module")
         result = self._parse_with_csv_module(file_path, encoding, dialect_result, header_row, max_rows)
         if result['success']:
-            print(f"   ✅ CSV module parsing succeeded")
+            print(f"   [SUCCESS] CSV module parsing succeeded")
             result['strategy_used'] = 'csv_module'
             return result
         else:
-            print(f"   ❌ CSV module failed: {result['error']}")
+            print(f"   [ERROR]  CSV module failed: {result['error']}")
             last_error = result['error']
         
         # Strategy 3: Manual parsing as last resort
-        print("   🔧 Strategy 3: Manual parsing")
+        print("    Strategy 3: Manual parsing")
         result = self._parse_manually(file_path, encoding, dialect_result, header_row, max_rows)
         if result['success']:
-            print(f"   ✅ Manual parsing succeeded")
+            print(f"   [SUCCESS] Manual parsing succeeded")
             result['strategy_used'] = 'manual'
             return result
         else:
-            print(f"   ❌ Manual parsing failed: {result['error']}")
+            print(f"   [ERROR]  Manual parsing failed: {result['error']}")
             last_error = result['error']
         
         # All strategies failed
@@ -115,7 +115,7 @@ class ParsingStrategies:
             for i, row in enumerate(raw_rows):
                 raw_rows[i] = [str(cell) if pd.notna(cell) else '' for cell in row]
             
-            print(f"      📊 Pandas read {len(raw_rows)} rows with {len(raw_rows[0]) if raw_rows else 0} columns")
+            print(f"      [DATA] Pandas read {len(raw_rows)} rows with {len(raw_rows[0]) if raw_rows else 0} columns")
             
             return {
                 'success': True,
@@ -146,7 +146,7 @@ class ParsingStrategies:
             
             # Special handling for quote-all format (Forint Bank style)
             if dialect_result.get('quoting') == csv.QUOTE_ALL:
-                print(f"      🎯 Detected quote-all format, using specialized handling")
+                print(f"      Detected quote-all format, using specialized handling")
                 CustomDialect.quoting = csv.QUOTE_ALL
                 CustomDialect.doublequote = True
             
@@ -170,7 +170,7 @@ class ParsingStrategies:
                     
                     raw_rows.append(clean_row)
             
-            print(f"      📋 CSV module read {len(raw_rows)} rows with {len(raw_rows[0]) if raw_rows else 0} columns")
+            print(f"       CSV module read {len(raw_rows)} rows with {len(raw_rows[0]) if raw_rows else 0} columns")
             
             return {
                 'success': True,
@@ -214,7 +214,7 @@ class ParsingStrategies:
                     
                     raw_rows.append(fields)
             
-            print(f"      🔧 Manual parsing read {len(raw_rows)} rows with {len(raw_rows[0]) if raw_rows else 0} columns")
+            print(f"       Manual parsing read {len(raw_rows)} rows with {len(raw_rows[0]) if raw_rows else 0} columns")
             
             return {
                 'success': True,

@@ -32,7 +32,7 @@ class SaveConfigRequest(BaseModel):
 @config_router.get("/configs")
 async def list_configs():
     """List available bank configurations"""
-    print(f"📋 API: Listing available bank configurations...")
+    print(f" API: Listing available bank configurations...")
     try:
         available_configs = config_manager.list_configured_banks()
         
@@ -43,9 +43,9 @@ async def list_configs():
             if config:
                 display_name = f"{config.name.title()} Configuration"
                 config_display_names.append(display_name)
-                print(f"📋 Available: {display_name} (from {bank_name}.conf)")
+                print(f" Available: {display_name} (from {bank_name}.conf)")
         
-        print(f"📋 Total configurations found: {len(config_display_names)}")
+        print(f" Total configurations found: {len(config_display_names)}")
         
         return {
             "configurations": config_display_names,
@@ -53,17 +53,17 @@ async def list_configs():
             "count": len(config_display_names)
         }
     except Exception as e:
-        print(f"❌ Config list error: {str(e)}")
+        print(f"[ERROR]  Config list error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @config_router.get("/config/{config_name}")
 async def load_config(config_name: str):
     """Load bank configuration by display name or bank name"""
-    print(f"🔍 API: Loading bank configuration '{config_name}'")
+    print(f" API: Loading bank configuration '{config_name}'")
     try:
         # Find matching bank name
         bank_name = _find_matching_bank_name(config_name)
-        print(f"🔍 Matched bank name: '{bank_name}'")
+        print(f" Matched bank name: '{bank_name}'")
         
         if not bank_name:
             available = config_manager.list_configured_banks()
@@ -111,23 +111,23 @@ async def load_config(config_name: str):
             "source": f"{bank_name}.conf"
         }
         
-        print(f"✅ Configuration loaded successfully: {result['display_name']}")
+        print(f"[SUCCESS] Configuration loaded successfully: {result['display_name']}")
         return result
         
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Config load error: {str(e)}")
+        print(f"[ERROR]  Config load error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error loading configuration: {str(e)}")
 
 @config_router.post("/save-config")
 async def save_config(request: SaveConfigRequest):
     """Save bank configuration"""
-    print(f"💾 API: Saving bank configuration: {request.config_name}")
+    print(f" API: Saving bank configuration: {request.config_name}")
     try:
         config_filename = f"{request.config_name.lower().replace(' ', '_')}.conf"
-        print(f"💡 Configuration should be saved to: ../configs/{config_filename}")
-        print(f"💡 Config data: {request.config}")
+        print(f" Configuration should be saved to: ../configs/{config_filename}")
+        print(f" Config data: {request.config}")
         
         return {
             "success": True,
@@ -136,12 +136,12 @@ async def save_config(request: SaveConfigRequest):
             "suggestion": "Consider manually creating the .conf file for better control"
         }
     except Exception as e:
-        print(f"❌ Config save error: {str(e)}")
+        print(f"[ERROR]  Config save error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error saving configuration: {str(e)}")
 
 def _find_matching_bank_name(config_name: str) -> Optional[str]:
     """Find bank name from configuration display name or direct name"""
-    print(f"🔍 Finding bank name for: '{config_name}'")
+    print(f" Finding bank name for: '{config_name}'")
     
     config_name_lower = config_name.lower()
     available_banks = config_manager.list_configured_banks()
@@ -150,15 +150,15 @@ def _find_matching_bank_name(config_name: str) -> Optional[str]:
     if config_name_lower in [bank.lower() for bank in available_banks]:
         for bank in available_banks:
             if bank.lower() == config_name_lower:
-                print(f"✅ Direct match: {bank}")
+                print(f"[SUCCESS] Direct match: {bank}")
                 return bank
     
     # Display name match (e.g., "NayaPay Configuration" -> "nayapay")
     for bank_name in available_banks:
         display_name = f"{bank_name.title()} Configuration".lower()
         if config_name_lower == display_name:
-            print(f"✅ Display name match: {bank_name}")
+            print(f"[SUCCESS] Display name match: {bank_name}")
             return bank_name
     
-    print(f"❌ No match found for: '{config_name}'")
+    print(f"[ERROR]  No match found for: '{config_name}'")
     return None

@@ -39,37 +39,37 @@ class TransferDetector:
     def detect_transfers(self, csv_data_list: List[Dict]) -> Dict[str, Any]:
         """Main transfer detection function with configurable specifications"""
         
-        print("\n🔍 STARTING ENHANCED TRANSFER DETECTION (CONFIG-BASED)")
+        print("\n STARTING ENHANCED TRANSFER DETECTION (CONFIG-BASED)")
         print("=" * 70)
-        print(f"📅 Date tolerance: {self.date_tolerance_hours} hours")
-        print(f"🏦 Configured banks: {', '.join(self.config.list_configured_banks())}")
-        print(f"🎯 Confidence threshold: {self.config.get_confidence_threshold()}")
+        print(f" Date tolerance: {self.date_tolerance_hours} hours")
+        print(f" Configured banks: {', '.join(self.config.list_configured_banks())}")
+        print(f"Confidence threshold: {self.config.get_confidence_threshold()}")
         print("=" * 70)
         
         # Flatten all transactions with source info
         all_transactions = self._prepare_transactions(csv_data_list)
         
-        print(f"\n📊 TOTAL TRANSACTIONS LOADED: {len(all_transactions)}")
+        print(f"\n[DATA] TOTAL TRANSACTIONS LOADED: {len(all_transactions)}")
         
         # Find potential transfers
-        print("\n🔍 FINDING TRANSFER CANDIDATES...")
+        print("\n FINDING TRANSFER CANDIDATES...")
         potential_transfers = self.cross_bank_matcher.find_transfer_candidates(all_transactions)
         print(f"DEBUG MainDetector: Potential Transfer Candidates ({len(potential_transfers)}):")
         for pt_idx, pt in enumerate(potential_transfers):
             print(f"  PT {pt_idx}: Desc='{pt.get('Description', pt.get('Title', ''))[:60]}...', Amt={pt.get('Amount')}, Date={pt.get('Date')}, Bank={pt.get('_bank_type')}, Dir={pt.get('_transfer_direction')}, CSV='{pt.get('_csv_name')}'")
-        print(f"   ✅ Found {len(potential_transfers)} potential transfer candidates")
+        print(f"   [SUCCESS] Found {len(potential_transfers)} potential transfer candidates")
         
         # STEP 1: Match currency conversions (internal conversions)
-        print("\n💱 MATCHING CURRENCY CONVERSIONS...")
+        print("\n MATCHING CURRENCY CONVERSIONS...")
         conversion_pairs = self.currency_converter.match_currency_conversions(all_transactions)
-        print(f"   ✅ Found {len(conversion_pairs)} currency conversion pairs")
+        print(f"   [SUCCESS] Found {len(conversion_pairs)} currency conversion pairs")
         
         # STEP 2: Match cross-bank transfers using configured specifications
-        print("🔄 MATCHING CROSS-BANK TRANSFERS (CONFIGURED SPECS)...")
+        print(" MATCHING CROSS-BANK TRANSFERS (CONFIGURED SPECS)...")
         cross_bank_pairs = self.cross_bank_matcher.match_cross_bank_transfers(
             potential_transfers, all_transactions, conversion_pairs
         )
-        print(f"   ✅ Found {len(cross_bank_pairs)} cross-bank transfer pairs")
+        print(f"   [SUCCESS] Found {len(cross_bank_pairs)} cross-bank transfer pairs")
         
         # Combine all transfer pairs
         all_transfer_pairs = conversion_pairs + cross_bank_pairs
@@ -78,14 +78,14 @@ class TransferDetector:
         conflicts = self._detect_conflicts(all_transfer_pairs)
         flagged_transactions = self._flag_manual_review(all_transactions, all_transfer_pairs)
         
-        print("\n📋 TRANSFER DETECTION SUMMARY:")
-        print(f"   📊 Total transactions: {len(all_transactions)}")
-        print(f"   🎯 Total transfer pairs: {len(all_transfer_pairs)}")
-        print(f"   💱 Currency conversions: {len(conversion_pairs)}")
-        print(f"   🔄 Cross-bank transfers: {len(cross_bank_pairs)}")
-        print(f"   💭 Potential transfers: {len(potential_transfers)}")
-        print(f"   ⚠️  Conflicts: {len(conflicts)}")
-        print(f"   🚩 Flagged for review: {len(flagged_transactions)}")
+        print("\n TRANSFER DETECTION SUMMARY:")
+        print(f"   [DATA] Total transactions: {len(all_transactions)}")
+        print(f"   Total transfer pairs: {len(all_transfer_pairs)}")
+        print(f"    Currency conversions: {len(conversion_pairs)}")
+        print(f"    Cross-bank transfers: {len(cross_bank_pairs)}")
+        print(f"    Potential transfers: {len(potential_transfers)}")
+        print(f"   [WARNING]  Conflicts: {len(conflicts)}")
+        print(f"    Flagged for review: {len(flagged_transactions)}")
         print("=" * 70)
         
         return {
@@ -111,13 +111,13 @@ class TransferDetector:
         global_transaction_counter = 0 # Initialize a global counter
         
         for csv_idx, csv_data in enumerate(csv_data_list):
-            print(f"\n📁 Processing CSV {csv_idx}: {csv_data.get('file_name', f'CSV_{csv_idx}')}")
-            print(f"   📊 Transaction count: {len(csv_data['data'])}")
+            print(f"\n Processing CSV {csv_idx}: {csv_data.get('file_name', f'CSV_{csv_idx}')}")
+            print(f"   [DATA] Transaction count: {len(csv_data['data'])}")
             
             # DEBUG: Check CSV data structure
             if csv_data['data']:
                 sample_transaction = csv_data['data'][0]
-                print(f"   🔍 Available columns: {list(sample_transaction.keys())}")
+                print(f"    Available columns: {list(sample_transaction.keys())}")
             
             for trans_idx, transaction in enumerate(csv_data['data']):
                 # Get bank type from CSV bank_info if available

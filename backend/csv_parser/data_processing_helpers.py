@@ -31,7 +31,7 @@ def _extract_headers(normalized_rows: List[List[str]], header_row: Optional[int]
                 'confidence': 1.0
             }
         else:
-            print(f"   ⚠️ Invalid header row {header_row}, falling back to auto-detection")
+            print(f"   [WARNING] Invalid header row {header_row}, falling back to auto-detection")
     
     best_row = 0
     best_score = 0
@@ -132,5 +132,5 @@ def _convert_to_dictionaries(headers: List[str], data_rows: List[List[str]]) -> 
         
         data_dicts.append(row_dict)
     
-    print(f"   🔄 Converted {len(data_dicts)} rows to dictionaries")
+    print(f"    Converted {len(data_dicts)} rows to dictionaries")
     return data_dicts
