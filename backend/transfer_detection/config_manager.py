@@ -131,7 +131,7 @@ class ConfigurationManager:
                 print(f"   [IN] Incoming patterns: {list(incoming_patterns.values())}")
                 print(f"    Categorization rules count: {len(bank_config.categorization_rules)}")
                 print(f"    Description cleaning rules count: {len(bank_config.description_cleaning_rules)}")
-                print(f"   🧠 Conditional overrides count: {len(bank_config.conditional_description_overrides)}")
+                print(f"   Conditional overrides count: {len(bank_config.conditional_description_overrides)}")
                 
             except Exception as e:
                 print(f"[ERROR]  Error loading {bank_name}.conf: {e}")

@@ -421,7 +421,7 @@ class TransformationService:
     
     def _apply_conditional_description_overrides(self, data: list, raw_data: dict) -> list:
         """Apply conditional description overrides defined in bank .conf files."""
-        print(f"🧠 Applying conditional description overrides...")
+        print(f"Applying conditional description overrides...")
         conditional_changes_count = 0
         
         csv_data_list = raw_data.get('csv_data_list', [])
@@ -485,7 +485,7 @@ class TransformationService:
                         break # Apply only the first matching conditional rule for this row
         
         if conditional_changes_count > 0:
-            print(f"   🧠 Applied {conditional_changes_count} conditional override changes.")
+            print(f"   Applied {conditional_changes_count} conditional override changes.")
         return data
 
     def _apply_keyword_categorization(self, data: list, raw_data: dict) -> list:
