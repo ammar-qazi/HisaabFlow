@@ -46,7 +46,9 @@ class BackendLauncher {
       // Start the compiled executable
       this.backendProcess = spawn(exePath, [], {
         env: env,
-        stdio: 'pipe'
+        stdio: 'pipe',
+        // Detach process on Unix-like systems for better process group control
+        detached: process.platform !== 'win32'
       });
 
       this.setupProcessHandlers();
@@ -128,7 +130,9 @@ class BackendLauncher {
         '--log-level', 'info'
       ], {
         cwd: backendPath,
-        env: env
+        env: env,
+        // Detach process on Unix-like systems for better process group control
+        detached: process.platform !== 'win32'
       });
 
       this.setupProcessHandlers();
@@ -333,55 +337,103 @@ class BackendLauncher {
 
   stopBackend() {
     if (this.backendProcess && this.isRunning) {
-      console.log(' Stopping backend...');
+      console.log('[SHUTDOWN] Stopping backend process...');
+      console.log(`[DEBUG] Backend PID: ${this.backendProcess.pid}`);
       
-      try {
-        // Cross-platform process termination
-        if (process.platform === 'win32') {
-          // Windows: Use taskkill for more reliable termination
-          this.backendProcess.kill('SIGTERM');
-          
-          // If SIGTERM doesn't work on Windows, try force kill
-          setTimeout(() => {
-            if (this.backendProcess && this.isRunning) {
-              console.log(' Windows force kill...');
-              const { spawn } = require('child_process');
-              spawn('taskkill', ['/pid', this.backendProcess.pid, '/f', '/t'], { stdio: 'ignore' });
-            }
-          }, 2000);
-        } else {
-          // Unix/Linux/macOS: Try graceful SIGTERM first, then SIGKILL
-          this.backendProcess.kill('SIGTERM');
-          
-          setTimeout(() => {
-            if (this.backendProcess && this.isRunning) {
-              console.log(' Force killing backend process...');
-              this.backendProcess.kill('SIGKILL');
-            }
-          }, 2000);
-        }
-        
-      } catch (error) {
-        console.error('[WARNING] Error stopping backend:', error.message);
-        // Try force kill as fallback
-        try {
-          this.backendProcess.kill('SIGKILL');
-        } catch (killError) {
-          console.error('[WARNING] Force kill also failed:', killError.message);
-        }
-      }
+      const processToKill = this.backendProcess;
+      const processPid = this.backendProcess.pid;
       
+      // Set flags immediately to prevent double-shutdown
       this.isRunning = false;
+      this.backendProcess = null;
       
-      // Wait for process to actually exit
-      if (this.backendProcess) {
-        this.backendProcess.on('close', () => {
-          console.log('[SUCCESS] Backend process fully terminated');
-        });
-      }
-      
-      console.log('[SUCCESS] Backend shutdown initiated');
+      return new Promise((resolve) => {
+        let terminated = false;
+        const timeoutMs = 5000; // 5 second timeout
+        
+        // Set up close handler to track actual termination
+        const onClose = (code, signal) => {
+          if (!terminated) {
+            terminated = true;
+            console.log(`[SUCCESS] Backend terminated - code: ${code}, signal: ${signal}`);
+            resolve();
+          }
+        };
+        
+        const onError = (error) => {
+          console.error('[WARNING] Backend termination error:', error.message);
+          if (!terminated) {
+            terminated = true;
+            resolve(); // Still resolve, as process likely terminated
+          }
+        };
+        
+        processToKill.once('close', onClose);
+        processToKill.once('error', onError);
+        
+        try {
+          // Step 1: Graceful SIGTERM
+          console.log('[SHUTDOWN] Sending SIGTERM...');
+          const killSuccess = processToKill.kill('SIGTERM');
+          console.log(`[DEBUG] SIGTERM sent: ${killSuccess}`);
+          
+          if (!killSuccess) {
+            console.log('[WARNING] SIGTERM failed, process may already be dead');
+            if (!terminated) {
+              terminated = true;
+              resolve();
+            }
+            return;
+          }
+          
+          // Step 2: Wait for graceful shutdown or timeout
+          const forceKillTimer = setTimeout(() => {
+            if (!terminated && processToKill.killed === false) {
+              console.log('[SHUTDOWN] Graceful shutdown timeout, sending SIGKILL...');
+              try {
+                const forceKillSuccess = processToKill.kill('SIGKILL');
+                console.log(`[DEBUG] SIGKILL sent: ${forceKillSuccess}`);
+                
+                if (!forceKillSuccess && process.platform === 'win32') {
+                  // Windows fallback: use process.kill with native PID
+                  console.log('[SHUTDOWN] Windows fallback: using process.kill...');
+                  try {
+                    process.kill(processPid, 'SIGTERM');
+                  } catch (winError) {
+                    console.error('[WARNING] Windows process.kill failed:', winError.message);
+                  }
+                }
+              } catch (killError) {
+                console.error('[WARNING] SIGKILL failed:', killError.message);
+              }
+              
+              // Final timeout to ensure we don't hang forever
+              setTimeout(() => {
+                if (!terminated) {
+                  terminated = true;
+                  console.log('[WARNING] Backend termination timeout reached');
+                  resolve();
+                }
+              }, 2000);
+            }
+          }, timeoutMs);
+          
+          // Clear timeout if process exits gracefully
+          processToKill.once('close', () => {
+            clearTimeout(forceKillTimer);
+          });
+          
+        } catch (error) {
+          console.error('[ERROR] Exception in stopBackend:', error.message);
+          if (!terminated) {
+            terminated = true;
+            resolve();
+          }
+        }
+      });
     }
+    
+    return Promise.resolve(); // Already stopped
   }
 
   async testPython(pythonPath) {
@@ -414,6 +466,14 @@ class BackendLauncher {
 
   getBackendUrl() {
     return `http://127.0.0.1:${this.port}`;
+  }
+
+  getBackendPid() {
+    return this.backendProcess ? this.backendProcess.pid : null;
+  }
+
+  isBackendRunning() {
+    return this.isRunning && this.backendProcess && !this.backendProcess.killed;
   }
 }
 

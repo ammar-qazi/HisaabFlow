@@ -14,15 +14,17 @@ function AutoParseHandler({
   // Auto-parse when component mounts or files change
   useEffect(() => {
     // Check if we have new files that aren't in the parsed results
-    const shouldParse = uploadedFiles.length > 0 && (
-      !autoParseResults || 
-      autoParseResults.length === 0 || 
-      autoParseResults.length < uploadedFiles.length
-    );
+    // Note: autoParseResults is now pre-filtered in parent component to match current files
+    const currentFileIds = new Set(uploadedFiles.map(f => f.fileId));
+    const parsedFileIds = new Set(autoParseResults?.map(r => r.file_id) || []);
+    const unparsedFiles = uploadedFiles.filter(file => !parsedFileIds.has(file.fileId));
+    
+    const shouldParse = uploadedFiles.length > 0 && unparsedFiles.length > 0;
     
     if (shouldParse) {
       console.log('[START] Auto-parsing files with smart defaults...');
-      console.log(`[DEBUG] Files to parse: ${uploadedFiles.length}, Current parsed: ${autoParseResults?.length || 0}`);
+      console.log(`[DEBUG] Files to parse: ${uploadedFiles.length}, Currently parsed: ${autoParseResults?.length || 0}`);
+      console.log(`[DEBUG] Unparsed files: ${unparsedFiles.length}`, unparsedFiles.map(f => f.fileName));
       
       // Add a small delay to allow auto-detection to complete first
       const timeoutId = setTimeout(() => {
@@ -33,6 +35,7 @@ function AutoParseHandler({
     } else {
       console.log('[DEBUG] Skipping auto-parse - all files already processed');
       console.log(`[DEBUG] Files: ${uploadedFiles.length}, Parsed: ${autoParseResults?.length || 0}`);
+      console.log('[DEBUG] All current files have parsing results');
     }
   }, [uploadedFiles, autoParseResults]);
 

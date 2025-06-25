@@ -150,12 +150,23 @@ async function createWindow() {
   });
   
   // Handle window close event to ensure clean shutdown
-  mainWindow.on('close', (event) => {
-    console.log(' Window closing, ensuring backend cleanup...');
+  mainWindow.on('close', async (event) => {
+    console.log('[CLEANUP] Window closing, ensuring backend cleanup...');
     
     if (backendLauncher && backendLauncher.isRunning) {
-      console.log(' Stopping backend before window close...');
-      backendLauncher.stopBackend();
+      // Prevent window from closing immediately
+      event.preventDefault();
+      
+      console.log('[CLEANUP] Stopping backend before window close...');
+      try {
+        await backendLauncher.stopBackend();
+        console.log('[CLEANUP] Backend stopped successfully, closing window');
+      } catch (error) {
+        console.error('[WARNING] Backend shutdown error:', error);
+      }
+      
+      // Now actually close the window
+      mainWindow.destroy();
     }
   });
   
@@ -170,17 +181,22 @@ async function createWindow() {
 
 app.on('ready', createWindow);
 
-app.on('window-all-closed', () => {
-  console.log(' All windows closed, cleaning up...');
+app.on('window-all-closed', async () => {
+  console.log('[CLEANUP] All windows closed, cleaning up...');
   
   // Stop backend when app closes
-  if (backendLauncher) {
-    console.log(' Stopping backend process...');
-    backendLauncher.stopBackend();
+  if (backendLauncher && backendLauncher.isRunning) {
+    console.log('[CLEANUP] Stopping backend process...');
+    try {
+      await backendLauncher.stopBackend();
+      console.log('[SUCCESS] Backend cleanup completed');
+    } catch (error) {
+      console.error('[WARNING] Backend cleanup error:', error);
+    }
   }
   
   if (process.platform !== 'darwin') {
-    console.log(' Quitting application...');
+    console.log('[CLEANUP] Quitting application...');
     app.quit();
   }
 });
@@ -210,42 +226,55 @@ ipcMain.handle('show-save-dialog', async (event, options) => {
 });
 
 // Process cleanup handlers for proper shutdown
-process.on('SIGINT', () => {
-  console.log(' Received SIGINT, cleaning up...');
-  cleanup();
+process.on('SIGINT', async () => {
+  console.log('[SIGNAL] Received SIGINT, cleaning up...');
+  await cleanup();
+  process.exit(0);
 });
 
-process.on('SIGTERM', () => {
-  console.log(' Received SIGTERM, cleaning up...');
-  cleanup();
+process.on('SIGTERM', async () => {
+  console.log('[SIGNAL] Received SIGTERM, cleaning up...');
+  await cleanup();
+  process.exit(0);
 });
 
-process.on('exit', () => {
-  console.log(' Process exiting, final cleanup...');
-  cleanup();
+// Note: 'exit' event cannot be async, so we use app lifecycle events instead
+process.on('beforeExit', async () => {
+  console.log('[SIGNAL] Process before exit, final cleanup...');
+  await cleanup();
 });
 
-function cleanup() {
+async function cleanup() {
   if (backendLauncher && backendLauncher.isRunning) {
-    console.log(' Final backend cleanup...');
-    backendLauncher.stopBackend();
-    
-    // Wait a moment for graceful shutdown
-    setTimeout(() => {
-      if (backendLauncher && backendLauncher.isRunning) {
-        console.log(' Force terminating any remaining backend processes...');
-        
-        // Additional cleanup - find and kill any remaining Python processes
-        if (process.platform === 'win32') {
-          const { spawn } = require('child_process');
-          spawn('taskkill', ['/f', '/im', 'python.exe'], { stdio: 'ignore' });
+    console.log('[CLEANUP] Final backend cleanup...');
+    try {
+      await backendLauncher.stopBackend();
+      console.log('[SUCCESS] Final cleanup completed');
+    } catch (error) {
+      console.error('[WARNING] Final cleanup error:', error);
+      
+      // Emergency cleanup only if normal shutdown failed
+      console.log('[EMERGENCY] Attempting emergency process cleanup...');
+      
+      if (process.platform === 'win32') {
+        // Windows: Try to kill by process name as last resort
+        const { spawn } = require('child_process');
+        try {
           spawn('taskkill', ['/f', '/im', 'hisaabflow-backend.exe'], { stdio: 'ignore' });
-        } else {
-          const { spawn } = require('child_process');
-          spawn('pkill', ['-f', 'uvicorn.*main:app'], { stdio: 'ignore' });
+          spawn('wmic', ['process', 'where', 'name="python.exe"', 'and', 'commandline like "%uvicorn%main:app%"', 'delete'], { stdio: 'ignore' });
+        } catch (emergencyError) {
+          console.error('[WARNING] Emergency cleanup failed:', emergencyError.message);
+        }
+      } else {
+        // Unix: Kill process group containing our backend processes
+        const { spawn } = require('child_process');
+        try {
           spawn('pkill', ['-f', 'hisaabflow-backend'], { stdio: 'ignore' });
+          spawn('pkill', ['-f', 'uvicorn.*main:app'], { stdio: 'ignore' });
+        } catch (emergencyError) {
+          console.error('[WARNING] Emergency cleanup failed:', emergencyError.message);
         }
       }
-    }, 1000);
+    }
   }
 }

@@ -100,12 +100,19 @@ function ModernConfigureAndReviewStep({
 
   if (currentStep < 2 || uploadedFiles.length === 0) return null;
 
-  // Use parsedResults from parent state instead of local autoParseResults
-  const autoParseResults = parsedResults;
+  // Filter parsedResults to only include files that are currently uploaded
+  // This ensures the Config & Review page stays in sync when files are removed
+  const currentFileIds = new Set(uploadedFiles.map(f => f.fileId));
+  const autoParseResults = parsedResults ? parsedResults.filter(result => 
+    currentFileIds.has(result.file_id)
+  ) : [];
   
   // Debug logging
-  console.log(' ModernConfigureAndReviewStep - parsedResults:', parsedResults);
-  console.log(' ModernConfigureAndReviewStep - autoParseResults:', autoParseResults);
+  console.log('[DEBUG] ModernConfigureAndReviewStep - All parsedResults:', parsedResults?.length || 0);
+  console.log('[DEBUG] ModernConfigureAndReviewStep - Current uploadedFiles:', uploadedFiles.length);
+  console.log('[DEBUG] ModernConfigureAndReviewStep - Filtered autoParseResults:', autoParseResults?.length || 0);
+  console.log('[DEBUG] ModernConfigureAndReviewStep - File IDs match:', 
+    autoParseResults?.map(r => r.file_id) || []);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing.lg }}>
