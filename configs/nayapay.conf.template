@@ -62,7 +62,8 @@ mobile_topup = Mobile top-up purchased\|.*Nickname: (.*?)(?:\|.*)?$|Mobile topup
 [conditional_override_ride_hailing_raast]
 name = NayaPay Raast Ride Hailing Detection
 if_amount_min = -2000
-if_amount_max = -0.01  # Max amount (exclusive of 0, so up to -0.01 for expenses)
+# Max amount (exclusive of 0, so up to -0.01 for expenses)
+if_amount_max = -0.01  
 if_note_equals = Raast Out
 if_description_contains = Outgoing fund transfer to
 set_description = Ride Hailing Services

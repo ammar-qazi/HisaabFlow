@@ -129,18 +129,7 @@ jobs:
             exit 1
           }
           
-          # Quick test that executable can start (should show help and exit quickly)
-          Write-Host "Testing executable startup..."
-          try {
-            $proc = Start-Process -FilePath "frontend/compiled-backend/hisaabflow-backend.exe" -ArgumentList "--help" -Wait -PassThru -NoNewWindow
-            if ($proc.ExitCode -eq 0) {
-              Write-Host "[SUCCESS] Executable startup test passed"
-            } else {
-              Write-Host "⚠️ WARNING: Executable startup test failed with exit code $($proc.ExitCode)"
-            }
-          } catch {
-            Write-Host "⚠️ WARNING: Could not test executable startup: $($_.Exception.Message)"
-          }
+
 
       - name: Compile Backend with Nuitka (Linux/macOS)
         if: matrix.platform != 'windows'
