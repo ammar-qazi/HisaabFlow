@@ -21,7 +21,8 @@ class ConfigLoader:
         app_config_path = self.config_dir / "app.conf"
         
         if app_config_path.exists():
-            config.read(app_config_path)
+            with open(app_config_path, 'r', encoding='utf-8') as f:
+                config.read_file(f)
             print("[SUCCESS] app.conf loaded")
         else:
             # Default configuration if file missing
@@ -49,7 +50,8 @@ class ConfigLoader:
             # Preserve case for option names (keys)
             config.optionxform = str
             
-            config.read(config_file)
+            with open(config_file, 'r', encoding='utf-8') as f:
+                config.read_file(f)
             
             try:
                 enhanced_config = self._parse_bank_config(config, bank_name)

@@ -68,7 +68,8 @@ class BankConfigManager:
         """Load a single configuration file"""
         config = configparser.ConfigParser()
         config.optionxform = str  # Preserve case sensitivity
-        config.read(config_path)
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config.read_file(f)
         return config
     
     def _extract_detection_info(self, config: configparser.ConfigParser, bank_name: str) -> Dict[str, Any]:

@@ -13,6 +13,10 @@ permissions:
 jobs:
   build:
     runs-on: ${{ matrix.os }}
+    env:
+      # Force UTF-8 encoding for cross-platform compatibility
+      PYTHONUTF8: 1
+      PYTHONIOENCODING: utf-8
     strategy:
       fail-fast: false  # Don't cancel other jobs if one fails
       matrix:
@@ -93,6 +97,7 @@ jobs:
           # Compile backend to executable with auto-download approval
           nuitka --onefile `
                  --assume-yes-for-downloads `
+                 --python-flag=-X,utf8 `
                  --include-module=main `
                  --include-package=backend `
                  --include-package-data=backend `
@@ -153,6 +158,7 @@ jobs:
           
           # Compile backend to executable (from project root for consistency)
           nuitka --onefile \
+                 --python-flag=-X,utf8 \
                  --include-module=main \
                  --include-package=backend \
                  --include-package-data=backend \

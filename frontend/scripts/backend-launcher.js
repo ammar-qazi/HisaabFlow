@@ -30,8 +30,12 @@ class BackendLauncher {
     console.log(` Executable path: ${exePath}`);
     
     try {
-      // Set up environment with user configs directory
+      // Set up environment with user configs directory and UTF-8 support
       const env = { ...process.env };
+      
+      // Force UTF-8 encoding for cross-platform compatibility
+      env.PYTHONUTF8 = '1';
+      env.PYTHONIOENCODING = 'utf-8';
       
       if (this.userDir) {
         env.HISAABFLOW_USER_DIR = this.userDir;
@@ -101,10 +105,13 @@ class BackendLauncher {
       console.log(`🧪 Python test result: ${testResult}`);
       
       // Start FastAPI server using uvicorn
-      // Set up environment with user configs directory
+      // Set up environment with user configs directory and UTF-8 support
       const env = { 
         ...process.env, 
-        PYTHONPATH: backendPath 
+        PYTHONPATH: backendPath,
+        // Force UTF-8 encoding for cross-platform compatibility
+        PYTHONUTF8: '1',
+        PYTHONIOENCODING: 'utf-8'
       };
       
       if (this.userDir) {
