@@ -158,6 +158,19 @@ class BackendLauncher {
     this.backendProcess.on('close', (code) => {
       console.log(` Backend process exited with code ${code}`);
       this.isRunning = false;
+      this.backendProcess = null; // Clear the reference
+    });
+
+    this.backendProcess.on('exit', (code, signal) => {
+      console.log(` Backend process exit - code: ${code}, signal: ${signal}`);
+      this.isRunning = false;
+      this.backendProcess = null; // Clear the reference
+    });
+
+    this.backendProcess.on('error', (error) => {
+      console.error('[ERROR] Backend process error:', error);
+      this.isRunning = false;
+      this.backendProcess = null; // Clear the reference
     });
   }
 
@@ -323,22 +336,50 @@ class BackendLauncher {
       console.log(' Stopping backend...');
       
       try {
-        // Try graceful shutdown first
-        this.backendProcess.kill('SIGTERM');
-        
-        // Force kill after timeout
-        setTimeout(() => {
-          if (this.backendProcess && this.isRunning) {
-            console.log(' Force killing backend process...');
-            this.backendProcess.kill('SIGKILL');
-          }
-        }, 3000); // 3 second timeout
+        // Cross-platform process termination
+        if (process.platform === 'win32') {
+          // Windows: Use taskkill for more reliable termination
+          this.backendProcess.kill('SIGTERM');
+          
+          // If SIGTERM doesn't work on Windows, try force kill
+          setTimeout(() => {
+            if (this.backendProcess && this.isRunning) {
+              console.log(' Windows force kill...');
+              const { spawn } = require('child_process');
+              spawn('taskkill', ['/pid', this.backendProcess.pid, '/f', '/t'], { stdio: 'ignore' });
+            }
+          }, 2000);
+        } else {
+          // Unix/Linux/macOS: Try graceful SIGTERM first, then SIGKILL
+          this.backendProcess.kill('SIGTERM');
+          
+          setTimeout(() => {
+            if (this.backendProcess && this.isRunning) {
+              console.log(' Force killing backend process...');
+              this.backendProcess.kill('SIGKILL');
+            }
+          }, 2000);
+        }
         
       } catch (error) {
         console.error('[WARNING] Error stopping backend:', error.message);
+        // Try force kill as fallback
+        try {
+          this.backendProcess.kill('SIGKILL');
+        } catch (killError) {
+          console.error('[WARNING] Force kill also failed:', killError.message);
+        }
       }
       
       this.isRunning = false;
+      
+      // Wait for process to actually exit
+      if (this.backendProcess) {
+        this.backendProcess.on('close', () => {
+          console.log('[SUCCESS] Backend process fully terminated');
+        });
+      }
+      
       console.log('[SUCCESS] Backend shutdown initiated');
     }
   }

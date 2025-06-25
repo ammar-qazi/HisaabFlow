@@ -87,7 +87,7 @@ export const createFileHandlers = (state) => {
         console.log(` DEBUG: setUploadedFiles callback - new length: ${updated.length}`);
         
         setTimeout(() => {
-          triggerAutoDetection(newFiles, setUploadedFiles, setError, dynamicBankMapping); // setSuccess removed
+          triggerAutoDetection(newFiles, setUploadedFiles, setError, dynamicBankMapping);
         }, 1000);
         
         return updated;

@@ -71,7 +71,9 @@ export const autoConfigureFile = async (fileId, bankDetection, previewData, setU
               ...autoColumnMapping // Merge config mapping with auto-detected mapping
             },
             bankName: config.bank_name || detectedBank,
-            accountMapping: config.account_mapping || {}
+            accountMapping: config.account_mapping || {},
+            confidence: confidence, // Ensure confidence is available at top level
+            detectedBank: detectedBank // Store detected bank name
           };
         }
         return file;
@@ -112,7 +114,17 @@ export const generateAutoColumnMapping = (headers) => {
 /**
  * Triggers auto-detection and configuration for newly uploaded files
  */
+// Add a simple debounce mechanism to prevent duplicate calls
+let autoDetectionInProgress = false;
+
 export const triggerAutoDetection = async (newFiles, setUploadedFiles, setError, dynamicBankMapping = null) => {
+  // Prevent duplicate calls
+  if (autoDetectionInProgress) {
+    console.log('[DEBUG] Auto-detection already in progress, skipping duplicate call');
+    return;
+  }
+  
+  autoDetectionInProgress = true;
   console.log(` DEBUG: Starting auto-detection for ${newFiles.length} newly uploaded files`);
   
   for (let i = 0; i < newFiles.length; i++) {
@@ -141,4 +153,5 @@ export const triggerAutoDetection = async (newFiles, setUploadedFiles, setError,
     }
   }
   console.log(` DEBUG: All auto-detections completed`);
+  autoDetectionInProgress = false; // Reset flag when completed
 };

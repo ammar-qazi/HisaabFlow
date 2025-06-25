@@ -229,5 +229,23 @@ function cleanup() {
   if (backendLauncher && backendLauncher.isRunning) {
     console.log(' Final backend cleanup...');
     backendLauncher.stopBackend();
+    
+    // Wait a moment for graceful shutdown
+    setTimeout(() => {
+      if (backendLauncher && backendLauncher.isRunning) {
+        console.log(' Force terminating any remaining backend processes...');
+        
+        // Additional cleanup - find and kill any remaining Python processes
+        if (process.platform === 'win32') {
+          const { spawn } = require('child_process');
+          spawn('taskkill', ['/f', '/im', 'python.exe'], { stdio: 'ignore' });
+          spawn('taskkill', ['/f', '/im', 'hisaabflow-backend.exe'], { stdio: 'ignore' });
+        } else {
+          const { spawn } = require('child_process');
+          spawn('pkill', ['-f', 'uvicorn.*main:app'], { stdio: 'ignore' });
+          spawn('pkill', ['-f', 'hisaabflow-backend'], { stdio: 'ignore' });
+        }
+      }
+    }, 1000);
   }
 }

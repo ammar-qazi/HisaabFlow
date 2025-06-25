@@ -31,6 +31,29 @@ function ModernConfigureAndReviewStep({
   // Add this ref to track which files have been sent for processing
   const processedFileIds = useRef(new Set());
 
+  // Clear processed file IDs when step changes or uploadedFiles change significantly
+  useEffect(() => {
+    if (currentStep !== 2) {
+      processedFileIds.current.clear();
+    }
+  }, [currentStep]);
+
+  // Reset processed IDs when the number of files decreases (indicates going back/starting fresh)
+  useEffect(() => {
+    const currentFileIds = new Set(uploadedFiles.map(f => f.fileId));
+    const processedIds = Array.from(processedFileIds.current);
+    const staleProcesedIds = processedIds.filter(id => !currentFileIds.has(id));
+    
+    if (staleProcesedIds.length > 0) {
+      console.log('[DEBUG] Clearing stale processed file IDs:', staleProcesedIds);
+      staleProcesedIds.forEach(id => processedFileIds.current.delete(id));
+    }
+    
+    // Also log current state for debugging
+    console.log('[DEBUG] Current file IDs:', Array.from(currentFileIds));
+    console.log('[DEBUG] Processed file IDs:', Array.from(processedFileIds.current));
+  }, [uploadedFiles]);
+
   useEffect(() => {
     // This function will run all previews and then show a single toast.
     const runAllPreviews = async (filesToProcess) => {
@@ -62,9 +85,15 @@ function ModernConfigureAndReviewStep({
 
     // If there are new files to process, run the logic.
     if (filesToProcess.length > 0) {
+      console.log('[DEBUG] Processing new files for preview:', filesToProcess.map(f => f.fileName));
+      
       // Immediately add their IDs to our ref to "lock" them and prevent re-processing.
       filesToProcess.forEach(file => processedFileIds.current.add(file.fileId));
-      runAllPreviews(filesToProcess);
+      
+      // Add a small delay to avoid conflicting with auto-detection
+      setTimeout(() => {
+        runAllPreviews(filesToProcess);
+      }, 500);
     }
 
   }, [uploadedFiles, previewFile]);

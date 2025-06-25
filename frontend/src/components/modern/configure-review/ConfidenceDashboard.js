@@ -15,6 +15,14 @@ function ConfidenceDashboard({
 
   // Calculate confidence metrics from parsed results
   const confidenceMetrics = useMemo(() => {
+    // Debug logging (can be removed in production)
+    console.log('[DEBUG] ConfidenceDashboard calculating metrics...');
+    console.log('[DEBUG] uploadedFiles:', uploadedFiles.map(f => ({ 
+      fileName: f.fileName, 
+      confidence: f.confidence, 
+      bankDetectionConfidence: f.bankDetection?.confidence 
+    })));
+    
     if (!autoParseResults || autoParseResults.length === 0) {
       return {
         totalTransactions: 0,
@@ -33,8 +41,11 @@ function ConfidenceDashboard({
     const successfulFiles = autoParseResults.filter(result => 
       result.parse_result?.success && result.parse_result?.row_count > 0).length;
     
-    const bankDetectionConfidence = uploadedFiles.reduce((sum, file) => 
-      sum + (file.confidence || 0), 0) / uploadedFiles.length;
+    const bankDetectionConfidence = uploadedFiles.reduce((sum, file) => {
+      // Try file.confidence first (set by auto-detection), then file.bankDetection.confidence (initial value)
+      const confidence = file.confidence || file.bankDetection?.confidence || 0;
+      return sum + confidence;
+    }, 0) / uploadedFiles.length;
 
     const cleaningApplied = autoParseResults.filter(result => 
       result.parse_result?.cleaning_applied).length;

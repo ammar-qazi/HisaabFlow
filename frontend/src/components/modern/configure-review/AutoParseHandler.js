@@ -13,11 +13,28 @@ function AutoParseHandler({
 
   // Auto-parse when component mounts or files change
   useEffect(() => {
-    if (uploadedFiles.length > 0 && (!autoParseResults || autoParseResults.length === 0)) {
+    // Check if we have new files that aren't in the parsed results
+    const shouldParse = uploadedFiles.length > 0 && (
+      !autoParseResults || 
+      autoParseResults.length === 0 || 
+      autoParseResults.length < uploadedFiles.length
+    );
+    
+    if (shouldParse) {
       console.log('[START] Auto-parsing files with smart defaults...');
-      parseAllFilesWithDefaults();
+      console.log(`[DEBUG] Files to parse: ${uploadedFiles.length}, Current parsed: ${autoParseResults?.length || 0}`);
+      
+      // Add a small delay to allow auto-detection to complete first
+      const timeoutId = setTimeout(() => {
+        parseAllFilesWithDefaults();
+      }, 2000); // Increased to 2 seconds to allow more time for auto-detection
+      
+      return () => clearTimeout(timeoutId);
+    } else {
+      console.log('[DEBUG] Skipping auto-parse - all files already processed');
+      console.log(`[DEBUG] Files: ${uploadedFiles.length}, Parsed: ${autoParseResults?.length || 0}`);
     }
-  }, [uploadedFiles]);
+  }, [uploadedFiles, autoParseResults]);
 
   // Check for advanced config needs when we get results
   useEffect(() => {
