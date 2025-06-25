@@ -81,8 +81,11 @@ jobs:
           # Note: Windows may use Unix-style paths for venv (C:\Users\Ammar\.hisaabflow\venv\bin\)
           # This is expected behavior and handled by the backend launcher
           
-          # Install Nuitka
+          # Install Nuitka with Windows optimization
           pip install nuitka
+          
+          # Pre-approve Dependency Walker download (avoids interactive prompt)
+          $env:NUITKA_DOWNLOAD_DEPENDENCY_WALKER = "yes"
           
           # Install backend dependencies for compilation
           pip install -r backend/requirements.txt
@@ -90,22 +93,23 @@ jobs:
           # Create output directory  
           New-Item -ItemType Directory -Force -Path "frontend/compiled-backend"
           
-          # Compile backend to executable
-          cd backend
+          # Compile backend to executable (from project root, not backend dir)
+          # This fixes the "Failed to locate package directory of 'backend'" error
           nuitka --onefile `
                  --include-module=main `
+                 --include-package=backend `
                  --include-package-data=backend `
-                 --include-data-dir=../configs=configs `
+                 --include-data-dir=configs=configs `
                  --include-package=fastapi `
                  --include-package=uvicorn `
                  --include-package=pydantic `
                  --include-package=pandas `
-                 --output-dir=../frontend/compiled-backend `
+                 --output-dir=frontend/compiled-backend `
                  --output-filename=hisaabflow-backend.exe `
-                 main.py
+                 backend/main.py
           
           # Verify executable was created
-          ls ../frontend/compiled-backend/
+          Get-ChildItem frontend/compiled-backend/
 
       - name: Compile Backend with Nuitka (Linux/macOS)
         if: matrix.platform != 'windows'
@@ -120,22 +124,22 @@ jobs:
           # Create output directory  
           mkdir -p frontend/compiled-backend
           
-          # Compile backend to executable
-          cd backend
+          # Compile backend to executable (from project root for consistency)
           nuitka --onefile \
                  --include-module=main \
+                 --include-package=backend \
                  --include-package-data=backend \
-                 --include-data-dir=../configs=configs \
+                 --include-data-dir=configs=configs \
                  --include-package=fastapi \
                  --include-package=uvicorn \
                  --include-package=pydantic \
                  --include-package=pandas \
-                 --output-dir=../frontend/compiled-backend \
+                 --output-dir=frontend/compiled-backend \
                  --output-filename=hisaabflow-backend \
-                 main.py
+                 backend/main.py
           
           # Verify executable was created
-          ls -la ../frontend/compiled-backend/
+          ls -la frontend/compiled-backend/
 
       - name: Build Electron app (Linux)
         if: matrix.platform == 'linux'
