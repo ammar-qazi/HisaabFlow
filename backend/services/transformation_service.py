@@ -29,7 +29,7 @@ class TransformationService:
 
         # Create a single, shared ConfigurationManager instance for transfer detection logic
         self.shared_transfer_config = ConfigurationManager(config_dir=config_dir_path_str)
-        print(f"ℹ️ [MIGRATION][TransformationService] Initialized with CashewTransformer.")
+        print(f"ℹ [MIGRATION][TransformationService] Initialized with CashewTransformer.")
         
         self.transfer_detector = TransferDetector(config_manager=self.shared_transfer_config)
     
@@ -51,7 +51,7 @@ class TransformationService:
         Returns:
             dict: Transformation result
         """
-        print(f"ℹ️ [MIGRATION][TransformationService] transform_single_data called for bank: {bank_name}")
+        print(f"ℹ [MIGRATION][TransformationService] transform_single_data called for bank: {bank_name}")
         try:
             if categorization_rules or default_category_rules:
                 result = self.transformer.transform_to_cashew( # Use new transformer
@@ -95,14 +95,14 @@ class TransformationService:
         print(f" Multi-CSV transform request received")
         
         try:
-            print(f"️ Request keys: {list(raw_data.keys())}")
+            print(f" Request keys: {list(raw_data.keys())}")
             
             # Extract data from frontend format using bank-agnostic detection
             data, column_mapping, bank_name = self._extract_transform_data_per_bank(raw_data)
             
             print(f" Final data length: {len(data)}")
             print(f" Final bank name: {bank_name}")
-            print(f"️ Final column mapping: {column_mapping}")
+            print(f" Final column mapping: {column_mapping}")
             
             # Get categorization rules
             categorization_rules = raw_data.get('categorization_rules')
@@ -118,7 +118,7 @@ class TransformationService:
             
             # Transform data
             if categorization_rules or default_category_rules:
-                print(f"ℹ️ [MIGRATION][TransformationService] transform_multi_csv_data: Using transformation with categorization rules.")
+                print(f"ℹ [MIGRATION][TransformationService] transform_multi_csv_data: Using transformation with categorization rules.")
                 result = self.transformer.transform_to_cashew( # Use new transformer
                     data, 
                     column_mapping, 
@@ -129,7 +129,7 @@ class TransformationService:
                     config=bank_configs
                 )
             else:
-                print(f"ℹ️ [MIGRATION][TransformationService] transform_multi_csv_data: Using basic transformation.")
+                print(f"ℹ [MIGRATION][TransformationService] transform_multi_csv_data: Using basic transformation.")
                 result = self.transformer.transform_to_cashew( # Use new transformer
                     data, 
                     column_mapping, 
@@ -142,7 +142,7 @@ class TransformationService:
                 print(f" Sample result (first row): {result[0] if result else 'none'}")
             
             # Apply description cleaning and transfer detection
-            print(f"\n🧹 Applying description cleaning and transfer detection...")
+            print(f"\n Applying description cleaning and transfer detection...")
             enhanced_result, transfer_analysis = self._apply_advanced_processing(result, raw_data)
             
             print(f" Transfer detection summary:")
@@ -209,7 +209,7 @@ class TransformationService:
         all_transformed_data = []
         
         for csv_index, csv_data in enumerate(csv_data_list):
-            print(f"\n️ Processing CSV {csv_index + 1}/{len(csv_data_list)}")
+            print(f"\n Processing CSV {csv_index + 1}/{len(csv_data_list)}")
             
             # Get data from this CSV
             csv_file_data = csv_data.get('data', [])
@@ -348,7 +348,7 @@ class TransformationService:
     
     def _apply_standard_description_cleaning(self, data: list, raw_data: dict):
         """Apply bank-specific description cleaning to data"""
-        print(f"🧹 Applying description cleaning...")
+        print(f" Applying description cleaning...")
         print(f"   [DATA] Data rows to clean: {len(data)}")
         
         # DEBUG: Print the bank_configs from the shared_transfer_config
@@ -405,7 +405,7 @@ class TransformationService:
                 # Apply description cleaning for this bank
                 cleaned_title = self.shared_transfer_config.apply_description_cleaning(bank_name, original_title_for_row)
                 if cleaned_title != original_title_for_row:
-                    print(f"      🧹 CLEANED: '{original_title_for_row}' → '{cleaned_title}'")
+                    print(f"       CLEANED: '{original_title_for_row}' → '{cleaned_title}'")
                     row['Title'] = cleaned_title
                     cleaned_count += 1
                 else:
@@ -414,7 +414,7 @@ class TransformationService:
                 print(f"      [ERROR]  No bank match for account: '{account}'")
         
         print(f"   [DATA] Description cleaning summary:")
-        print(f"      🧹 Total rows cleaned: {cleaned_count}")
+        print(f"       Total rows cleaned: {cleaned_count}")
         print(f"       Bank matches: {bank_matches}")
         
         return data
@@ -490,7 +490,7 @@ class TransformationService:
 
     def _apply_keyword_categorization(self, data: list, raw_data: dict) -> list:
         """Apply keyword-based categorization from .conf files using final descriptions."""
-        print(f"️ Applying keyword-based categorization (post-cleaning)...")
+        print(f" Applying keyword-based categorization (post-cleaning)...")
         categorized_count = 0
         
         csv_data_list = raw_data.get('csv_data_list', [])
@@ -523,10 +523,10 @@ class TransformationService:
             if category:
                 # Log only if category changes or is newly set by this step
                 if row.get('Category') != category: 
-                    print(f"      ️ CATEGORIZED (Row {row_idx + 1}, Bank: {bank_name_for_row}): Desc='{description[:50]}...' → Category='{category}'")
+                    print(f"       CATEGORIZED (Row {row_idx + 1}, Bank: {bank_name_for_row}): Desc='{description[:50]}...' → Category='{category}'")
                     row['Category'] = category
                     categorized_count += 1
-        print(f"   ️ Applied keyword categorization to {categorized_count} rows (post-cleaning).")
+        print(f"    Applied keyword categorization to {categorized_count} rows (post-cleaning).")
         return data
 
     def _run_transfer_detection(self, data: list, raw_data: dict):
@@ -640,7 +640,7 @@ class TransformationService:
     
     def _apply_transfer_specific_categorization(self, data: list, transfer_analysis: dict) -> list:
         """Apply configured category to detected transfers and update notes."""
-        print(f"️ Applying transfer categorization...")
+        print(f" Applying transfer categorization...")
         
         transfer_pairs = transfer_analysis.get('transfers', [])
         # Get the configured category for transfers from the shared ConfigurationManager

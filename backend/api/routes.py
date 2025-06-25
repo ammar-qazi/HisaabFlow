@@ -68,7 +68,7 @@ def create_app() -> FastAPI:
     @app.get("/preview/{file_id}")
     async def preview_csv(file_id: str, encoding: str = "utf-8"):
         """Preview uploaded CSV file"""
-        print(f"️‍️ Preview request for file_id: {file_id}")
+        print(f"‍ Preview request for file_id: {file_id}")
         file_path = file_manager.get_file_path(file_id)
         return csv_processor.preview_csv(file_path, encoding)
     
@@ -81,7 +81,7 @@ def create_app() -> FastAPI:
     @app.post("/parse-range/{file_id}")
     async def parse_range(file_id: str, request: ParseRangeRequest):
         """Parse CSV with specified range and optional data cleaning"""
-        print(f"️‍️ Parse range request for file_id: {file_id}")
+        print(f"‍ Parse range request for file_id: {file_id}")
         file_path = file_manager.get_file_path(file_id)
         return csv_processor.parse_range(file_path, request)
     
@@ -100,7 +100,7 @@ def create_app() -> FastAPI:
     @app.post("/transform")
     async def transform_data(request: TransformRequest):
         """Transform data to Cashew format with smart categorization"""
-        print(f"ℹ️ [MIGRATION][API Routes] /transform endpoint called.")
+        print(f"ℹ [MIGRATION][API Routes] /transform endpoint called.")
         try:
             # Use enhanced parser if categorization rules are provided
             if request.categorization_rules or request.default_category_rules:

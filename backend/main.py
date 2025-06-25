@@ -117,10 +117,10 @@ if __name__ == "__main__":
     print("\n Starting HisaabFlow Configuration-Based FastAPI Server...")
     print("    Backend: http://127.0.0.1:8000")
     print("    API docs: http://127.0.0.1:8000/docs")
-    print("   ️  Architecture: Modular API routers")
+    print("     Architecture: Modular API routers")
     print("    Main file: Under 300 lines")
     print("   Mode: Nuitka compiled executable")
-    print("   ⏹️  Press Ctrl+C to stop")
+    print("   ⏹  Press Ctrl+C to stop")
     print("")
     
     # Parse command line arguments for executable compatibility

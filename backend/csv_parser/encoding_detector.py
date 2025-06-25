@@ -63,7 +63,7 @@ class EncodingDetector:
                 if not sample_bytes:
                     # Handle empty file scenario early if possible
                     # _test_encoding will also handle this, but good to note
-                    print(f"   ℹ️ File is empty or sample is empty.")
+                    print(f"   ℹ File is empty or sample is empty.")
                     # Fall through to manual chain which might assign a default for empty files
                 else:
                     chardet_raw_result = chardet.detect(sample_bytes)
@@ -76,7 +76,7 @@ class EncodingDetector:
                         # or sometimes 'UTF-8-SIG'. We prefer 'utf-8-sig' if a BOM is present.
                         # Our _is_bom_present will verify actual BOM.
                         
-                        print(f"   ️ Chardet guess: {chardet_enc_norm} (raw confidence: {chardet_conf:.2f})")
+                        print(f"    Chardet guess: {chardet_enc_norm} (raw confidence: {chardet_conf:.2f})")
 
                         try:
                             # Test chardet's suggestion using our _test_encoding for consistent confidence
@@ -106,7 +106,7 @@ class EncodingDetector:
                                 'source': 'chardet_tested', 'error': error_msg
                             })
                     else: # chardet_enc is None
-                        print(f"   ℹ️ Chardet could not determine encoding (confidence: {chardet_conf:.2f}).")
+                        print(f"   ℹ Chardet could not determine encoding (confidence: {chardet_conf:.2f}).")
                         attempted_encodings.append({
                             'encoding': None, 'confidence': 0.0, 'source': 'chardet',
                             'error': 'Chardet returned no encoding'})
@@ -121,7 +121,7 @@ class EncodingDetector:
                 })
 
         # Step 2: Try each encoding in the fallback chain
-        print(f"   ℹ️ Trying manual encoding chain...")
+        print(f"   ℹ Trying manual encoding chain...")
         for encoding_name in self.encoding_chain:
             try:
                 confidence = self._test_encoding(file_path, encoding_name, sample_size)

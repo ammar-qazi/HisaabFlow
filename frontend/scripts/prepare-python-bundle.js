@@ -50,7 +50,7 @@ class PythonBundlePreparator {
     const fileName = path.basename(new URL(downloadUrl).pathname);
     const downloadPath = path.join(this.bundleDir, fileName);
     
-    console.log(`⬇️ Downloading: ${downloadUrl}`);
+    console.log(`⬇ Downloading: ${downloadUrl}`);
     await this.downloadFile(downloadUrl, downloadPath);
     
     console.log(' Extracting Python bundle...');
@@ -161,7 +161,7 @@ class PythonBundlePreparator {
   }
 
   async downloadFile(url, destPath) {
-    console.log(`⬇️ Downloading ${path.basename(destPath)}...`);
+    console.log(`⬇ Downloading ${path.basename(destPath)}...`);
     
     return new Promise((resolve, reject) => {
       const file = createWriteStream(destPath);

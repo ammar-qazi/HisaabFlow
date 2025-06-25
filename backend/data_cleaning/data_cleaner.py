@@ -52,7 +52,7 @@ class DataCleaner:
             Dict with cleaned data structure including updated column mapping
         """
         try:
-            print(f"\n🧹 STARTING DATA CLEANING")
+            print(f"\n STARTING DATA CLEANING")
             print(f"   [DATA] Input: {parsed_data.get('row_count', 0)} rows")
             
             if not parsed_data.get('success', False) or not parsed_data.get('data'):
@@ -99,7 +99,7 @@ class DataCleaner:
             quality_report = self.quality_checker.check_data_quality(valid_data)
             
             print(f"   [SUCCESS] Cleaning complete: {len(valid_data)} clean rows")
-            print(f"   ️ Updated column mapping: {updated_column_mapping}")
+            print(f"    Updated column mapping: {updated_column_mapping}")
             
             return {
                 'success': True,

@@ -38,7 +38,7 @@ class BOMCleaner:
             print(f"      [SUCCESS] No BOM characters detected, skipping BOM cleanup")
             return data
         
-        print(f"      🧹 BOM characters detected, cleaning column names...")
+        print(f"       BOM characters detected, cleaning column names...")
         print(f"       RECOMMENDATION: Use utf-8-sig encoding when reading CSV files")
         
         # Strip BOM from all column names

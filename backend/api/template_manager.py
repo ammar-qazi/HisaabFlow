@@ -43,7 +43,7 @@ class TemplateManager:
         self.enhanced_config_manager = EnhancedConfigurationManager(self.config_dir)
         
         print(f" TemplateManager (config-based) initialized")
-        print(f"️  Config dir: {config_dir}")
+        print(f"  Config dir: {config_dir}")
         print(f" Available configs: {self.enhanced_config_manager.list_configured_banks()}")
         print(f" Templates are now configuration-based - no more .json files needed!")
     

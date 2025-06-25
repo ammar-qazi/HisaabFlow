@@ -49,7 +49,7 @@ class ConfigManager:
         self.enhanced_config_manager = EnhancedConfigurationManager(self.config_dir)
         
         print(f" [api.ConfigManager] Initialized (no more templates!)")
-        print(f"️  [api.ConfigManager] Effective config directory: {self.config_dir}")
+        print(f"  [api.ConfigManager] Effective config directory: {self.config_dir}")
         print(f" Available bank configurations: {self.enhanced_config_manager.list_configured_banks()}")    
     def save_config(self, request: SaveTemplateRequest) -> Dict[str, any]:
         """Save bank configuration (replaces save_template)"""

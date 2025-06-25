@@ -21,7 +21,7 @@ class DataValidator:
         Returns:
             List[Dict]: Data with invalid rows removed
         """
-        print(f"   🧹 Step 6: Removing invalid rows")
+        print(f"    Step 6: Removing invalid rows")
         
         if not data:
             return []

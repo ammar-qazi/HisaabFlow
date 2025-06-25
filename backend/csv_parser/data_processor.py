@@ -133,7 +133,7 @@ class DataProcessor:
         This is a critical step for type safety, converting strings to typed objects.
         """
         converted_data = []
-        print(f"   ️ Applying type conversion to {len(data_dicts)} rows...")
+        print(f"    Applying type conversion to {len(data_dicts)} rows...")
         for row_dict in data_dicts:
             new_row = row_dict.copy()
             for key, value in row_dict.items():

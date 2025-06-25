@@ -28,7 +28,7 @@ class PreviewService:
         Returns:
             dict: Preview result with bank detection info
         """
-        print(f"️‍️ Preview request for file: {filename}")
+        print(f"‍ Preview request for file: {filename}")
         
         try:
             # Step 1: Detect bank first for header detection
@@ -46,7 +46,7 @@ class PreviewService:
                 initial_encoding_to_use = None
             
             # Read first few lines for bank detection
-            print(f"ℹ️ [PreviewService] Calling unified_parser.preview_csv with header_row=0 for initial bank detection content. User-provided encoding: {initial_encoding_to_use}")
+            print(f"ℹ [PreviewService] Calling unified_parser.preview_csv with header_row=0 for initial bank detection content. User-provided encoding: {initial_encoding_to_use}")
             preview_result = self.unified_parser.preview_csv(file_path, initial_encoding_to_use, header_row=0)
             if not preview_result['success']:
                 return {
@@ -56,7 +56,7 @@ class PreviewService:
             
             # Use the encoding determined by the parser (either user-provided or auto-detected)
             effective_encoding = preview_result['encoding_used']
-            print(f"ℹ️ [PreviewService] Effective encoding after initial preview: {effective_encoding}")
+            print(f"ℹ [PreviewService] Effective encoding after initial preview: {effective_encoding}")
             
             # Extract content for bank detection
             preview_data = preview_result['preview_data']
@@ -97,7 +97,7 @@ class PreviewService:
             print(f" Step 3: Generating enhanced preview with header_row={detected_header_row}")
             
             # Use the detected header row for the final preview
-            print(f"ℹ️ [PreviewService] Calling unified_parser.preview_csv for final preview. Effective header_row: {detected_header_row}. Effective encoding: {effective_encoding}. Detected bank: {bank_detection.bank_name}")
+            print(f"ℹ [PreviewService] Calling unified_parser.preview_csv for final preview. Effective header_row: {detected_header_row}. Effective encoding: {effective_encoding}. Detected bank: {bank_detection.bank_name}")
             result = self.unified_parser.preview_csv(file_path, effective_encoding, header_row=detected_header_row)
             if not result['success']:
                 return {
@@ -145,7 +145,7 @@ class PreviewService:
         try:
             # If encoding is None, UnifiedCSVParser will auto-detect.
             # If an encoding is provided, it will be used.
-            print(f"ℹ️ [PreviewService] Calling unified_parser.detect_data_range. User-provided encoding: {encoding}")
+            print(f"ℹ [PreviewService] Calling unified_parser.detect_data_range. User-provided encoding: {encoding}")
             result = self.unified_parser.detect_data_range(file_path, encoding=encoding)
             
             # unified_parser.detect_data_range itself calls detect_structure, which handles encoding detection if 'encoding' is None.

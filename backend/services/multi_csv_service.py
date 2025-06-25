@@ -47,7 +47,7 @@ class MultiCSVService:
         """
         # Get user_name from config instead of parameter
         user_name = self.config_manager.get_user_name()
-        print(f"ℹ️ [MIGRATION][MultiCSVService] parse_multiple_files called for {len(file_infos)} files.")
+        print(f"ℹ [MIGRATION][MultiCSVService] parse_multiple_files called for {len(file_infos)} files.")
         print(f"  User name from config: {user_name}")
         print(f"  Data cleaning enabled: {enable_cleaning}")
         
@@ -68,7 +68,7 @@ class MultiCSVService:
                 # If config encoding is None or a generic 'utf-8' (which might be a default), try to detect.
                 # For Forint bank files, we know 'utf-8' is often wrong.
                 if not effective_encoding or (effective_encoding.lower() == 'utf-8' and filename.startswith("11600006-")):
-                    print(f"ℹ️ [MultiCSVService] Config encoding is '{effective_encoding}'. Detecting encoding for '{filename}'.")
+                    print(f"ℹ [MultiCSVService] Config encoding is '{effective_encoding}'. Detecting encoding for '{filename}'.")
                     detection_result = self.encoding_detector.detect_encoding(file_path)
                     effective_encoding = detection_result['encoding']
                     print(f" [MultiCSVService] Detected encoding for '{filename}': {effective_encoding} (confidence: {detection_result['confidence']:.2f})")
@@ -297,7 +297,7 @@ class MultiCSVService:
     
     def _parse_with_bank_info(self, file_path: str, config: dict, header_info: dict):
         """Parse file with enhanced parser using bank-detected info"""
-        print(f"ℹ️ [MIGRATION][MultiCSVService] _parse_with_bank_info using UnifiedCSVParser.")
+        print(f"ℹ [MIGRATION][MultiCSVService] _parse_with_bank_info using UnifiedCSVParser.")
         print(f"  Config: end_row={config.get('end_row')}, start_col={config.get('start_col', 0)}, end_col={config.get('end_col')}, encoding={config['encoding']}")
         print(f"  Header info: data_start_row={header_info['data_start_row']}, header_row={header_info['header_row']}")
 
@@ -358,7 +358,7 @@ class MultiCSVService:
         final_result = parse_result
         
         if enable_cleaning:
-            print(f"🧹 Applying data cleaning...")
+            print(f" Applying data cleaning...")
             
             # Create bank-specific cleaning config
             bank_cleaning_config = None
@@ -370,7 +370,7 @@ class MultiCSVService:
                     'bank_name': bank_info['detected_bank'],
                     'expected_headers': bank_csv_cfg.get('expected_headers', []) # Pass expected_headers
                 }
-                print(f"️ Using bank-specific cleaning config for {bank_info['detected_bank']}: {bank_cleaning_config}")
+                print(f" Using bank-specific cleaning config for {bank_info['detected_bank']}: {bank_cleaning_config}")
             
             cleaning_result = self.data_cleaner.clean_parsed_data(parse_result, bank_cleaning_config)
             

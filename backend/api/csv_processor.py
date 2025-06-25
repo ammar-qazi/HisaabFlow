@@ -18,11 +18,11 @@ class CSVProcessor:
     def __init__(self):
         self.unified_parser = UnifiedCSVParser() # New parser instance
         self.data_cleaner = DataCleaner()
-        print(f"ℹ️ [MIGRATION][CSVProcessor] Initialized with UnifiedCSVParser.")
+        print(f"ℹ [MIGRATION][CSVProcessor] Initialized with UnifiedCSVParser.")
     
     def preview_csv(self, file_path: str, encoding: str = "utf-8") -> Dict[str, Any]:
         """Preview CSV file"""
-        print(f"ℹ️ [MIGRATION][CSVProcessor] preview_csv called for: {file_path}")
+        print(f"ℹ [MIGRATION][CSVProcessor] preview_csv called for: {file_path}")
         
         try:
             # Use UnifiedCSVParser for preview as per Phase 2 requirements
@@ -43,7 +43,7 @@ class CSVProcessor:
     
     def detect_data_range(self, file_path: str, encoding: str = "utf-8") -> Dict[str, Any]:
         """Auto-detect data range in CSV"""
-        print(f"ℹ️ [MIGRATION][CSVProcessor] detect_data_range called for: {file_path}")
+        print(f"ℹ [MIGRATION][CSVProcessor] detect_data_range called for: {file_path}")
         # Use UnifiedCSVParser for detect_data_range as per Phase 2 requirements
         result = self.unified_parser.detect_data_range(file_path, encoding=encoding)
         
@@ -54,13 +54,13 @@ class CSVProcessor:
     
     def parse_range(self, file_path: str, request: ParseRangeRequest) -> Dict[str, Any]:
         """Parse CSV with specified range and optional data cleaning"""
-        print(f"ℹ️ [MIGRATION][CSVProcessor] parse_range called for: {file_path}")
+        print(f"ℹ [MIGRATION][CSVProcessor] parse_range called for: {file_path}")
         print(f"  Request: start_row={request.start_row}, end_row={request.end_row}, start_col={request.start_col}, end_col={request.end_col}, encoding={request.encoding}")
         print(f"  Data cleaning enabled: {request.enable_cleaning}")
         
         try:
             # STEP 1: DATA PARSING with UnifiedCSVParser
-            print(f"ℹ️ [MIGRATION][CSVProcessor] STEP 1: DATA PARSING with UnifiedCSVParser")
+            print(f"ℹ [MIGRATION][CSVProcessor] STEP 1: DATA PARSING with UnifiedCSVParser")
             
             # Prepare params for UnifiedCSVParser
             # Assuming request.start_row is the 0-indexed header row
@@ -103,7 +103,7 @@ class CSVProcessor:
             final_result['parser_used'] = parser_used
             
             if request.enable_cleaning:
-                print(f"ℹ️ [MIGRATION][CSVProcessor] STEP 2: DATA CLEANING")
+                print(f"ℹ [MIGRATION][CSVProcessor] STEP 2: DATA CLEANING")
                 
                 cleaning_result = self.data_cleaner.clean_parsed_data(parse_result)
                 
@@ -129,7 +129,7 @@ class CSVProcessor:
                 print(" Data cleaning skipped")
                 final_result['cleaning_applied'] = False
             
-            print(f"ℹ️ [MIGRATION][CSVProcessor] parse_range completed. Final rows: {final_result.get('row_count', 0)}")
+            print(f"ℹ [MIGRATION][CSVProcessor] parse_range completed. Final rows: {final_result.get('row_count', 0)}")
             return final_result
             
         except Exception as e:

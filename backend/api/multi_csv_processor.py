@@ -31,13 +31,13 @@ class MultiCSVProcessor:
         self.transfer_handler = TransferDetectionHandler()
         self.config_manager = ConfigManager()
         self.multi_csv_service = MultiCSVService() # Initialize the service
-        print(f"ℹ️ [MIGRATION][MultiCSVProcessor] Initialized with UnifiedCSVParser and CashewTransformer.")
+        print(f"ℹ [MIGRATION][MultiCSVProcessor] Initialized with UnifiedCSVParser and CashewTransformer.")
 
     
     def parse_multiple_csvs(self, request: MultiCSVParseRequest) -> Dict[str, Any]:
         """Parse multiple CSV files with individual configurations"""
         try:
-            print(f"ℹ️ [MIGRATION][MultiCSVProcessor] parse_multiple_csvs called for {len(request.file_ids)} files.")
+            print(f"ℹ [MIGRATION][MultiCSVProcessor] parse_multiple_csvs called for {len(request.file_ids)} files.")
             print(f"  Data cleaning enabled: {request.enable_cleaning}")
             
             # Validation
@@ -76,7 +76,7 @@ class MultiCSVProcessor:
     def transform_multiple_csvs(self, request: MultiCSVTransformRequest) -> Dict[str, Any]:
         """Transform multiple CSVs with enhanced transfer detection"""
         try:
-            print(f"ℹ️ [MIGRATION][MultiCSVProcessor] transform_multiple_csvs called for {len(request.csv_data_list)} files.")
+            print(f"ℹ [MIGRATION][MultiCSVProcessor] transform_multiple_csvs called for {len(request.csv_data_list)} files.")
             print(f"  Transfer detection: {request.enable_transfer_detection}")
             
             # Transform each CSV individually
@@ -139,7 +139,7 @@ class MultiCSVProcessor:
             print(f" Using configuration-based system (template support as fallback)")
             
             print(f" Bank: {bank_name}, Rules: {len(categorization_rules)}, Rows: {len(csv_data.get('data', []))}")
-            print(f"ℹ️ [MIGRATION][MultiCSVProcessor] _transform_all_csvs: Transforming for bank {bank_name} using CashewTransformer.")
+            print(f"ℹ [MIGRATION][MultiCSVProcessor] _transform_all_csvs: Transforming for bank {bank_name} using CashewTransformer.")
             
             # Transform data
             try:

@@ -27,7 +27,7 @@ class ParsingService:
         self.data_cleaner = DataCleaner()
         self.bank_config_manager = BankConfigManager(get_config_dir_for_manager())
         self.bank_detector = BankDetector(self.bank_config_manager)
-        print(f"ℹ️ [MIGRATION][ParsingService] Initialized with UnifiedCSVParser.")
+        print(f"ℹ [MIGRATION][ParsingService] Initialized with UnifiedCSVParser.")
     
     def parse_single_file(self, file_path: str, filename: str, config: ParseConfig):
         """
@@ -41,7 +41,7 @@ class ParsingService:
         Returns:
             dict: Parsing result with bank detection and cleaning info
         """
-        print(f"ℹ️ [MIGRATION][ParsingService] parse_single_file called for: {filename}")
+        print(f"ℹ [MIGRATION][ParsingService] parse_single_file called for: {filename}")
         print(f"  Config: start_row={config.start_row}, end_row={config.end_row}, start_col={config.start_col}, end_col={config.end_col}, encoding={config.encoding}")
         print(f"  Data cleaning enabled: {config.enable_cleaning}")
         
@@ -93,7 +93,7 @@ class ParsingService:
             # Apply data cleaning if enabled
             final_result = parse_result
             if config.enable_cleaning:
-                print(f"🧹 Applying data cleaning...")
+                print(f" Applying data cleaning...")
                 
                 # Create bank-specific cleaning config
                 bank_cleaning_config = None
@@ -103,7 +103,7 @@ class ParsingService:
                         'column_mapping': bank_column_mapping,
                         'bank_name': bank_info['detected_bank']
                     }
-                    print(f"️ Using bank-specific cleaning config: {bank_cleaning_config}")
+                    print(f" Using bank-specific cleaning config: {bank_cleaning_config}")
                 
                 cleaning_result = self.data_cleaner.clean_parsed_data(parse_result, bank_cleaning_config)
                 

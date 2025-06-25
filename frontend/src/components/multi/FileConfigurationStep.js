@@ -70,7 +70,7 @@ function FileConfigurationStep({
           {/* Preview Data */}
           {file.preview && (
             <div className="data-preview">
-              <h5>️ Preview: {file.fileName}</h5>
+              <h5> Preview: {file.fileName}</h5>
               <table className="data-table">
                 <thead>
                   <tr>

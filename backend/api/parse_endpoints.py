@@ -43,7 +43,7 @@ class ParseRangeRequest(BaseModel):
 @parse_router.get("/preview/{file_id}")
 async def preview_csv(file_id: str, encoding: str = "utf-8", header_row: int = None):
     """Preview uploaded CSV file with bank-aware header detection"""
-    print(f"️‍️ Preview request for file_id: {file_id}, header_row: {header_row}")
+    print(f"‍ Preview request for file_id: {file_id}, header_row: {header_row}")
     
     file_info = get_uploaded_file(file_id)
     if not file_info:
@@ -85,7 +85,7 @@ async def detect_data_range(file_id: str, encoding: str = "utf-8"):
 @parse_router.post("/parse-range/{file_id}")
 async def parse_range(file_id: str, request: ParseRangeRequest):
     """Parse CSV with specified range and data cleaning"""
-    print(f"️‍️ Parse range request for file_id: {file_id}")
+    print(f"‍ Parse range request for file_id: {file_id}")
     
     file_info = get_uploaded_file(file_id)
     if not file_info:

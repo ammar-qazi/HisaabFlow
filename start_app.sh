@@ -35,7 +35,7 @@ port_in_use() {
 
 # Function to kill processes on specific ports
 cleanup_ports() {
-    echo "🧹 Cleaning up any existing processes..."
+    echo " Cleaning up any existing processes..."
     if port_in_use 8000; then
         echo "   Stopping backend on port 8000..."
         lsof -ti :8000 | xargs kill -9 2>/dev/null || true
@@ -174,7 +174,7 @@ start_frontend() {
 
 # Function to handle desktop app launch (no browser needed)
 handle_desktop_launch() {
-    echo "️  Desktop application launched successfully!"
+    echo "  Desktop application launched successfully!"
     echo "   Note: App will open in a separate desktop window"
     echo "   (No browser window needed for desktop mode)"
 }
@@ -184,7 +184,7 @@ wait_for_stop() {
     echo ""
     echo "Application is running!"
     echo "    Backend API: http://127.0.0.1:8000"
-    echo "   ️  Desktop App: Running in separate window"
+    echo "     Desktop App: Running in separate window"
     echo "    API Docs:    http://127.0.0.1:8000/docs"
     echo ""
     echo "Press [CTRL+C] or [Enter] to stop the application..."
@@ -199,7 +199,7 @@ wait_for_stop() {
 
 # Function to clean up and exit
 cleanup_and_exit() {
-    echo "🧹 Shutting down servers..."
+    echo " Shutting down servers..."
     
     # Kill backend and frontend processes
     if [ ! -z "$BACKEND_PID" ]; then

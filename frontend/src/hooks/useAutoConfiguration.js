@@ -27,12 +27,12 @@ export const useAutoConfiguration = () => {
     rawBankNames.forEach((bankName, index) => {
       if (configurations[index]) {
         mapping[bankName] = configurations[index];
-        console.log(`️ Bank mapping: '${bankName}' → '${configurations[index]}'`);
+        console.log(` Bank mapping: '${bankName}' → '${configurations[index]}'`);
       }
     });
     
     setBankConfigMapping(mapping);
-    console.log('️ Updated bank config mapping:', mapping);
+    console.log(' Updated bank config mapping:', mapping);
   };
 
   /**

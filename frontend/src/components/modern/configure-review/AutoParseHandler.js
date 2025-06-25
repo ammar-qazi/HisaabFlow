@@ -30,7 +30,7 @@ function AutoParseHandler({
       
       console.log('[DATA] Checking parsed results for config needs:', autoParseResults.length, 'files');
       console.log('[DATA] AutoParseResults content:', autoParseResults);
-      console.log('️ Needs manual config:', needsConfig);
+      console.log(' Needs manual config:', needsConfig);
       setShowAdvancedConfig(needsConfig);
     } else {
       console.log('[DATA] No autoParseResults yet, current value:', autoParseResults);

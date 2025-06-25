@@ -43,7 +43,7 @@ class BankConfigManager:
         print(f" [bank_detection.BankConfigManager] Found .conf files: {config_files}")
 
         for config_file in config_files:
-            print(f"ℹ️ [bank_detection.BankConfigManager] Attempting to load: {config_file}")
+            print(f"ℹ [bank_detection.BankConfigManager] Attempting to load: {config_file}")
             if config_file == 'app.conf':  # Skip app config
                 continue
                 
@@ -96,7 +96,7 @@ class BankConfigManager:
             if 'filename_regex_patterns' in bank_info_dict:
                 regex_patterns = bank_info_dict['filename_regex_patterns'].split(',')
                 loaded_filename_patterns.extend([p.strip() for p in regex_patterns if p.strip()])
-                print(f"ℹ️ [BankConfigManager] Added regex patterns for {bank_name}: {regex_patterns}")
+                print(f"ℹ [BankConfigManager] Added regex patterns for {bank_name}: {regex_patterns}")
             
             if loaded_filename_patterns:
                 detection_info['filename_patterns'] = loaded_filename_patterns
@@ -108,7 +108,7 @@ class BankConfigManager:
             if detection_keywords_str:
                 content_signatures_from_config = [s.strip() for s in detection_keywords_str.split(',') if s.strip()]
                 detection_info['content_signatures'] = content_signatures_from_config
-                print(f"ℹ️ [BankConfigManager] For {bank_name}, using 'detection_content_signatures' from config: {content_signatures_from_config}")
+                print(f"ℹ [BankConfigManager] For {bank_name}, using 'detection_content_signatures' from config: {content_signatures_from_config}")
 
         # Get required_headers from [csv_config] section's 'expected_headers'
         bank_specific_expected_headers = []
@@ -118,7 +118,7 @@ class BankConfigManager:
             if expected_headers_str:
                 bank_specific_expected_headers = [h.strip() for h in expected_headers_str.split(',') if h.strip()]
                 detection_info['required_headers'] = bank_specific_expected_headers
-                print(f"ℹ️ [BankConfigManager] For {bank_name}, using 'expected_headers' for detection's required_headers: {bank_specific_expected_headers}")
+                print(f"ℹ [BankConfigManager] For {bank_name}, using 'expected_headers' for detection's required_headers: {bank_specific_expected_headers}")
 
         # Fallback for content_signatures if not provided by 'detection_content_signatures'
         if not detection_info['content_signatures']:
@@ -126,7 +126,7 @@ class BankConfigManager:
             if bank_specific_expected_headers: # Add expected headers as content signatures
                 fallback_signatures.extend(bank_specific_expected_headers)
             detection_info['content_signatures'] = list(set(fallback_signatures)) # Use set to remove duplicates
-            print(f"ℹ️ [BankConfigManager] For {bank_name}, using fallback content_signatures (display_name + expected_headers): {detection_info['content_signatures']}")
+            print(f"ℹ [BankConfigManager] For {bank_name}, using fallback content_signatures (display_name + expected_headers): {detection_info['content_signatures']}")
         
         print(f" Detection info for {bank_name}: {detection_info}")
         return detection_info

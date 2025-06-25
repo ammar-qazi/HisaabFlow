@@ -121,7 +121,7 @@ class ColumnStandardizer:
         Returns:
             Dict[str, str]: Mapping for Cashew transformation
         """
-        print(f"   ️ Creating Cashew column mapping")
+        print(f"    Creating Cashew column mapping")
         
         # Start with template mapping if available
         original_mapping = {}
