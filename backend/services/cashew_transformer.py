@@ -35,19 +35,49 @@ class CashewTransformer:
         """
         print(f" [CashewTransformer] Starting clean transformation for bank: '{bank_name}'")
         print(f"   [DATA] Input rows: {len(data)}, Column mapping: {column_mapping}")
+        print(f"   [DEBUG] Account mapping: {account_mapping}")
         
         cashew_data = []
         
         for idx, row in enumerate(data):
             # Initialize Cashew row with required fields
+            # Preserve existing Account value if it exists (from multi-CSV processing)
+            existing_account = row.get('Account', bank_name)
             cashew_row = {
                 'Date': '',
                 'Amount': '',
                 'Category': '',
                 'Title': '',
                 'Note': '',
-                'Account': bank_name
+                'Account': existing_account
             }
+            
+            # Handle account mapping when no explicit Account column mapping exists
+            if 'Currency' in row:
+                currency = str(row['Currency'])
+                transaction_bank = row.get('_source_bank')
+                
+                # Check if this bank uses account mapping (multi-currency)
+                should_apply_account_mapping = False
+                
+                if config and isinstance(config, dict) and transaction_bank and transaction_bank in config:
+                    bank_config_dict = config[transaction_bank]
+                    if 'account_mapping' in bank_config_dict:
+                        should_apply_account_mapping = True
+                        bank_account_mapping = bank_config_dict['account_mapping']
+                        if currency in bank_account_mapping:
+                            mapped_account = bank_account_mapping[currency]
+                            cashew_row['Account'] = mapped_account
+                            if idx < 3:
+                                print(f"    Row {idx} Auto Account mapping: Currency='{currency}' → Account='{mapped_account}'")
+                
+                # If no bank-specific account mapping found, preserve existing Account value
+                # (which should be the cashew_account for single-currency banks)
+                if not should_apply_account_mapping:
+                    # Keep the existing Account value (set during multi-CSV processing)
+                    if idx < 3:
+                        existing_account = cashew_row.get('Account', bank_name)
+                        print(f"    Row {idx} Preserving existing account: Currency='{currency}', Account='{existing_account}'")
             
             # Apply column mapping
             for cashew_col, source_col in column_mapping.items():
@@ -62,7 +92,10 @@ class CashewTransformer:
                             print(f"    Row {idx} Amount: '{original_amount}' → '{parsed_amount}'")
                     elif cashew_col == 'Account' and account_mapping:
                         currency = str(row[source_col])
-                        cashew_row[cashew_col] = account_mapping.get(currency, bank_name)
+                        mapped_account = account_mapping.get(currency, bank_name)
+                        cashew_row[cashew_col] = mapped_account
+                        if idx < 3:
+                            print(f"    Row {idx} Account mapping: source_col='{source_col}', Currency='{currency}' → Account='{mapped_account}'")
                     else:
                         cashew_row[cashew_col] = str(row[source_col])
             

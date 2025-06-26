@@ -80,6 +80,37 @@ async def transform_multi_csv_data(request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@transform_router.post("/apply-transfer-categorization")
+async def apply_transfer_categorization(request: Request):
+    """Apply transfer categorization to existing transformed data"""
+    print(f" Transfer categorization request received")
+    
+    try:
+        # Get raw request body
+        body = await request.body()
+        print(f" Raw request body size: {len(body)} bytes")
+        
+        # Parse JSON
+        request_data = json.loads(body)
+        
+        # Use transformation service for categorization only
+        result = transformation_service.apply_transfer_categorization_only(request_data)
+        
+        if not result['success']:
+            raise HTTPException(status_code=500, detail=result['error'])
+        
+        return result
+        
+    except json.JSONDecodeError as e:
+        print(f"[ERROR]  JSON decode error: {str(e)}")
+        raise HTTPException(status_code=422, detail=f"Invalid JSON: {str(e)}")
+    except Exception as e:
+        print(f"[ERROR]  Transfer categorization exception: {str(e)}")
+        import traceback
+        print(f" Full traceback: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @transform_router.post("/export")
 async def export_csv_data(request: Request):
     """Export transformed data as CSV file"""

@@ -21,6 +21,7 @@ function ModernAppLogic({ currentStep, setCurrentStep }) {
   const [parsedResults, setParsedResults] = useState([]);
   const [transformedData, setTransformedData] = useState(null);
   const [transferAnalysis, setTransferAnalysis] = useState(null);
+  const [manuallyConfirmedTransfers, setManuallyConfirmedTransfers] = useState([]);
   const [templates, setTemplates] = useState([]);
   
   const fileInputRef = useRef(null);
@@ -68,7 +69,8 @@ function ModernAppLogic({ currentStep, setCurrentStep }) {
   const handlerState = {
     uploadedFiles, setUploadedFiles, setLoading, setError,
     setParsedResults, setTransformedData, setTransferAnalysis, setCurrentStep,
-    applyTemplate, previewFile, previewFileById, dynamicBankMapping: autoConfigHook.bankConfigMapping
+    applyTemplate, previewFile, previewFileById, dynamicBankMapping: autoConfigHook.bankConfigMapping,
+    manuallyConfirmedTransfers
   };
 
   const { handleFileSelect, removeFile } = createFileHandlers(handlerState);
@@ -90,6 +92,7 @@ function ModernAppLogic({ currentStep, setCurrentStep }) {
   const handleStartOver = () => {
     setCurrentStep(1); setUploadedFiles([]); setParsedResults([]);
     setTransformedData(null); setTransferAnalysis(null); setActiveTab(0); clearMessages();
+    setManuallyConfirmedTransfers([]); // Reset manual confirmations
   };  const handleExport = () => exportData(transformedData, toast.success, setError);
 
   const messageStyles = {
@@ -150,6 +153,7 @@ function ModernAppLogic({ currentStep, setCurrentStep }) {
         <ModernTransformAndExportStep
           currentStep={currentStep}
           transformedData={transformedData}
+          setTransformedData={setTransformedData}
           transferAnalysis={transferAnalysis}
           parsedResults={parsedResults}
           loading={loading}
@@ -157,6 +161,8 @@ function ModernAppLogic({ currentStep, setCurrentStep }) {
           exportData={handleExport}
           onStartOver={handleStartOver}
           setCurrentStep={setCurrentStep}
+          manuallyConfirmedTransfers={manuallyConfirmedTransfers}
+          setManuallyConfirmedTransfers={setManuallyConfirmedTransfers}
         />
       )}
       

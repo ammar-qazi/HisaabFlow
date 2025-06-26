@@ -79,6 +79,7 @@ class CrossBankMatcher:
                                  existing_pairs: List[Dict]) -> List[Dict]:
         """Match cross-bank transfers using configuration-driven rules"""
         transfer_pairs = []
+        self.potential_pairs = []  # Store potential pairs that failed name matching
         existing_transaction_ids: Set[int] = set()
         
         # Get IDs of already matched transactions
@@ -130,6 +131,7 @@ class CrossBankMatcher:
                 existing_transaction_ids.add(best_match['incoming']['_transaction_index'])
         
         print(f"[SUCCESS] Created {len(transfer_pairs)} cross-bank transfer pairs")
+        print(f"[INFO] Found {len(self.potential_pairs)} potential pairs (failed name matching)")
         return transfer_pairs
     
     def _find_best_match(self, outgoing: Dict, available_incoming: List[Dict], 
@@ -217,6 +219,29 @@ class CrossBankMatcher:
                 # === Logging as per request: Rejection reason ===
                 # _is_cross_bank_transfer logs its own details when debug=True
                 print(f"  - Reason for rejection: _is_cross_bank_transfer failed (Details logged above by _is_cross_bank_transfer)")
+                
+                # Check if this was a name mismatch - if so, validate amounts before storing as potential pair
+                if details.get('names_match_result') is False:
+                    # Check if amounts match using the same logic as _evaluate_matching_strategies
+                    amounts_match = self._validate_amount_matching(outgoing, incoming, outgoing_amount, incoming_amount, exchange_amount, exchange_currency)
+                    
+                    if amounts_match:
+                        potential_pair = {
+                            'outgoing': outgoing,
+                            'incoming': incoming,
+                            'reason': 'name_mismatch',
+                            'outgoing_name': details.get('outgoing_name'),
+                            'incoming_name': details.get('incoming_name'),
+                            'amount_match': True,
+                            'date_match': True,
+                            'date_diff_hours': hours_diff,
+                            'confidence': 0.7  # High confidence except for name
+                        }
+                        self.potential_pairs.append(potential_pair)
+                        print(f"  - CAPTURED POTENTIAL PAIR: Names don't match ('{details.get('outgoing_name')}' vs '{details.get('incoming_name')}') but amount/date do")
+                    else:
+                        print(f"  - NOT capturing potential pair: Names don't match AND amounts don't match")
+                
                 continue
             
             matches = self._evaluate_matching_strategies(
@@ -531,3 +556,39 @@ class CrossBankMatcher:
             transaction.get('DESCRIPTION', '') or 
             transaction.get('TYPE', '')
         )
+    
+    def _validate_amount_matching(self, outgoing: Dict, incoming: Dict,
+                                outgoing_amount: float, incoming_amount: float,
+                                exchange_amount: float, exchange_currency: str) -> bool:
+        """Validate if amounts match using the same logic as _evaluate_matching_strategies"""
+        
+        outgoing_currency = outgoing.get('Currency', self.config.get_bank_config(outgoing.get('_bank_type')).currency_primary if outgoing.get('_bank_type') and self.config.get_bank_config(outgoing.get('_bank_type')) else None)
+        incoming_currency = incoming.get('Currency', self.config.get_bank_config(incoming.get('_bank_type')).currency_primary if incoming.get('_bank_type') and self.config.get_bank_config(incoming.get('_bank_type')) else None)
+        
+        print(f"DEBUG CBM _validate_amount: Checking amounts - Outgoing: {outgoing_amount} {outgoing_currency}, Incoming: {incoming_amount} {incoming_currency}, Exchange: {exchange_amount} {exchange_currency}")
+        
+        # Strategy 1: Exchange To Amount matching (PRIORITY for Wise-like transactions)
+        if exchange_amount is not None and exchange_currency:
+            if exchange_currency == incoming_currency:
+                amount_match = AmountParser.amounts_match(exchange_amount, incoming_amount)
+                print(f"DEBUG CBM _validate_amount: Strategy 1 (Exchange): {exchange_amount} vs {incoming_amount} = {'MATCH' if amount_match else 'NO MATCH'}")
+                if amount_match:
+                    return True
+        
+        # Strategy 2: Direct amount matching (same currency)
+        if outgoing_currency == incoming_currency:
+            amount_match = AmountParser.amounts_match(outgoing_amount, incoming_amount)
+            print(f"DEBUG CBM _validate_amount: Strategy 2 (Direct): {outgoing_amount} vs {incoming_amount} = {'MATCH' if amount_match else 'NO MATCH'}")
+            if amount_match:
+                return True
+        
+        # Strategy 3: Cross-currency matching (would need currency conversion rates)
+        # For now, we'll skip this as it requires external currency conversion data
+        # This could be added later if needed
+        
+        print(f"DEBUG CBM _validate_amount: No amount matching strategy succeeded")
+        return False
+
+    def get_potential_pairs(self) -> List[Dict]:
+        """Get the potential pairs that failed name matching but passed amount/date checks"""
+        return getattr(self, 'potential_pairs', [])

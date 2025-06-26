@@ -14,7 +14,8 @@ export const createProcessingHandlers = (state) => {
     setParsedResults,
     setTransformedData,
     setTransferAnalysis,
-    setCurrentStep
+    setCurrentStep,
+    manuallyConfirmedTransfers
   } = state;
 
   // parseAllFiles function remains the same...
@@ -90,9 +91,17 @@ export const createProcessingHandlers = (state) => {
         return;
       }
       
-      const response = await axios.post(`${API_V1_BASE}/multi-csv/transform`, {
+      const requestData = {
         csv_data_list: csvDataList
-      });
+      };
+      
+      // Include manually confirmed transfers if available
+      if (manuallyConfirmedTransfers && manuallyConfirmedTransfers.length > 0) {
+        requestData.manually_confirmed_pairs = manuallyConfirmedTransfers;
+        console.log(`Including ${manuallyConfirmedTransfers.length} manually confirmed transfer pairs in transform request`);
+      }
+      
+      const response = await axios.post(`${API_V1_BASE}/multi-csv/transform`, requestData);
       
       setTransformedData(response.data.transformed_data);
       setTransferAnalysis(response.data.transfer_analysis);

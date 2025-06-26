@@ -134,10 +134,7 @@ const formatBankType = (bankType) => {
   // Handle backend bank types
   if (bankType === 'nayapay') return 'NayaPay';
   if (bankType === 'forint_bank') return 'Forint Bank';
-  if (bankType === 'wise_usd') return 'Wise USD';
-  if (bankType === 'wise_eur') return 'Wise EUR';
-  if (bankType === 'wise_huf') return 'Wise HUF';
-  if (bankType === 'wise_family') return 'Wise Family';
+  if (bankType === 'wise') return 'Wise';
   
   // Handle frontend bank types
   if (bankType === 'Transferwise') return 'Wise';

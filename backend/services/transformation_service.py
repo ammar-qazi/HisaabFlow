@@ -87,7 +87,9 @@ class TransformationService:
         Transform multi-CSV data to Cashew format
         
         Args:
-            raw_data: Raw request data from frontend
+            raw_data: Raw request data from frontend, may include:
+                     - csv_data_list: CSV data for transformation
+                     - manually_confirmed_pairs: User-confirmed transfer pairs for categorization
             
         Returns:
             dict: Multi-CSV transformation result
@@ -96,6 +98,11 @@ class TransformationService:
         
         try:
             print(f" Request keys: {list(raw_data.keys())}")
+            
+            # Extract manually confirmed pairs if provided
+            manually_confirmed_pairs = raw_data.get('manually_confirmed_pairs', [])
+            if manually_confirmed_pairs:
+                print(f" Received {len(manually_confirmed_pairs)} manually confirmed transfer pairs")
             
             # Extract data from frontend format using bank-agnostic detection
             data, column_mapping, bank_name = self._extract_transform_data_per_bank(raw_data)
@@ -109,12 +116,26 @@ class TransformationService:
             default_category_rules = raw_data.get('default_category_rules')
             account_mapping = raw_data.get('account_mapping')
             
+            # Get bank configs for fallback logic and account mapping
+            bank_configs = self._get_bank_configs_for_data(raw_data)
+            
+            # Extract account_mapping and column_mapping from bank configs if not provided in request
+            if not account_mapping and bank_configs:
+                # For single-bank scenarios, use the account_mapping from the detected bank
+                for bank_name_config, config_dict in bank_configs.items():
+                    if 'account_mapping' in config_dict:
+                        account_mapping = config_dict['account_mapping']
+                        print(f"   [DEBUG] Using account_mapping from bank config: {account_mapping}")
+                    
+                    # Also override column_mapping if it's an identity mapping
+                    if 'column_mapping' in config_dict and self._is_identity_mapping(column_mapping):
+                        column_mapping = config_dict['column_mapping']
+                        print(f"   [DEBUG] Using column_mapping from bank config: {column_mapping}")
+                    break
+            
             # Show sample data for debugging
             if data:
                 print(f" Sample data (first row): {data[0] if data else 'none'}")
-            
-            # Get bank configs for fallback logic
-            bank_configs = self._get_bank_configs_for_data(raw_data)
             
             # Transform data
             if categorization_rules or default_category_rules:
@@ -134,6 +155,7 @@ class TransformationService:
                     data, 
                     column_mapping, 
                     bank_name,
+                    account_mapping=account_mapping,
                     config=bank_configs
                 )
             
@@ -233,9 +255,11 @@ class TransformationService:
             # Get Account name from bank configuration
             account_name = self._get_account_name(bank_info, filename)
             
-            # Update Account field for each row
+            # Update Account field and add bank source for each row
+            detected_bank_name = bank_info.get('bank_name', bank_info.get('detected_bank', 'unknown'))
             for row in csv_file_data:
                 row['Account'] = account_name
+                row['_source_bank'] = detected_bank_name  # For bank-specific account mapping
             
             print(f"   [SUCCESS] Account field '{account_name}' set for all {len(csv_file_data)} rows")
             
@@ -283,6 +307,12 @@ class TransformationService:
         
         return configs
     
+    def _is_identity_mapping(self, column_mapping: dict) -> bool:
+        """Check if column mapping is an identity mapping (all keys equal values)"""
+        if not column_mapping:
+            return True
+        return all(key == value for key, value in column_mapping.items())
+    
     def _get_detected_bank(self, bank_info: dict):
         """Extract detected bank from bank info"""
         if bank_info:
@@ -304,12 +334,18 @@ class TransformationService:
                 try:
                     bank_config = self.bank_config_manager.get_bank_config(detected_bank)
                     if bank_config and bank_config.has_section('bank_info'):
+                        # Check if this bank uses account mapping (multi-currency) or single cashew_account
+                        has_account_mapping = bank_config.has_section('account_mapping')
                         cashew_account = bank_config.get('bank_info', 'cashew_account', fallback=None)
-                        if cashew_account:
+                        
+                        if has_account_mapping:
+                            account_name = 'Multi-Currency'  # Placeholder, will be mapped per transaction
+                            print(f"    Using account_mapping from {detected_bank} config (multi-currency)")
+                        elif cashew_account:
                             account_name = cashew_account
                             print(f"    Using cashew_account from {detected_bank} config: '{account_name}'")
                         else:
-                            print(f"   [WARNING]  No cashew_account in {detected_bank} config")
+                            print(f"   [WARNING]  No cashew_account or account_mapping in {detected_bank} config")
                     else:
                         print(f"   [WARNING]  Could not load config for {detected_bank}")
                 except Exception as e:
@@ -342,7 +378,11 @@ class TransformationService:
         transactions_for_final_cat = transfer_analysis.get('processed_transactions', data_after_recategorization)
         
         # Step 4: Apply transfer-specific categorization (e.g., "Balance Correction")
-        final_data_with_transfer_cats = self._apply_transfer_specific_categorization(transactions_for_final_cat, transfer_analysis)
+        # Include manually confirmed pairs if provided
+        manually_confirmed_pairs = raw_data.get('manually_confirmed_pairs', [])
+        final_data_with_transfer_cats = self._apply_transfer_specific_categorization(
+            transactions_for_final_cat, transfer_analysis, manually_confirmed_pairs
+        )
         
         return final_data_with_transfer_cats, transfer_analysis # transfer_analysis now also contains processed_transactions
     
@@ -610,11 +650,13 @@ class TransformationService:
             print(f"       Summary: {detection_result.get('summary', {})}")
             print(f"       Transfer pairs: {len(detection_result.get('transfers', []))}")
             print(f"       Potential transfers: {len(detection_result.get('potential_transfers', []))}")
+            print(f"       Potential pairs: {len(detection_result.get('potential_pairs', []))}")
             
             return {
                 "summary": detection_result.get('summary', {}),
                 "transfers": detection_result.get('transfers', []),
                 "potential_transfers": detection_result.get('potential_transfers', []),
+                "potential_pairs": detection_result.get('potential_pairs', []),  # Add potential pairs
                 "processed_transactions": detection_result.get('processed_transactions', data), # Pass back the processed list
                 "conflicts": detection_result.get('conflicts', []), # Ensure these are also passed through
                 "flagged_transactions": detection_result.get('flagged_transactions', []) # Ensure these are also passed through
@@ -627,38 +669,49 @@ class TransformationService:
                 "summary": {
                     "transfer_pairs_found": 0,
                     "potential_transfers": 0,
+                    "potential_pairs": 0,  # Add to error fallback
                     "conflicts": 0,
                     "flagged_for_review": 0
                 },
                 "transfers": [],
                 "processed_transactions": data, # Fallback to original data on error
                 "potential_transfers": [],
+                "potential_pairs": [],  # Add to error fallback
                 "conflicts": [],
                 "flagged_transactions": []
             }
 
     
-    def _apply_transfer_specific_categorization(self, data: list, transfer_analysis: dict) -> list:
+    def _apply_transfer_specific_categorization(self, data: list, transfer_analysis: dict, manually_confirmed_pairs: list = None) -> list:
         """Apply configured category to detected transfers and update notes."""
         print(f" Applying transfer categorization...")
         
-        transfer_pairs = transfer_analysis.get('transfers', [])
+        # Combine auto-detected and manually confirmed transfer pairs
+        auto_detected_pairs = transfer_analysis.get('transfers', [])
+        manually_confirmed_pairs = manually_confirmed_pairs or []
+        
+        # Combine all transfer pairs for categorization
+        all_transfer_pairs = auto_detected_pairs + manually_confirmed_pairs
+        
+        print(f"   Auto-detected pairs: {len(auto_detected_pairs)}")
+        print(f"   Manually confirmed pairs: {len(manually_confirmed_pairs)}")
+        print(f"   Total pairs to categorize: {len(all_transfer_pairs)}")
         # Get the configured category for transfers from the shared ConfigurationManager
         transfer_category = self.shared_transfer_config.get_default_transfer_category()
         print(f"   Using category '{transfer_category}' for transfer pairs.")
 
-        if not transfer_pairs:
+        if not all_transfer_pairs:
             print("   No transfer pairs found to categorize.")
             return data
         
         # Create a lookup for transfer transactions by their _transaction_index
         # Store type (outgoing/incoming), pair_id, and match_strategy for note generation
         transfer_details_by_index = {}
-        for pair in transfer_pairs:
+        for pair in all_transfer_pairs:
             outgoing_tx = pair.get('outgoing')
             incoming_tx = pair.get('incoming')
-            pair_id = pair.get('pair_id', 'unknown_pair')
-            match_strategy = pair.get('match_strategy', 'unknown_strategy')
+            pair_id = pair.get('pair_id', 'manual_pair' if pair.get('manual') else 'unknown_pair')
+            match_strategy = pair.get('match_strategy', 'manual_confirmation' if pair.get('manual') else 'unknown_strategy')
 
             if outgoing_tx and '_transaction_index' in outgoing_tx:
                 transfer_details_by_index[outgoing_tx['_transaction_index']] = {
@@ -695,3 +748,69 @@ class TransformationService:
         
         print(f"   [SUCCESS] Applied '{transfer_category}' category and updated notes for {matches_applied} transactions.")
         return data
+    
+    def apply_transfer_categorization_only(self, request_data: dict):
+        """
+        Apply transfer categorization to existing transformed data (lightweight operation)
+        
+        Args:
+            request_data: {
+                transformed_data: list,
+                manually_confirmed_pairs: list,
+                transfer_analysis: dict
+            }
+        
+        Returns:
+            dict: Updated transformed data with proper categorization
+        """
+        print(f" Applying transfer categorization only...")
+        
+        try:
+            # Extract data from request
+            transformed_data = request_data.get('transformed_data', [])
+            manually_confirmed_pairs = request_data.get('manually_confirmed_pairs', [])
+            transfer_analysis = request_data.get('transfer_analysis', {})
+            
+            print(f"   Transformed data rows: {len(transformed_data)}")
+            print(f"   Manually confirmed pairs: {len(manually_confirmed_pairs)}")
+            print(f"   Existing transfer pairs: {len(transfer_analysis.get('transfers', []))}")
+            
+            if not transformed_data:
+                return {
+                    "success": False,
+                    "error": "No transformed data provided"
+                }
+            
+            # Apply transfer categorization with manual confirmations
+            updated_data = self._apply_transfer_specific_categorization(
+                transformed_data.copy(),  # Work on a copy
+                transfer_analysis,
+                manually_confirmed_pairs
+            )
+            
+            # Calculate how many transactions were updated
+            updated_count = 0
+            for row in updated_data:
+                if row.get('Category') == self.shared_transfer_config.get_default_transfer_category():
+                    # Check if this is from a transfer (has transfer note)
+                    note = row.get('Note', '')
+                    if 'Transfer' in note:
+                        updated_count += 1
+            
+            print(f"   [SUCCESS] Updated categories for {updated_count} transactions")
+            
+            return {
+                "success": True,
+                "transformed_data": updated_data,
+                "updated_transactions": updated_count,
+                "category_applied": self.shared_transfer_config.get_default_transfer_category()
+            }
+            
+        except Exception as e:
+            print(f"[ERROR]  Transfer categorization error: {str(e)}")
+            import traceback
+            print(f" Full traceback: {traceback.format_exc()}")
+            return {
+                "success": False,
+                "error": str(e)
+            }

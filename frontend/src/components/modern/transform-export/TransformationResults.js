@@ -3,7 +3,7 @@ import { useTheme } from '../../../theme/ThemeProvider';
 import { Card } from '../../ui'; // Assuming Card is available from '../ui'
 import { CheckCircle, BarChart, TrendingUp, Tag } from '../../ui/Icons';
 
-function TransformationResults({ transformedData, transferAnalysis }) {
+function TransformationResults({ transformedData, transferAnalysis, manuallyConfirmedTransfers }) {
   const theme = useTheme();
 
   // Add comprehensive debugging
@@ -49,24 +49,29 @@ function TransformationResults({ transformedData, transferAnalysis }) {
   }
 
   // Handle transfer analysis data from backend
+  let autoDetectedTransfers = 0;
   if (transferAnalysis) {
     // Check for transfers array (current backend format)
     if (transferAnalysis.transfers && Array.isArray(transferAnalysis.transfers)) {
-      summary.transfer_pairs_found = transferAnalysis.transfers.length;
+      autoDetectedTransfers = transferAnalysis.transfers.length;
     }
     // Check for summary data (preferred backend format)
     else if (transferAnalysis.summary && transferAnalysis.summary.transfer_pairs_found !== undefined) {
-      summary.transfer_pairs_found = transferAnalysis.summary.transfer_pairs_found;
+      autoDetectedTransfers = transferAnalysis.summary.transfer_pairs_found;
     }
     // Legacy format: transfer_pairs
     else if (transferAnalysis.transfer_pairs && Array.isArray(transferAnalysis.transfer_pairs)) {
-      summary.transfer_pairs_found = transferAnalysis.transfer_pairs.length;
+      autoDetectedTransfers = transferAnalysis.transfer_pairs.length;
     }
     // Legacy format: transfer_pairs_found
     else if (transferAnalysis.transfer_pairs_found !== undefined) {
-      summary.transfer_pairs_found = transferAnalysis.transfer_pairs_found;
+      autoDetectedTransfers = transferAnalysis.transfer_pairs_found;
     }
   }
+
+  // Add manually confirmed transfers to the total count
+  const manualTransfers = manuallyConfirmedTransfers ? manuallyConfirmedTransfers.length : 0;
+  summary.transfer_pairs_found = autoDetectedTransfers + manualTransfers;
 
   console.log('[DATA] TransformationResults Computed Summary:', { summary, hasData });
 

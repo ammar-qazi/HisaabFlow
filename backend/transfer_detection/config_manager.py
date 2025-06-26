@@ -29,7 +29,6 @@ class ConfigurationManager:
     def __init__(self, config_dir: str = "configs"):
         self.config_dir = Path(config_dir)
         self.app_config = self._load_app_config()
-        self.family_configs: Dict[str, configparser.ConfigParser] = self._load_family_configs()
         self.bank_configs: Dict[str, BankConfig] = self._load_bank_configs()
     
     def _load_app_config(self) -> configparser.ConfigParser:
@@ -49,20 +48,6 @@ class ConfigurationManager:
                 'confidence_threshold': '0.7'
             }
         return config
-    
-    def _load_family_configs(self) -> Dict[str, configparser.ConfigParser]:
-        """Load family configuration files (e.g., wise_family.conf)"""
-        family_configs = {}
-        
-        for config_file in self.config_dir.glob("*_family.conf"):
-            family_name = config_file.stem.replace('_family', '')
-            config = configparser.ConfigParser()
-            config.read(config_file)
-            
-            family_configs[family_name] = config
-            print(f"[SUCCESS] Loaded {family_name}_family.conf")
-        
-        return family_configs
     
     def _load_bank_configs(self) -> Dict[str, BankConfig]:
         """Load all bank configuration files"""
@@ -194,20 +179,10 @@ class ConfigurationManager:
         return list(patterns.values())
     
     def categorize_merchant(self, bank_name: str, merchant: str) -> Optional[str]:
-        """Get category for a merchant based on family and bank configuration"""
+        """Get category for a merchant based on bank configuration"""
         merchant_lower = merchant.lower()
         
-        # Step 1: Check family categorization rules first
-        family_name = self._get_family_name(bank_name)
-        if family_name and family_name in self.family_configs:
-            family_config = self.family_configs[family_name]
-            if family_config.has_section('categorization'):
-                family_rules = dict(family_config.items('categorization'))
-                for merchant_pattern, category in family_rules.items():
-                    if re.search(merchant_pattern, merchant_lower, re.IGNORECASE):
-                        return category
-        
-        # Step 2: Check bank-specific categorization rules (can override family)
+        # Check bank-specific categorization rules
         config = self.bank_configs.get(bank_name)
         if config:
             for merchant_pattern, category in config.categorization_rules.items():
@@ -217,30 +192,16 @@ class ConfigurationManager:
         return None
     
     def apply_description_cleaning(self, bank_name: str, description: str) -> str:
-        """Apply family and bank-specific description cleaning rules"""
+        """Apply bank-specific description cleaning rules"""
         cleaned_description = description
         
-        # Step 1: Apply family rules first (e.g., wise_family.conf)
-        family_name = self._get_family_name(bank_name)
-        if family_name and family_name in self.family_configs:
-            family_config = self.family_configs[family_name]
-            if family_config.has_section('description_cleaning'):
-                family_rules = dict(family_config.items('description_cleaning'))
-                cleaned_description = self._apply_cleaning_rules(cleaned_description, family_rules)
-        
-        # Step 2: Apply bank-specific rules (can override family rules)
+        # Apply bank-specific rules
         config = self.bank_configs.get(bank_name)
         if config and config.description_cleaning_rules:
             cleaned_description = self._apply_cleaning_rules(cleaned_description, config.description_cleaning_rules)
         
         return cleaned_description.strip()
     
-    def _get_family_name(self, bank_name: str) -> Optional[str]:
-        """Determine family name for a bank (e.g., wise_usd -> wise)"""
-        if bank_name.startswith('wise_'):
-            return 'wise'
-        # Add other families as needed
-        return None
     
     def _apply_cleaning_rules(self, description: str, rules: Dict[str, str]) -> str:
         """Apply a set of cleaning rules to description"""

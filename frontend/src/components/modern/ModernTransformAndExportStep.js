@@ -13,13 +13,16 @@ import ExportOptions from './transform-export/ExportOptions';
 function ModernTransformAndExportStep({
   currentStep,
   transformedData,
+  setTransformedData,
   transferAnalysis,
   parsedResults,
   loading,
   transformAllFiles,
   exportData,
   onStartOver,
-  setCurrentStep
+  setCurrentStep,
+  manuallyConfirmedTransfers,
+  setManuallyConfirmedTransfers
 }) {
   const theme = useTheme();
   
@@ -110,9 +113,14 @@ function ModernTransformAndExportStep({
           <TransformationResults
             transformedData={transformedData}
             transferAnalysis={transferAnalysis}
+            manuallyConfirmedTransfers={manuallyConfirmedTransfers}
           />
           <TransferAnalysisPanel
             transferAnalysis={transferAnalysis}
+            manuallyConfirmedTransfers={manuallyConfirmedTransfers}
+            setManuallyConfirmedTransfers={setManuallyConfirmedTransfers}
+            transformedData={transformedData}
+            setTransformedData={setTransformedData}
           />
           <InteractiveDataTable
             data={transformedData}

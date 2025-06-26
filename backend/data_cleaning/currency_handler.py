@@ -48,6 +48,22 @@ class CurrencyHandler:
         if not data:
             return []
         
+        # Check if currency addition is disabled in config
+        # Check multiple possible config structures
+        enable_currency_addition = True
+        if template_config:
+            # Check direct config structure
+            if 'enable_currency_addition' in template_config:
+                enable_currency_addition = template_config.get('enable_currency_addition', True)
+            # Check nested data_cleaning_config structure  
+            elif 'data_cleaning_config' in template_config:
+                data_cleaning_config = template_config['data_cleaning_config']
+                enable_currency_addition = data_cleaning_config.get('enable_currency_addition', True)
+            
+            if not enable_currency_addition:
+                print(f"      [SUCCESS] Currency addition disabled in config, skipping...")
+                return data
+        
         # Check if currency column already exists
         if self._has_currency_column(data):
             print(f"      [SUCCESS] Currency column already exists, skipping...")

@@ -71,6 +71,10 @@ class TransferDetector:
         )
         print(f"   [SUCCESS] Found {len(cross_bank_pairs)} cross-bank transfer pairs")
         
+        # Get potential pairs that failed name matching
+        potential_pairs = self.cross_bank_matcher.get_potential_pairs()
+        print(f"   [INFO] Found {len(potential_pairs)} potential pairs (name mismatch)")
+        
         # Combine all transfer pairs
         all_transfer_pairs = conversion_pairs + cross_bank_pairs
         
@@ -84,6 +88,7 @@ class TransferDetector:
         print(f"    Currency conversions: {len(conversion_pairs)}")
         print(f"    Cross-bank transfers: {len(cross_bank_pairs)}")
         print(f"    Potential transfers: {len(potential_transfers)}")
+        print(f"    Potential pairs (name mismatch): {len(potential_pairs)}")
         print(f"   [WARNING]  Conflicts: {len(conflicts)}")
         print(f"    Flagged for review: {len(flagged_transactions)}")
         print("=" * 70)
@@ -92,6 +97,7 @@ class TransferDetector:
             'processed_transactions': all_transactions, # Return the transactions with _transaction_index
             'transfers': all_transfer_pairs,
             'potential_transfers': potential_transfers,
+            'potential_pairs': potential_pairs,  # Add potential pairs to response
             'conflicts': conflicts,
             'flagged_transactions': flagged_transactions,
             'summary': {
@@ -100,6 +106,7 @@ class TransferDetector:
                 'currency_conversions': len(conversion_pairs),
                 'other_transfers': len(cross_bank_pairs),
                 'potential_transfers': len(potential_transfers),
+                'potential_pairs': len(potential_pairs),  # Add to summary
                 'conflicts': len(conflicts),
                 'flagged_for_review': len(flagged_transactions)
             }

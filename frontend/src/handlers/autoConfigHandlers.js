@@ -23,10 +23,7 @@ export const autoConfigureFile = async (fileId, bankDetection, previewData, setU
   const bankToConfigMap = dynamicBankMapping || {
     'nayapay': 'Nayapay Configuration',
     'forint_bank': 'Forint_Bank Configuration',
-    'wise_usd': 'Wise_Usd Configuration', 
-    'wise_eur': 'Wise_Eur Configuration',
-    'wise_huf': 'Wise_Huf Configuration',
-    'wise_family': 'Wise_Family Configuration'
+    'wise': 'Wise Configuration'
   };
   
   const configName = bankToConfigMap[detectedBank];
