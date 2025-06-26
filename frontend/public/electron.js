@@ -256,12 +256,46 @@ async function cleanup() {
       // Emergency cleanup only if normal shutdown failed
       console.log('[EMERGENCY] Attempting emergency process cleanup...');
       
+      // Use the launcher's emergency cleanup method first
+      if (backendLauncher.emergencyCleanup) {
+        try {
+          await backendLauncher.emergencyCleanup();
+          console.log('[SUCCESS] Emergency cleanup via launcher completed');
+          return; // Exit early if successful
+        } catch (emergencyError) {
+          console.error('[WARNING] Launcher emergency cleanup failed:', emergencyError);
+        }
+      }
+      
       if (process.platform === 'win32') {
         // Windows: Try to kill by process name as last resort
         const { spawn } = require('child_process');
         try {
-          spawn('taskkill', ['/f', '/im', 'hisaabflow-backend.exe'], { stdio: 'ignore' });
-          spawn('wmic', ['process', 'where', 'name="python.exe"', 'and', 'commandline like "%uvicorn%main:app%"', 'delete'], { stdio: 'ignore' });
+          console.log('[EMERGENCY] Windows: Killing hisaabflow-backend.exe processes...');
+          const killBackend = spawn('taskkill', ['/f', '/im', 'hisaabflow-backend.exe'], { 
+            stdio: 'ignore',
+            detached: true 
+          });
+          
+          killBackend.on('close', (code) => {
+            console.log(`[EMERGENCY] taskkill hisaabflow-backend exit code: ${code}`);
+          });
+          
+          // Also kill any Python processes running uvicorn
+          console.log('[EMERGENCY] Windows: Killing Python uvicorn processes...');
+          const killPython = spawn('wmic', [
+            'process', 'where', 
+            'name="python.exe" and commandline like "%uvicorn%" and commandline like "%main:app%"', 
+            'delete'
+          ], { 
+            stdio: 'ignore',
+            detached: true 
+          });
+          
+          killPython.on('close', (code) => {
+            console.log(`[EMERGENCY] wmic Python cleanup exit code: ${code}`);
+          });
+          
         } catch (emergencyError) {
           console.error('[WARNING] Emergency cleanup failed:', emergencyError.message);
         }

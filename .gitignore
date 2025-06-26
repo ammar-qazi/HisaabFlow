@@ -131,6 +131,7 @@ CURRENT_STATE.md
 SYSTEM_DESIGN.md
 DATA_STANDARDS.md
 CROSS_PLATFORM_SETUP_COMPLETE.md
+CLAUDE.md
 
 # Test scripts (temporary development files)
 test_*.sh

@@ -8,6 +8,8 @@ class BackendLauncher {
     this.isRunning = false;
     this.port = 8000;
     this.userDir = userDir;
+    this.backendPid = null; // Track PID separately for Windows
+    this.backendExecutableName = null; // Track executable name
   }
 
   getBackendExecutable() {
@@ -43,13 +45,30 @@ class BackendLauncher {
         console.log(` Using user configs: ${env.HISAABFLOW_CONFIG_DIR}`);
       }
       
-      // Start the compiled executable
-      this.backendProcess = spawn(exePath, [], {
+      // Start the compiled executable with Windows-specific handling
+      const spawnOptions = {
         env: env,
-        stdio: 'pipe',
-        // Detach process on Unix-like systems for better process group control
-        detached: process.platform !== 'win32'
-      });
+        stdio: 'pipe'
+      };
+      
+      // Windows: Don't detach to maintain parent-child relationship for proper cleanup
+      // Unix: Detach for better process group control
+      if (process.platform === 'win32') {
+        // Windows: Keep attached for proper process management
+        spawnOptions.detached = false;
+        // Create new process group to allow clean termination
+        spawnOptions.windowsVerbatimArguments = false;
+      } else {
+        // Unix: Detach for process group control
+        spawnOptions.detached = true;
+      }
+      
+      this.backendProcess = spawn(exePath, [], spawnOptions);
+      
+      // Track process details for Windows cleanup
+      this.backendPid = this.backendProcess.pid;
+      this.backendExecutableName = path.basename(exePath);
+      console.log(`[DEBUG] Backend started - PID: ${this.backendPid}, Executable: ${this.backendExecutableName}`);
 
       this.setupProcessHandlers();
       
@@ -131,9 +150,15 @@ class BackendLauncher {
       ], {
         cwd: backendPath,
         env: env,
-        // Detach process on Unix-like systems for better process group control
+        // Windows: Keep attached for proper process management
+        // Unix: Detach for process group control
         detached: process.platform !== 'win32'
       });
+      
+      // Track process details for Windows cleanup
+      this.backendPid = this.backendProcess.pid;
+      this.backendExecutableName = 'python.exe'; // Python process for development
+      console.log(`[DEBUG] Python backend started - PID: ${this.backendPid}`);
 
       this.setupProcessHandlers();
       
@@ -163,18 +188,21 @@ class BackendLauncher {
       console.log(` Backend process exited with code ${code}`);
       this.isRunning = false;
       this.backendProcess = null; // Clear the reference
+      this.backendPid = null; // Clear PID tracking
     });
 
     this.backendProcess.on('exit', (code, signal) => {
       console.log(` Backend process exit - code: ${code}, signal: ${signal}`);
       this.isRunning = false;
       this.backendProcess = null; // Clear the reference
+      this.backendPid = null; // Clear PID tracking
     });
 
     this.backendProcess.on('error', (error) => {
       console.error('[ERROR] Backend process error:', error);
       this.isRunning = false;
       this.backendProcess = null; // Clear the reference
+      this.backendPid = null; // Clear PID tracking
     });
   }
 
@@ -372,56 +400,127 @@ class BackendLauncher {
         processToKill.once('error', onError);
         
         try {
-          // Step 1: Graceful SIGTERM
-          console.log('[SHUTDOWN] Sending SIGTERM...');
-          const killSuccess = processToKill.kill('SIGTERM');
-          console.log(`[DEBUG] SIGTERM sent: ${killSuccess}`);
-          
-          if (!killSuccess) {
-            console.log('[WARNING] SIGTERM failed, process may already be dead');
-            if (!terminated) {
-              terminated = true;
-              resolve();
+          if (process.platform === 'win32') {
+            // Windows-specific shutdown approach
+            console.log('[SHUTDOWN] Windows process termination...');
+            
+            // Step 1: Try graceful shutdown first
+            const killSuccess = processToKill.kill('SIGTERM');
+            console.log(`[DEBUG] SIGTERM sent: ${killSuccess}`);
+            
+            if (!killSuccess) {
+              console.log('[WARNING] SIGTERM failed, process may already be dead');
+              if (!terminated) {
+                terminated = true;
+                resolve();
+              }
+              return;
             }
-            return;
-          }
-          
-          // Step 2: Wait for graceful shutdown or timeout
-          const forceKillTimer = setTimeout(() => {
-            if (!terminated && processToKill.killed === false) {
-              console.log('[SHUTDOWN] Graceful shutdown timeout, sending SIGKILL...');
-              try {
-                const forceKillSuccess = processToKill.kill('SIGKILL');
-                console.log(`[DEBUG] SIGKILL sent: ${forceKillSuccess}`);
+            
+            // Step 2: Windows-specific timeout and force kill
+            const forceKillTimer = setTimeout(() => {
+              if (!terminated && !processToKill.killed) {
+                console.log('[SHUTDOWN] Windows timeout, using taskkill for force termination...');
                 
-                if (!forceKillSuccess && process.platform === 'win32') {
-                  // Windows fallback: use process.kill with native PID
-                  console.log('[SHUTDOWN] Windows fallback: using process.kill...');
+                try {
+                  // Use Windows taskkill command for reliable process termination
+                  const { spawn } = require('child_process');
+                  const taskkill = spawn('taskkill', ['/PID', processPid.toString(), '/T', '/F'], {
+                    stdio: 'ignore',
+                    detached: true
+                  });
+                  
+                  taskkill.on('close', (code) => {
+                    console.log(`[DEBUG] taskkill exited with code: ${code}`);
+                    if (!terminated) {
+                      terminated = true;
+                      console.log('[SUCCESS] Windows process terminated via taskkill');
+                      resolve();
+                    }
+                  });
+                  
+                  taskkill.on('error', (error) => {
+                    console.error('[WARNING] taskkill failed:', error.message);
+                    // Still try Node.js kill as final fallback
+                    try {
+                      process.kill(processPid, 'SIGKILL');
+                    } catch (finalError) {
+                      console.error('[WARNING] Final kill attempt failed:', finalError.message);
+                    }
+                    
+                    if (!terminated) {
+                      terminated = true;
+                      resolve();
+                    }
+                  });
+                  
+                } catch (taskillError) {
+                  console.error('[WARNING] taskkill spawn failed:', taskillError.message);
+                  
+                  // Final fallback: Node.js process.kill
                   try {
-                    process.kill(processPid, 'SIGTERM');
-                  } catch (winError) {
-                    console.error('[WARNING] Windows process.kill failed:', winError.message);
+                    process.kill(processPid, 'SIGKILL');
+                  } catch (finalError) {
+                    console.error('[WARNING] Final kill attempt failed:', finalError.message);
+                  }
+                  
+                  if (!terminated) {
+                    terminated = true;
+                    resolve();
                   }
                 }
-              } catch (killError) {
-                console.error('[WARNING] SIGKILL failed:', killError.message);
               }
-              
-              // Final timeout to ensure we don't hang forever
-              setTimeout(() => {
-                if (!terminated) {
-                  terminated = true;
-                  console.log('[WARNING] Backend termination timeout reached');
-                  resolve();
-                }
-              }, 2000);
+            }, timeoutMs);
+            
+            // Clear timeout if process exits gracefully
+            processToKill.once('close', () => {
+              clearTimeout(forceKillTimer);
+            });
+            
+          } else {
+            // Unix/Linux shutdown approach (existing logic)
+            console.log('[SHUTDOWN] Unix process termination...');
+            
+            // Step 1: Graceful SIGTERM
+            const killSuccess = processToKill.kill('SIGTERM');
+            console.log(`[DEBUG] SIGTERM sent: ${killSuccess}`);
+            
+            if (!killSuccess) {
+              console.log('[WARNING] SIGTERM failed, process may already be dead');
+              if (!terminated) {
+                terminated = true;
+                resolve();
+              }
+              return;
             }
-          }, timeoutMs);
-          
-          // Clear timeout if process exits gracefully
-          processToKill.once('close', () => {
-            clearTimeout(forceKillTimer);
-          });
+            
+            // Step 2: Wait for graceful shutdown or timeout
+            const forceKillTimer = setTimeout(() => {
+              if (!terminated && processToKill.killed === false) {
+                console.log('[SHUTDOWN] Graceful shutdown timeout, sending SIGKILL...');
+                try {
+                  const forceKillSuccess = processToKill.kill('SIGKILL');
+                  console.log(`[DEBUG] SIGKILL sent: ${forceKillSuccess}`);
+                } catch (killError) {
+                  console.error('[WARNING] SIGKILL failed:', killError.message);
+                }
+                
+                // Final timeout to ensure we don't hang forever
+                setTimeout(() => {
+                  if (!terminated) {
+                    terminated = true;
+                    console.log('[WARNING] Backend termination timeout reached');
+                    resolve();
+                  }
+                }, 2000);
+              }
+            }, timeoutMs);
+            
+            // Clear timeout if process exits gracefully
+            processToKill.once('close', () => {
+              clearTimeout(forceKillTimer);
+            });
+          }
           
         } catch (error) {
           console.error('[ERROR] Exception in stopBackend:', error.message);
@@ -469,11 +568,79 @@ class BackendLauncher {
   }
 
   getBackendPid() {
-    return this.backendProcess ? this.backendProcess.pid : null;
+    return this.backendPid || (this.backendProcess ? this.backendProcess.pid : null);
   }
 
   isBackendRunning() {
     return this.isRunning && this.backendProcess && !this.backendProcess.killed;
+  }
+
+  // Emergency cleanup method for Windows
+  async emergencyCleanup() {
+    if (process.platform !== 'win32') {
+      console.log('[DEBUG] Emergency cleanup only needed on Windows');
+      return;
+    }
+
+    console.log('[EMERGENCY] Starting Windows emergency cleanup...');
+    
+    try {
+      const { spawn } = require('child_process');
+      
+      // Kill by specific PID if we have it
+      if (this.backendPid) {
+        console.log(`[EMERGENCY] Killing process by PID: ${this.backendPid}`);
+        try {
+          const killByPid = spawn('taskkill', ['/PID', this.backendPid.toString(), '/T', '/F'], {
+            stdio: 'ignore',
+            detached: true
+          });
+          
+          await new Promise((resolve) => {
+            killByPid.on('close', (code) => {
+              console.log(`[EMERGENCY] PID kill exit code: ${code}`);
+              resolve();
+            });
+            killByPid.on('error', () => resolve());
+            setTimeout(resolve, 3000); // Timeout after 3 seconds
+          });
+        } catch (error) {
+          console.error('[WARNING] PID kill failed:', error.message);
+        }
+      }
+      
+      // Kill by executable name as backup
+      if (this.backendExecutableName) {
+        console.log(`[EMERGENCY] Killing by executable name: ${this.backendExecutableName}`);
+        try {
+          const killByName = spawn('taskkill', ['/IM', this.backendExecutableName, '/T', '/F'], {
+            stdio: 'ignore',
+            detached: true
+          });
+          
+          await new Promise((resolve) => {
+            killByName.on('close', (code) => {
+              console.log(`[EMERGENCY] Name kill exit code: ${code}`);
+              resolve();
+            });
+            killByName.on('error', () => resolve());
+            setTimeout(resolve, 3000); // Timeout after 3 seconds
+          });
+        } catch (error) {
+          console.error('[WARNING] Name kill failed:', error.message);
+        }
+      }
+      
+      console.log('[EMERGENCY] Emergency cleanup completed');
+      
+    } catch (error) {
+      console.error('[ERROR] Emergency cleanup failed:', error.message);
+    }
+    
+    // Clear our tracking variables
+    this.isRunning = false;
+    this.backendProcess = null;
+    this.backendPid = null;
   }
 }
 
