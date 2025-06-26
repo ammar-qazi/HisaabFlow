@@ -144,6 +144,9 @@ async function createWindow() {
     mainWindow.webContents.openDevTools();
   }
 
+  // Track if we're in shutdown process
+  let isShuttingDown = false;
+  
   mainWindow.on('closed', () => {
     console.log('🪟 Main window closed');
     mainWindow = null;
@@ -151,11 +154,17 @@ async function createWindow() {
   
   // Handle window close event to ensure clean shutdown
   mainWindow.on('close', async (event) => {
+    if (isShuttingDown) {
+      console.log('[CLEANUP] Already shutting down, allowing close');
+      return; // Allow the close to proceed
+    }
+    
     console.log('[CLEANUP] Window closing, ensuring backend cleanup...');
     
-    if (backendLauncher && backendLauncher.isRunning) {
+    if (backendLauncher && backendLauncher.isBackendRunning()) {
       // Prevent window from closing immediately
       event.preventDefault();
+      isShuttingDown = true;
       
       console.log('[CLEANUP] Stopping backend before window close...');
       try {
@@ -166,7 +175,8 @@ async function createWindow() {
       }
       
       // Now actually close the window
-      mainWindow.destroy();
+      isShuttingDown = false;
+      mainWindow.close(); // Use close() instead of destroy() to trigger normal close flow
     }
   });
   
@@ -185,13 +195,22 @@ app.on('window-all-closed', async () => {
   console.log('[CLEANUP] All windows closed, cleaning up...');
   
   // Stop backend when app closes
-  if (backendLauncher && backendLauncher.isRunning) {
+  if (backendLauncher && backendLauncher.isBackendRunning()) {
     console.log('[CLEANUP] Stopping backend process...');
     try {
       await backendLauncher.stopBackend();
       console.log('[SUCCESS] Backend cleanup completed');
     } catch (error) {
       console.error('[WARNING] Backend cleanup error:', error);
+      // Force emergency cleanup if normal shutdown failed
+      if (backendLauncher.emergencyCleanup) {
+        try {
+          await backendLauncher.emergencyCleanup();
+          console.log('[SUCCESS] Emergency cleanup completed');
+        } catch (emergencyError) {
+          console.error('[ERROR] Emergency cleanup failed:', emergencyError);
+        }
+      }
     }
   }
   

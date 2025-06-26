@@ -363,21 +363,26 @@ class BackendLauncher {
     });
   }
 
-  stopBackend() {
-    if (this.backendProcess && this.isRunning) {
-      console.log('[SHUTDOWN] Stopping backend process...');
-      console.log(`[DEBUG] Backend PID: ${this.backendProcess.pid}`);
-      
-      const processToKill = this.backendProcess;
-      const processPid = this.backendProcess.pid;
-      
-      // Set flags immediately to prevent double-shutdown
-      this.isRunning = false;
-      this.backendProcess = null;
-      
-      return new Promise((resolve) => {
+  async stopBackend() {
+    if (!this.backendProcess || !this.isRunning) {
+      console.log('[SHUTDOWN] Backend already stopped or not running');
+      return Promise.resolve();
+    }
+    
+    console.log('[SHUTDOWN] Stopping backend process...');
+    console.log(`[DEBUG] Backend PID: ${this.backendProcess.pid}`);
+    
+    const processToKill = this.backendProcess;
+    const processPid = this.backendProcess.pid;
+    
+    // Set flags immediately to prevent double-shutdown
+    this.isRunning = false;
+    this.backendProcess = null;
+    
+    return new Promise((resolve) => {
         let terminated = false;
-        const timeoutMs = 5000; // 5 second timeout
+        // Shorter timeout for Windows to avoid hanging
+        const timeoutMs = process.platform === 'win32' ? 3000 : 5000;
         
         // Set up close handler to track actual termination
         const onClose = (code, signal) => {
@@ -425,33 +430,84 @@ class BackendLauncher {
                 try {
                   // Use Windows taskkill command for reliable process termination
                   const { spawn } = require('child_process');
+                  
+                  // First try killing the process tree by PID
+                  console.log(`[SHUTDOWN] Killing process tree for PID ${processPid}...`);
                   const taskkill = spawn('taskkill', ['/PID', processPid.toString(), '/T', '/F'], {
-                    stdio: 'ignore',
-                    detached: true
+                    stdio: 'pipe',
+                    detached: false
+                  });
+                  
+                  let taskkillOutput = '';
+                  
+                  taskkill.stdout.on('data', (data) => {
+                    taskkillOutput += data.toString();
+                  });
+                  
+                  taskkill.stderr.on('data', (data) => {
+                    taskkillOutput += data.toString();
                   });
                   
                   taskkill.on('close', (code) => {
-                    console.log(`[DEBUG] taskkill exited with code: ${code}`);
-                    if (!terminated) {
-                      terminated = true;
-                      console.log('[SUCCESS] Windows process terminated via taskkill');
-                      resolve();
-                    }
+                    console.log(`[DEBUG] taskkill PID exited with code: ${code}, output: ${taskkillOutput}`);
+                    
+                    // Immediately try killing by name as backup
+                    console.log('[SHUTDOWN] Killing hisaabflow-backend.exe by name...');
+                    const taskkillName = spawn('taskkill', ['/IM', 'hisaabflow-backend.exe', '/T', '/F'], {
+                      stdio: 'pipe',
+                      detached: false
+                    });
+                    
+                    let nameOutput = '';
+                    
+                    taskkillName.stdout.on('data', (data) => {
+                      nameOutput += data.toString();
+                    });
+                    
+                    taskkillName.stderr.on('data', (data) => {
+                      nameOutput += data.toString();
+                    });
+                    
+                    taskkillName.on('close', (nameCode) => {
+                      console.log(`[DEBUG] taskkill by name exited with code: ${nameCode}, output: ${nameOutput}`);
+                      
+                      if (!terminated) {
+                        terminated = true;
+                        console.log('[SUCCESS] Windows process terminated via taskkill');
+                        resolve();
+                      }
+                    });
+                    
+                    taskkillName.on('error', (nameError) => {
+                      console.error('[WARNING] taskkill by name failed:', nameError.message);
+                      if (!terminated) {
+                        terminated = true;
+                        resolve();
+                      }
+                    });
                   });
                   
                   taskkill.on('error', (error) => {
-                    console.error('[WARNING] taskkill failed:', error.message);
-                    // Still try Node.js kill as final fallback
-                    try {
-                      process.kill(processPid, 'SIGKILL');
-                    } catch (finalError) {
-                      console.error('[WARNING] Final kill attempt failed:', finalError.message);
-                    }
+                    console.error('[WARNING] taskkill PID failed:', error.message);
+                    // Still try by name as fallback
+                    const taskkillName = spawn('taskkill', ['/IM', 'hisaabflow-backend.exe', '/T', '/F'], {
+                      stdio: 'ignore',
+                      detached: true
+                    });
                     
-                    if (!terminated) {
-                      terminated = true;
-                      resolve();
-                    }
+                    taskkillName.on('close', () => {
+                      if (!terminated) {
+                        terminated = true;
+                        resolve();
+                      }
+                    });
+                    
+                    taskkillName.on('error', () => {
+                      if (!terminated) {
+                        terminated = true;
+                        resolve();
+                      }
+                    });
                   });
                   
                 } catch (taskillError) {
@@ -530,9 +586,7 @@ class BackendLauncher {
           }
         }
       });
-    }
-    
-    return Promise.resolve(); // Already stopped
+    });
   }
 
   async testPython(pythonPath) {
@@ -575,60 +629,70 @@ class BackendLauncher {
     return this.isRunning && this.backendProcess && !this.backendProcess.killed;
   }
 
-  // Emergency cleanup method for Windows
+  // Emergency cleanup method for all platforms
   async emergencyCleanup() {
-    if (process.platform !== 'win32') {
-      console.log('[DEBUG] Emergency cleanup only needed on Windows');
-      return;
-    }
-
-    console.log('[EMERGENCY] Starting Windows emergency cleanup...');
+    console.log('[EMERGENCY] Starting emergency cleanup...');
     
     try {
       const { spawn } = require('child_process');
       
-      // Kill by specific PID if we have it
-      if (this.backendPid) {
-        console.log(`[EMERGENCY] Killing process by PID: ${this.backendPid}`);
-        try {
-          const killByPid = spawn('taskkill', ['/PID', this.backendPid.toString(), '/T', '/F'], {
-            stdio: 'ignore',
-            detached: true
+      if (process.platform === 'win32') {
+        // Windows emergency cleanup
+        console.log('[EMERGENCY] Windows emergency cleanup...');
+        
+        // Kill ALL hisaabflow-backend.exe processes (nuclear option)
+        console.log('[EMERGENCY] Killing ALL hisaabflow-backend.exe processes...');
+        const killAll = spawn('taskkill', ['/IM', 'hisaabflow-backend.exe', '/T', '/F'], {
+          stdio: 'pipe',
+          detached: false
+        });
+        
+        let killOutput = '';
+        killAll.stdout.on('data', (data) => killOutput += data.toString());
+        killAll.stderr.on('data', (data) => killOutput += data.toString());
+        
+        await new Promise((resolve) => {
+          killAll.on('close', (code) => {
+            console.log(`[EMERGENCY] taskkill ALL exit code: ${code}, output: ${killOutput}`);
+            resolve();
           });
-          
-          await new Promise((resolve) => {
-            killByPid.on('close', (code) => {
-              console.log(`[EMERGENCY] PID kill exit code: ${code}`);
-              resolve();
-            });
-            killByPid.on('error', () => resolve());
-            setTimeout(resolve, 3000); // Timeout after 3 seconds
+          killAll.on('error', (error) => {
+            console.error('[WARNING] Emergency taskkill failed:', error.message);
+            resolve();
           });
-        } catch (error) {
-          console.error('[WARNING] PID kill failed:', error.message);
-        }
-      }
-      
-      // Kill by executable name as backup
-      if (this.backendExecutableName) {
-        console.log(`[EMERGENCY] Killing by executable name: ${this.backendExecutableName}`);
-        try {
-          const killByName = spawn('taskkill', ['/IM', this.backendExecutableName, '/T', '/F'], {
-            stdio: 'ignore',
-            detached: true
+          setTimeout(resolve, 2000); // Short timeout
+        });
+        
+        // Also kill any Python processes running uvicorn for good measure
+        console.log('[EMERGENCY] Killing Python uvicorn processes...');
+        const killPython = spawn('wmic', [
+          'process', 'where', 
+          'name="python.exe" and commandline like "%uvicorn%" and commandline like "%main:app%"', 
+          'delete'
+        ], { 
+          stdio: 'ignore',
+          detached: false
+        });
+        
+        await new Promise((resolve) => {
+          killPython.on('close', (code) => {
+            console.log(`[EMERGENCY] wmic Python cleanup exit code: ${code}`);
+            resolve();
           });
-          
-          await new Promise((resolve) => {
-            killByName.on('close', (code) => {
-              console.log(`[EMERGENCY] Name kill exit code: ${code}`);
-              resolve();
-            });
-            killByName.on('error', () => resolve());
-            setTimeout(resolve, 3000); // Timeout after 3 seconds
-          });
-        } catch (error) {
-          console.error('[WARNING] Name kill failed:', error.message);
-        }
+          killPython.on('error', () => resolve());
+          setTimeout(resolve, 2000); // Short timeout
+        });
+        
+      } else {
+        // Unix emergency cleanup
+        console.log('[EMERGENCY] Unix emergency cleanup...');
+        
+        // Kill all hisaabflow-backend processes
+        spawn('pkill', ['-f', 'hisaabflow-backend'], { stdio: 'ignore' });
+        spawn('pkill', ['-f', 'uvicorn.*main:app'], { stdio: 'ignore' });
+        
+        // Give it a moment to take effect
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
       
       console.log('[EMERGENCY] Emergency cleanup completed');
