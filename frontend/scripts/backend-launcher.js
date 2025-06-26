@@ -586,7 +586,6 @@ class BackendLauncher {
           }
         }
       });
-    });
   }
 
   async testPython(pythonPath) {
