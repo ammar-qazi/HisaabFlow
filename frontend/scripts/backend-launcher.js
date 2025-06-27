@@ -221,6 +221,64 @@ class BackendLauncher {
     throw new Error('Backend failed to start within timeout');
   }
 
+  async tryHttpShutdown() {
+    try {
+      const axios = require('axios');
+      
+      // Send shutdown request with short timeout
+      const response = await axios.post(`http://127.0.0.1:${this.port}/shutdown`, {}, {
+        timeout: 2000,
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      console.log('[DEBUG] Shutdown request sent, response:', response.data);
+      
+      // Wait for process to actually exit
+      const processExited = await this.waitForProcessExit(3000);
+      
+      if (processExited) {
+        console.log('[SUCCESS] Process exited after HTTP shutdown');
+        return true;
+      } else {
+        console.log('[WARNING] Process did not exit after HTTP shutdown');
+        return false;
+      }
+      
+    } catch (error) {
+      console.log(`[WARNING] HTTP shutdown failed: ${error.message}`);
+      return false;
+    }
+  }
+
+  async waitForProcessExit(timeoutMs = 3000) {
+    return new Promise((resolve) => {
+      if (!this.backendProcess) {
+        resolve(true);
+        return;
+      }
+      
+      let exited = false;
+      
+      const onExit = () => {
+        if (!exited) {
+          exited = true;
+          resolve(true);
+        }
+      };
+      
+      this.backendProcess.once('exit', onExit);
+      this.backendProcess.once('close', onExit);
+      
+      // Timeout fallback
+      setTimeout(() => {
+        if (!exited) {
+          exited = true;
+          resolve(false);
+        }
+      }, timeoutMs);
+    });
+  }
+
   getBackendPath() {
     const isDev = require('electron-is-dev');
     
@@ -374,6 +432,19 @@ class BackendLauncher {
     
     const processToKill = this.backendProcess;
     const processPid = this.backendProcess.pid;
+    
+    // Step 1: Try HTTP-based graceful shutdown first
+    console.log('[SHUTDOWN] Attempting graceful HTTP shutdown...');
+    const httpShutdownSuccess = await this.tryHttpShutdown();
+    
+    if (httpShutdownSuccess) {
+      console.log('[SUCCESS] HTTP shutdown completed');
+      this.isRunning = false;
+      this.backendProcess = null;
+      return Promise.resolve();
+    }
+    
+    console.log('[WARNING] HTTP shutdown failed, falling back to process termination...');
     
     // Set flags immediately to prevent double-shutdown
     this.isRunning = false;
@@ -628,9 +699,59 @@ class BackendLauncher {
     return this.isRunning && this.backendProcess && !this.backendProcess.killed;
   }
 
+  // Check if process is still running (Windows-specific check)
+  async isProcessStillRunning(pid) {
+    if (!pid) return false;
+    
+    try {
+      const { spawn } = require('child_process');
+      
+      if (process.platform === 'win32') {
+        // Windows: Use tasklist to check if process exists
+        return new Promise((resolve) => {
+          const tasklist = spawn('tasklist', ['/FI', `PID eq ${pid}`, '/FO', 'CSV'], {
+            stdio: 'pipe'
+          });
+          
+          let output = '';
+          tasklist.stdout.on('data', (data) => {
+            output += data.toString();
+          });
+          
+          tasklist.on('close', (code) => {
+            // If output contains the PID, process is still running
+            const stillRunning = output.includes(pid.toString());
+            console.log(`[DEBUG] Process ${pid} still running: ${stillRunning}`);
+            resolve(stillRunning);
+          });
+          
+          tasklist.on('error', () => resolve(false));
+          setTimeout(() => resolve(false), 2000); // Timeout
+        });
+      } else {
+        // Unix: Use kill -0 to check if process exists
+        try {
+          process.kill(pid, 0);
+          return true; // Process exists
+        } catch (error) {
+          return false; // Process doesn't exist
+        }
+      }
+    } catch (error) {
+      console.error(`[WARNING] Process check failed: ${error.message}`);
+      return false;
+    }
+  }
+
   // Emergency cleanup method for all platforms
   async emergencyCleanup() {
     console.log('[EMERGENCY] Starting emergency cleanup...');
+    
+    // First check if our tracked process is still running
+    if (this.backendPid) {
+      const stillRunning = await this.isProcessStillRunning(this.backendPid);
+      console.log(`[DEBUG] Tracked process ${this.backendPid} still running: ${stillRunning}`);
+    }
     
     try {
       const { spawn } = require('child_process');

@@ -28,7 +28,7 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "electron": "electron .",
-    "electron-dev": "concurrently \"npm start\" \"wait-on http://localhost:3000 && electron .\"",
+    "electron-dev": "concurrently \"npm start\" \"wait-on http://localhost:3000 && electron .\" --kill-others",
     "electron-pack": "npm run build && electron-builder",
     "preelectron-pack": "npm run build",
     "dist": "npm run build && electron-builder --publish never",
