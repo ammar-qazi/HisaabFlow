@@ -133,6 +133,8 @@ DATA_STANDARDS.md
 CROSS_PLATFORM_SETUP_COMPLETE.md
 CLAUDE.md
 GEMINI.md
+mind.md
+reflection.md
 
 # Test scripts (temporary development files)
 test_*.sh

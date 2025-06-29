@@ -262,9 +262,13 @@ function TransferAnalysisPanel({
                   }}>
                     {/* Left side: Amounts */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing.md }}>
-                      <span style={{ ...theme.typography.h6, color: theme.colors.error }}>{pair.outgoing?.Amount}</span>
+                      <span style={{ ...theme.typography.h6, color: theme.colors.error }}>
+                        {`${pair.outgoing?.Amount || ''} ${pair.outgoing?.Currency || ''}`.trim()}
+                      </span>
                       <span style={{ ...theme.typography.body1, color: theme.colors.text.secondary }}>→</span>
-                      <span style={{ ...theme.typography.h6, color: theme.colors.success }}>{pair.incoming?.Amount}</span>
+                      <span style={{ ...theme.typography.h6, color: theme.colors.success }}>
+                        {`${pair.incoming?.Amount || ''} ${pair.incoming?.Currency || ''}`.trim()}
+                      </span>
                     </div>
                     {/* Right side: Description */}
                     <div style={{ ...theme.typography.body2, color: theme.colors.text.secondary, textAlign: 'right' }}>
@@ -306,7 +310,7 @@ function TransferAnalysisPanel({
               </span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing.sm }}>
-              <Badge variant="info">
+              <Badge variant="secondary">
                 {selectedPotentialTransfers.size} selected
               </Badge>
               {expandedPotentialTransfers ? 
@@ -374,7 +378,7 @@ function TransferAnalysisPanel({
                       
                       <div style={{ textAlign: 'right' }}>
                         <span style={{ ...theme.typography.body1, fontWeight: '500', color: theme.colors.text.primary }}>
-                          {pair.outgoing?.Amount} → {pair.incoming?.Amount}
+                          {`${pair.outgoing?.Amount || ''} ${pair.outgoing?.Currency || ''}`.trim()} → {`${pair.incoming?.Amount || ''} ${pair.incoming?.Currency || ''}`.trim()}
                         </span>
                       </div>
                     </div>
