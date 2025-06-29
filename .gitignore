@@ -137,10 +137,6 @@ mind.md
 reflection.md
 TASKS.md
 
-# Test scripts (temporary development files)
-test_*.sh
-verify_*.sh
-
 # Python bundled runtime (large files - should be generated, not tracked)
 frontend/python-bundle/
 
