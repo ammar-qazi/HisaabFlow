@@ -135,6 +135,7 @@ CLAUDE.md
 GEMINI.md
 mind.md
 reflection.md
+TASKS.md
 
 # Test scripts (temporary development files)
 test_*.sh
