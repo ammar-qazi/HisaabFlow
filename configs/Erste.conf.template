@@ -6,6 +6,8 @@ detection_content_signatures = Booking Date,Partner IBAN
 use_regex = true
 currency_primary = HUF
 cashew_account = Forint Bank
+expected_headers = Booking Date,Amount,Currency,Partner Name,Partner IBAN,Partner Account Number,Bank Code,Transaction Date Time,Transaction Type
+
 
 # CSV parsing configuration
 [csv_config]
@@ -13,7 +15,6 @@ has_header = true
 skip_rows = 0
 date_format = %%Y.%%m.%%d
 encoding = utf-8
-expected_headers = Booking Date,Amount,Currency,Partner Name,Partner IBAN,Partner Account Number,Bank Code,Transaction Date Time,Transaction Type
 
 # Column mapping for Forint Bank CSV format
 [column_mapping]

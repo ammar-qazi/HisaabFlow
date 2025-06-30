@@ -6,6 +6,8 @@ use_regex = true
 currency_primary = PKR
 cashew_account = NayaPay
 detection_content_signatures = NayaPay ID,NayaPay Account Number,Customer Name
+expected_headers = TIMESTAMP,TYPE,DESCRIPTION,AMOUNT,BALANCE
+
 
 # CSV parsing configuration
 [csv_config]
@@ -19,7 +21,6 @@ end_col = 5
 header_row = 13
 data_start_row = 14
 header_detection_method = fixed
-expected_headers = TIMESTAMP,TYPE,DESCRIPTION,AMOUNT,BALANCE
 
 # Column mapping (Fixed to match actual NayaPay CSV structure)
 [column_mapping]

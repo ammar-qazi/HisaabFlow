@@ -5,6 +5,7 @@
 import axios from 'axios';
 
 const API_BASE = window.BACKEND_URL || 'http://127.0.0.1:8000';
+const API_V1_BASE = `${API_BASE}/api/v1`;
 
 /**
  * Auto-configures a file based on bank detection results
@@ -130,7 +131,7 @@ export const triggerAutoDetection = async (newFiles, setUploadedFiles, setError,
     
     try {
       // Call backend detection API
-      const detectionResponse = await axios.get(`${API_BASE}/preview/${newFile.fileId}`);
+      const detectionResponse = await axios.get(`${API_V1_BASE}/preview/${newFile.fileId}`);
       console.log(`[SUCCESS] DEBUG: Detection response for ${newFile.fileName}:`, detectionResponse.data);
       
       const backendDetection = detectionResponse.data.bank_detection;
