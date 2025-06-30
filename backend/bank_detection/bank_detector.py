@@ -3,14 +3,14 @@ Bank detector for identifying bank type from CSV files
 """
 import re
 from typing import Any, Dict, List, Tuple
-from backend.bank_detection.config_manager import BankConfigManager
+from backend.shared.config.bank_detection_facade import BankDetectionFacade
 from backend.models.csv_models import BankDetectionResult
 
 class BankDetector:
     """Detects bank type from CSV files using content signatures and header analysis"""
     
-    def __init__(self, config_manager: BankConfigManager = None):
-        self.config_manager = config_manager or BankConfigManager()
+    def __init__(self, config_manager: BankDetectionFacade = None):
+        self.config_manager = config_manager or BankDetectionFacade()
         self.detection_patterns = self.config_manager.get_detection_patterns()
         
         print(f" BankDetector initialized with {len(self.detection_patterns)} bank patterns")

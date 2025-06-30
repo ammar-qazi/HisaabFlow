@@ -8,7 +8,7 @@ from .exchange_analyzer import ExchangeAnalyzer
 from .cross_bank_matcher import CrossBankMatcher
 from .currency_converter import CurrencyConverter
 from .confidence_calculator import ConfidenceCalculator
-from .config_manager import ConfigurationManager # Assuming this is transfer_detection.config_manager
+from ..shared.config.unified_config_service import get_unified_config_service
 
 
 class TransferDetector:
@@ -20,17 +20,14 @@ class TransferDetector:
     4. 24-hour date tolerance with fallback to traditional amount matching
     """
     
-    def __init__(self, config_dir: str = "configs", config_manager: Optional[ConfigurationManager] = None):
-        if config_manager:
-            self.config = config_manager
-            # Pass the shared config_manager to CrossBankMatcher
-            # Ensure CrossBankMatcher's __init__ can accept config_manager
-            self.cross_bank_matcher = CrossBankMatcher(config_manager=self.config)
+    def __init__(self, config_dir: str = "configs", config_service=None):
+        if config_service:
+            self.config = config_service
         else:
-            # If no shared instance is provided, create its own.
-            self.config = ConfigurationManager(config_dir)
-            # Pass the config_dir that was used if creating its own
-            self.cross_bank_matcher = CrossBankMatcher(config_dir=config_dir)
+            self.config = get_unified_config_service(config_dir)
+            
+        # Pass the unified config service to CrossBankMatcher
+        self.cross_bank_matcher = CrossBankMatcher(config_service=self.config)
             
         self.date_tolerance_hours = self.config.get_date_tolerance()
         self.currency_converter = CurrencyConverter()
@@ -42,7 +39,7 @@ class TransferDetector:
         print("\n STARTING ENHANCED TRANSFER DETECTION (CONFIG-BASED)")
         print("=" * 70)
         print(f" Date tolerance: {self.date_tolerance_hours} hours")
-        print(f" Configured banks: {', '.join(self.config.list_configured_banks())}")
+        print(f" Configured banks: {', '.join(self.config.list_banks())}")
         print(f"Confidence threshold: {self.config.get_confidence_threshold()}")
         print("=" * 70)
         

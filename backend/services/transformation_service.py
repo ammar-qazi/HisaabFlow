@@ -5,17 +5,17 @@ from pathlib import Path
 import json
 
 from backend.services.cashew_transformer import CashewTransformer
-from backend.bank_detection import BankDetector, BankConfigManager
-from backend.csv_parser.utils import get_config_dir_for_manager
+from backend.bank_detection import BankDetector
+from backend.shared.config.bank_detection_facade import BankDetectionFacade
 from backend.transfer_detection.main_detector import TransferDetector
-from backend.transfer_detection.config_manager import ConfigurationManager
+from backend.shared.config.unified_config_service import get_unified_config_service
 
 class TransformationService:
     """Service for transforming data to Cashew format"""
     
     def __init__(self):
         self.transformer = CashewTransformer() # New transformer instance
-        self.bank_config_manager = BankConfigManager(get_config_dir_for_manager())
+        self.bank_config_manager = BankDetectionFacade()
         self.bank_detector = BankDetector(self.bank_config_manager)
 
         # Determine the config directory path.
@@ -27,11 +27,11 @@ class TransformationService:
         config_dir_path = project_root / "configs"
         config_dir_path_str = str(config_dir_path)
 
-        # Create a single, shared ConfigurationManager instance for transfer detection logic
-        self.shared_transfer_config = ConfigurationManager(config_dir=config_dir_path_str)
+        # Create a single, shared unified config service instance for transfer detection logic
+        self.shared_transfer_config = get_unified_config_service(config_dir_path_str)
         print(f"ℹ [MIGRATION][TransformationService] Initialized with CashewTransformer.")
         
-        self.transfer_detector = TransferDetector(config_manager=self.shared_transfer_config)
+        self.transfer_detector = TransferDetector(config_service=self.shared_transfer_config)
     
     def transform_single_data(self, data: list, column_mapping: dict, bank_name: str = "", 
                             categorization_rules: list = None, default_category_rules: dict = None,
@@ -275,6 +275,9 @@ class TransformationService:
             # Create identity mapping for all existing fields
             sample_row = all_transformed_data[0]
             combined_column_mapping = {field: field for field in sample_row.keys()}
+            print(f"   [DEBUG] Sample row keys: {list(sample_row.keys())}")
+            print(f"   [DEBUG] Sample Amount value: '{sample_row.get('Amount', 'MISSING')}' (type: {type(sample_row.get('Amount', 'MISSING'))})")
+            print(f"   [DEBUG] Combined column mapping: {combined_column_mapping}")
         else:
             # Fallback if no data
             combined_column_mapping = {}

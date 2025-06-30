@@ -3,8 +3,8 @@ Parsing service for single CSV file operations
 """
 from backend.csv_parser import UnifiedCSVParser
 from backend.data_cleaner import DataCleaner
-from backend.bank_detection import BankDetector, BankConfigManager
-from backend.csv_parser.utils import get_config_dir_for_manager
+from backend.bank_detection import BankDetector
+from backend.shared.config.bank_detection_facade import BankDetectionFacade
 
 
 class ParseConfig:
@@ -25,7 +25,7 @@ class ParsingService:
     def __init__(self):
         self.unified_parser = UnifiedCSVParser() # New parser instance
         self.data_cleaner = DataCleaner()
-        self.bank_config_manager = BankConfigManager(get_config_dir_for_manager())
+        self.bank_config_manager = BankDetectionFacade()
         self.bank_detector = BankDetector(self.bank_config_manager)
         print(f"ℹ [MIGRATION][ParsingService] Initialized with UnifiedCSVParser.")
     

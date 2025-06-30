@@ -3,8 +3,8 @@ Preview service for CSV files with bank-aware header detection
 """
 from typing import Optional
 from backend.csv_parser import UnifiedCSVParser
-from backend.bank_detection import BankDetector, BankConfigManager
-from backend.csv_parser.utils import get_config_dir_for_manager
+from backend.bank_detection import BankDetector
+from backend.shared.config.bank_detection_facade import BankDetectionFacade
 
 
 class PreviewService:
@@ -12,7 +12,7 @@ class PreviewService:
     
     def __init__(self):
         self.unified_parser = UnifiedCSVParser()
-        self.bank_config_manager = BankConfigManager(get_config_dir_for_manager())
+        self.bank_config_manager = BankDetectionFacade()
         self.bank_detector = BankDetector(self.bank_config_manager)
     
     def preview_csv_file(self, file_path: str, filename: str, encoding: Optional[str] = None, header_row: Optional[int] = None):
@@ -80,7 +80,7 @@ class PreviewService:
             detected_header_row = header_row
             header_detection_info = None
             
-            if bank_detection.bank_name != 'unknown' and bank_detection.confidence > 0.5:
+            if bank_detection.bank_name != 'unknown' and bank_detection.confidence >= 0.5:
                 print(f" Step 2: Using bank-specific header detection for {bank_detection.bank_name}")
                 header_detection_result = self.bank_config_manager.detect_header_row(
                     file_path, bank_detection.bank_name, effective_encoding

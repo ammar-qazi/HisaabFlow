@@ -121,7 +121,13 @@ class BankDetectionFacade:
                         break
             
             if not rows:
-                return {'header_row': 0, 'confidence': 0.0, 'detected_headers': []}
+                return {
+                    'success': False,
+                    'error': 'No rows found in CSV file',
+                    'header_row': 0, 
+                    'confidence': 0.0, 
+                    'detected_headers': []
+                }
             
             # Analyze rows to find header
             best_header_row = 0
@@ -136,15 +142,22 @@ class BankDetectionFacade:
                     best_headers = row
             
             return {
+                'success': True,
                 'header_row': best_header_row,
                 'confidence': best_confidence,
                 'detected_headers': best_headers,
-                'suggested_data_start_row': best_header_row + 1
+                'data_start_row': best_header_row + 1
             }
             
         except Exception as e:
             print(f"[ERROR] [BankDetectionFacade] Header detection failed: {e}")
-            return {'header_row': 0, 'confidence': 0.0, 'detected_headers': []}
+            return {
+                'success': False,
+                'error': str(e),
+                'header_row': 0, 
+                'confidence': 0.0, 
+                'detected_headers': []
+            }
     
     def _calculate_header_confidence(self, row: List[str], expected_headers: List[str]) -> float:
         """Calculate confidence that a row is a header row"""

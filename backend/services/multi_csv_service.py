@@ -7,8 +7,8 @@ from backend.models.csv_models import CSVRow, BankDetectionResult
 from decimal import Decimal
 from backend.csv_parser import UnifiedCSVParser
 from backend.data_cleaner import DataCleaner
-from backend.bank_detection import BankDetector, BankConfigManager
-from backend.csv_parser.utils import get_config_dir_for_manager
+from backend.bank_detection import BankDetector
+from backend.shared.config.bank_detection_facade import BankDetectionFacade
 from backend.csv_parser import EncodingDetector
 from backend.csv_preprocessing.csv_preprocessor import CSVPreprocessor
 from backend.transfer_detection.config_manager import ConfigurationManager
@@ -19,7 +19,7 @@ class MultiCSVService:
     def __init__(self):
         self.unified_parser = UnifiedCSVParser() # New parser instance
         self.data_cleaner = DataCleaner()
-        self.bank_config_manager = BankConfigManager(get_config_dir_for_manager())
+        self.bank_config_manager = BankDetectionFacade()
         self.bank_detector = BankDetector(self.bank_config_manager)
         self.csv_preprocessor = CSVPreprocessor()
         self.encoding_detector = EncodingDetector() # Initialize EncodingDetector

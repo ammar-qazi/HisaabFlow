@@ -4,7 +4,7 @@ Configuration endpoints for bank configurations
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Dict, List, Any, Optional
-from backend.transfer_detection.enhanced_config_manager import EnhancedConfigurationManager
+from backend.shared.config.api_facade import APIConfigFacade
 
 config_router = APIRouter()
 
@@ -21,7 +21,7 @@ def get_config_manager():
         # Fallback to relative path
         config_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "configs"))
     
-    return EnhancedConfigurationManager(config_dir)
+    return APIConfigFacade(config_dir)
 
 config_manager = get_config_manager()
 

@@ -35,6 +35,14 @@ class DataCleaningConfig:
     description_cleaning_rules: Dict[str, str]
     amount_decimal_separator: str = "."
     amount_thousand_separator: str = ","
+    
+    # Additional fields for API compatibility
+    enable_currency_addition: bool = True
+    multi_currency: bool = False
+    numeric_amount_conversion: bool = True
+    date_standardization: bool = True
+    remove_invalid_rows: bool = True
+    default_currency: str = "USD"
 
 
 @dataclass
@@ -73,6 +81,10 @@ class UnifiedBankConfig:
     categorization_rules: Dict[str, str]
     default_category_rules: Dict[str, str]
     conditional_overrides: List[Dict[str, Any]]
+    
+    # Bank info (with defaults)
+    currency_primary: str = "USD"
+    cashew_account: str = ""
 
 
 class UnifiedConfigService:
@@ -192,6 +204,8 @@ class UnifiedConfigService:
             # Extract bank info
             bank_info = config['bank_info']
             display_name = bank_info.get('display_name', bank_name.title())
+            currency_primary = bank_info.get('currency_primary', 'USD')
+            cashew_account = bank_info.get('cashew_account', bank_name.title())
             
             # Build detection info
             detection_info = self._build_detection_info(config, bank_name, display_name)
@@ -222,6 +236,8 @@ class UnifiedConfigService:
             return UnifiedBankConfig(
                 name=bank_name,
                 display_name=display_name,
+                currency_primary=currency_primary,
+                cashew_account=cashew_account,
                 detection_info=detection_info,
                 csv_config=csv_config,
                 column_mapping=column_mapping,
@@ -321,12 +337,35 @@ class UnifiedConfigService:
         if 'description_cleaning' in config:
             description_cleaning_rules = dict(config['description_cleaning'])
         
+        # Extract additional flags from data_cleaning section
+        enable_currency_addition = True
+        multi_currency = False
+        numeric_amount_conversion = True
+        date_standardization = True
+        remove_invalid_rows = True
+        default_currency = "USD"
+        
+        if 'data_cleaning' in config:
+            cleaning_section = config['data_cleaning']
+            enable_currency_addition = cleaning_section.getboolean('enable_currency_addition', fallback=True)
+            multi_currency = cleaning_section.getboolean('multi_currency', fallback=False)
+            numeric_amount_conversion = cleaning_section.getboolean('numeric_amount_conversion', fallback=True)
+            date_standardization = cleaning_section.getboolean('date_standardization', fallback=True)
+            remove_invalid_rows = cleaning_section.getboolean('remove_invalid_rows', fallback=True)
+            default_currency = cleaning_section.get('default_currency', 'USD')
+        
         return DataCleaningConfig(
             currency_symbols=currency_symbols,
             date_formats=date_formats,
             description_cleaning_rules=description_cleaning_rules,
             amount_decimal_separator=amount_decimal_separator,
-            amount_thousand_separator=amount_thousand_separator
+            amount_thousand_separator=amount_thousand_separator,
+            enable_currency_addition=enable_currency_addition,
+            multi_currency=multi_currency,
+            numeric_amount_conversion=numeric_amount_conversion,
+            date_standardization=date_standardization,
+            remove_invalid_rows=remove_invalid_rows,
+            default_currency=default_currency
         )
     
     def _extract_transfer_patterns(self, config: configparser.ConfigParser, section_name: str) -> List[str]:
@@ -501,6 +540,39 @@ class UnifiedConfigService:
         except Exception as e:
             print(f"[ERROR] [UnifiedConfigService] Failed to save config for {bank_name}: {e}")
             return False
+    
+    # ========== Legacy Compatibility Methods ==========
+    
+    def detect_bank_type(self, file_name: str) -> Optional[str]:
+        """Legacy method for transfer detection compatibility"""
+        return self.detect_bank(file_name)
+    
+    def extract_name_from_transfer_pattern(self, pattern: str, description: str) -> Optional[str]:
+        """Extract name from transfer description using pattern with {name} placeholder"""
+        import re
+        if '{name}' not in pattern and '{user_name}' not in pattern:
+            return None
+
+        # Find the placeholder (e.g., {name}, {user_name})
+        placeholder_match = re.search(r'\{(\w+)\}', pattern)
+        if not placeholder_match:
+            return None
+
+        placeholder_text = placeholder_match.group(0)  # e.g., "{name}" or "{user_name}"
+        
+        # Create a regex pattern by escaping the original pattern and replacing placeholder
+        escaped_pattern = re.escape(pattern)
+        name_regex = escaped_pattern.replace(re.escape(placeholder_text), r'(.+?)')
+        
+        try:
+            match = re.search(name_regex, description, re.IGNORECASE)
+            if match:
+                extracted_name = match.group(1).strip()
+                return extracted_name if extracted_name else None
+        except re.error:
+            pass
+        
+        return None
 
 
 # Singleton instance for global access

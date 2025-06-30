@@ -85,11 +85,12 @@ class CashewTransformer:
                     if cashew_col == 'Date':
                         cashew_row[cashew_col] = self.parse_date(str(row[source_col]))
                     elif cashew_col == 'Amount':
-                        original_amount = str(row[source_col])
+                        source_value = row[source_col]
+                        original_amount = str(source_value)
                         parsed_amount = self.parse_amount(original_amount)
                         cashew_row[cashew_col] = parsed_amount
                         if idx < 3: 
-                            print(f"    Row {idx} Amount: '{original_amount}' → '{parsed_amount}'")
+                            print(f"    Row {idx} Amount mapping - source_col='{source_col}', raw_value='{source_value}' (type: {type(source_value)}), str_value='{original_amount}', parsed='{parsed_amount}'")
                     elif cashew_col == 'Account' and account_mapping:
                         currency = str(row[source_col])
                         mapped_account = account_mapping.get(currency, bank_name)
@@ -122,11 +123,15 @@ class CashewTransformer:
                 print(f"    Row {idx}: Date='{cashew_row['Date']}', Amount='{cashew_row['Amount']}', Title='{cashew_row['Title'][:50]}...'")
             
             # Only include rows with valid amounts
-            if cashew_row['Amount'] and cashew_row['Amount'] != '0':
+            amount_val = cashew_row['Amount']
+            if idx < 5:
+                print(f"   [DEBUG] Row {idx} final amount check - value: '{amount_val}', type: {type(amount_val)}, bool: {bool(amount_val)}")
+            
+            if amount_val and amount_val != '0' and amount_val != 0:
                 cashew_data.append(cashew_row)
             else:
                 if idx < 5:
-                    print(f"   [WARNING]  Skipping row {idx}: Invalid/zero amount '{cashew_row['Amount']}'")
+                    print(f"   [WARNING]  Skipping row {idx}: Invalid/zero amount '{amount_val}' (type: {type(amount_val)})")
         
         print(f"   [SUCCESS] Clean transformation complete: {len(cashew_data)} valid rows")
         return cashew_data

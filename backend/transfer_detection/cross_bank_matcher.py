@@ -6,17 +6,17 @@ from .amount_parser import AmountParser
 from .date_parser import DateParser
 from .exchange_analyzer import ExchangeAnalyzer # Keep this
 from .confidence_calculator import ConfidenceCalculator
-from .config_manager import ConfigurationManager
+from ..shared.config.unified_config_service import get_unified_config_service
 
 
 class CrossBankMatcher:
     """Handles cross-bank transfer detection using configuration-driven rules"""
     
-    def __init__(self, config_dir: str = "configs", config_manager: Optional[ConfigurationManager] = None):
-        if config_manager:
-            self.config = config_manager
+    def __init__(self, config_dir: str = "configs", config_service=None):
+        if config_service:
+            self.config = config_service
         else:
-            self.config = ConfigurationManager(config_dir) # Fallback
+            self.config = get_unified_config_service(config_dir)
         self.date_tolerance_hours = self.config.get_date_tolerance()
         self.confidence_threshold = self.config.get_confidence_threshold()
         # self.currency_converter = CurrencyConverter() # Already initialized in main_detector
@@ -24,7 +24,7 @@ class CrossBankMatcher:
         self.exchange_analyzer = ExchangeAnalyzer()
         self.confidence_calculator = ConfidenceCalculator()
         
-        print(f" CrossBankMatcher: Banks: {', '.join(self.config.list_configured_banks())}")
+        print(f" CrossBankMatcher: Banks: {', '.join(self.config.list_banks())}")
     
     def find_transfer_candidates(self, transactions: List[Dict]) -> List[Dict]:
         """Find transactions that match configured transfer patterns"""

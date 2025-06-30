@@ -129,3 +129,12 @@ class APIConfigFacade:
             "default_category_rules": bank_config.default_category_rules,
             "conditional_overrides": bank_config.conditional_overrides
         }
+    
+    # Additional methods for backward compatibility with current API endpoints
+    def list_configured_banks(self) -> List[str]:
+        """Get list of configured bank names (backward compatibility)"""
+        return self.unified_service.list_banks()
+    
+    def get_bank_config(self, bank_name: str):
+        """Get bank configuration (backward compatibility)"""
+        return self.unified_service.get_bank_config(bank_name)
