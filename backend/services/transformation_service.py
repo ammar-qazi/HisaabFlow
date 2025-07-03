@@ -127,10 +127,11 @@ class TransformationService:
                         account_mapping = config_dict['account_mapping']
                         print(f"   [DEBUG] Using account_mapping from bank config: {account_mapping}")
                     
-                    # Also override column_mapping if it's an identity mapping
+                    # Keep identity mapping for lowercase consistency - bank config mapping causes uppercase/lowercase mismatch
+                    # Note: Removed bank config column_mapping override to maintain data consistency
                     if 'column_mapping' in config_dict and self._is_identity_mapping(column_mapping):
-                        column_mapping = config_dict['column_mapping']
-                        print(f"   [DEBUG] Using column_mapping from bank config: {column_mapping}")
+                        print(f"   [DEBUG] Keeping identity mapping for consistency. Bank config mapping: {config_dict['column_mapping']}")
+                        print(f"   [DEBUG] Using lowercase identity mapping: {column_mapping}")
                     break
             
             # Show sample data for debugging

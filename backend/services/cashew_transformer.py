@@ -40,21 +40,21 @@ class CashewTransformer:
         cashew_data = []
         
         for idx, row in enumerate(data):
-            # Initialize Cashew row with required fields
+            # Initialize Cashew row with required fields (lowercase internally)
             # Preserve existing Account value if it exists (from multi-CSV processing)
-            existing_account = row.get('Account', bank_name)
+            existing_account = row.get('Account', row.get('account', bank_name))
             cashew_row = {
-                'Date': '',
-                'Amount': '',
-                'Category': '',
-                'Title': '',
-                'Note': '',
-                'Account': existing_account
+                'date': '',
+                'amount': '',
+                'category': '',
+                'title': '',
+                'note': '',
+                'account': existing_account
             }
             
-            # Handle account mapping when no explicit Account column mapping exists
-            if 'Currency' in row:
-                currency = str(row['Currency'])
+            # Handle account mapping when no explicit account column mapping exists
+            if 'currency' in row or 'Currency' in row:  # Support both cases during transition
+                currency = str(row.get('currency', row.get('Currency', '')))
                 transaction_bank = row.get('_source_bank')
                 
                 # Check if this bank uses account mapping (multi-currency)
@@ -67,31 +67,31 @@ class CashewTransformer:
                         bank_account_mapping = bank_config_dict['account_mapping']
                         if currency in bank_account_mapping:
                             mapped_account = bank_account_mapping[currency]
-                            cashew_row['Account'] = mapped_account
+                            cashew_row['account'] = mapped_account
                             if idx < 3:
                                 print(f"    Row {idx} Auto Account mapping: Currency='{currency}' → Account='{mapped_account}'")
                 
-                # If no bank-specific account mapping found, preserve existing Account value
+                # If no bank-specific account mapping found, preserve existing account value
                 # (which should be the cashew_account for single-currency banks)
                 if not should_apply_account_mapping:
-                    # Keep the existing Account value (set during multi-CSV processing)
+                    # Keep the existing account value (set during multi-CSV processing)
                     if idx < 3:
-                        existing_account = cashew_row.get('Account', bank_name)
+                        existing_account = cashew_row.get('account', bank_name)
                         print(f"    Row {idx} Preserving existing account: Currency='{currency}', Account='{existing_account}'")
             
-            # Apply column mapping
+            # Apply column mapping (lowercase internally)
             for cashew_col, source_col in column_mapping.items():
                 if source_col in row and pd.notna(row[source_col]):
-                    if cashew_col == 'Date':
+                    if cashew_col == 'date':
                         cashew_row[cashew_col] = self.parse_date(str(row[source_col]))
-                    elif cashew_col == 'Amount':
+                    elif cashew_col == 'amount':
                         source_value = row[source_col]
                         original_amount = str(source_value)
                         parsed_amount = self.parse_amount(original_amount)
                         cashew_row[cashew_col] = parsed_amount
                         if idx < 3: 
                             print(f"    Row {idx} Amount mapping - source_col='{source_col}', raw_value='{source_value}' (type: {type(source_value)}), str_value='{original_amount}', parsed='{parsed_amount}'")
-                    elif cashew_col == 'Account' and account_mapping:
+                    elif cashew_col == 'account' and account_mapping:
                         currency = str(row[source_col])
                         mapped_account = account_mapping.get(currency, bank_name)
                         cashew_row[cashew_col] = mapped_account
@@ -100,14 +100,14 @@ class CashewTransformer:
                     else:
                         cashew_row[cashew_col] = str(row[source_col])
             
-            # Apply universal fallback logic for any empty field
-            for cashew_field in ['Date', 'Title', 'Amount', 'Currency']:
+            # Apply universal fallback logic for any empty field (lowercase internally)
+            for cashew_field in ['date', 'title', 'amount', 'currency']:
                 if not cashew_row.get(cashew_field):
                     fallback_value = self.resolve_field_with_fallback(row, cashew_field)
                     if fallback_value:
-                        if cashew_field == 'Date':
+                        if cashew_field == 'date':
                             cashew_row[cashew_field] = self.parse_date(fallback_value)
-                        elif cashew_field == 'Amount':
+                        elif cashew_field == 'amount':
                             cashew_row[cashew_field] = self.parse_amount(fallback_value)
                         else:
                             cashew_row[cashew_field] = str(fallback_value)
@@ -120,15 +120,17 @@ class CashewTransformer:
             
             # Debug output for first few rows
             if idx < 3:
-                print(f"    Row {idx}: Date='{cashew_row['Date']}', Amount='{cashew_row['Amount']}', Title='{cashew_row['Title'][:50]}...'")
+                print(f"    Row {idx}: date='{cashew_row['date']}', amount='{cashew_row['amount']}', title='{cashew_row['title'][:50]}...'")
             
             # Only include rows with valid amounts
-            amount_val = cashew_row['Amount']
+            amount_val = cashew_row['amount']
             if idx < 5:
                 print(f"   [DEBUG] Row {idx} final amount check - value: '{amount_val}', type: {type(amount_val)}, bool: {bool(amount_val)}")
             
             if amount_val and amount_val != '0' and amount_val != 0:
-                cashew_data.append(cashew_row)
+                # Convert to uppercase for final Cashew format before adding to results
+                final_cashew_row = self._convert_to_final_cashew_format(cashew_row)
+                cashew_data.append(final_cashew_row)
             else:
                 if idx < 5:
                     print(f"   [WARNING]  Skipping row {idx}: Invalid/zero amount '{amount_val}' (type: {type(amount_val)})")
@@ -156,18 +158,29 @@ class CashewTransformer:
         return ""  # Graceful fallback
 
     def apply_basic_categorization(self, cashew_row: Dict):
-        """Apply basic categorization based on amount"""
-        if not cashew_row.get('Category'):
+        """Apply basic categorization based on amount (lowercase internally)"""
+        if not cashew_row.get('category'):
             try:
-                amount = float(cashew_row['Amount'])
+                amount = float(cashew_row['amount'])
                 if amount > 0:
-                    cashew_row['Category'] = 'Income'
+                    cashew_row['category'] = 'Income'
                 elif amount < 0:
-                    cashew_row['Category'] = 'Expense'
+                    cashew_row['category'] = 'Expense'
                 else:
-                    cashew_row['Category'] = 'Transfer'
+                    cashew_row['category'] = 'Transfer'
             except (ValueError, TypeError):
-                cashew_row['Category'] = 'Uncategorized'
+                cashew_row['category'] = 'Uncategorized'
+    
+    def _convert_to_final_cashew_format(self, lowercase_row: Dict) -> Dict:
+        """Convert lowercase internal format to uppercase Cashew export format"""
+        return {
+            'Date': lowercase_row.get('date', ''),
+            'Amount': lowercase_row.get('amount', ''),
+            'Category': lowercase_row.get('category', ''),
+            'Title': lowercase_row.get('title', ''),
+            'Note': lowercase_row.get('note', ''),
+            'Account': lowercase_row.get('account', '')
+        }
 
     def parse_date(self, date_str: str) -> str:
         """

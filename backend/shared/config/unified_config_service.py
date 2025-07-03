@@ -504,6 +504,38 @@ class UnifiedConfigService:
         
         return None
     
+    def apply_description_cleaning(self, bank_name: str, description: str) -> str:
+        """Apply bank-specific description cleaning rules"""
+        bank_config = self._bank_configs.get(bank_name)
+        if not bank_config or not bank_config.data_cleaning or not bank_config.data_cleaning.description_cleaning_rules:
+            return description
+        
+        cleaned_description = description
+        
+        # Apply each cleaning rule
+        for pattern, replacement in bank_config.data_cleaning.description_cleaning_rules.items():
+            import re
+            try:
+                # Check if it's a regex replacement pattern (contains |)
+                if '|' in replacement:
+                    # Format: pattern|replacement
+                    pattern_parts = replacement.split('|', 1)
+                    if len(pattern_parts) == 2:
+                        regex_pattern = pattern_parts[0]
+                        replacement_text = pattern_parts[1]
+                        cleaned_description = re.sub(regex_pattern, replacement_text, cleaned_description)
+                    else:
+                        # Simple replacement
+                        cleaned_description = cleaned_description.replace(pattern, replacement)
+                else:
+                    # Simple replacement
+                    cleaned_description = cleaned_description.replace(pattern, replacement)
+            except re.error:
+                # If regex fails, do simple replacement
+                cleaned_description = cleaned_description.replace(pattern, replacement)
+        
+        return cleaned_description
+    
     def get_data_cleaning_config(self, bank_name: str) -> Optional[DataCleaningConfig]:
         """Get data cleaning configuration for bank"""
         bank_config = self._bank_configs.get(bank_name)
