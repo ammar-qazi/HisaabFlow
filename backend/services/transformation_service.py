@@ -572,16 +572,24 @@ class TransformationService:
                 note_val = row.get('Note', '')
                 current_title = row.get('Title', '')
 
-                # Check conditions
-                if 'if_amount_min' in rule and not (isinstance(amount_val, (int, float)) and amount_val >= rule['if_amount_min']):
+                # Convert amount_val to float if it's a string
+                if isinstance(amount_val, str):
+                    try:
+                        amount_val = float(amount_val)
+                    except ValueError:
+                        conditions_met = False
+                        continue
+
+                # Check conditions (convert string config values to numbers)
+                if 'if_amount_min' in rule and not (isinstance(amount_val, (int, float)) and amount_val >= float(rule['if_amount_min'])):
                     conditions_met = False
-                if conditions_met and 'if_amount_max' in rule and not (isinstance(amount_val, (int, float)) and amount_val <= rule['if_amount_max']):
+                if conditions_met and 'if_amount_max' in rule and not (isinstance(amount_val, (int, float)) and amount_val <= float(rule['if_amount_max'])):
                     conditions_met = False
-                if conditions_met and 'if_amount_less_than' in rule and not (isinstance(amount_val, (int, float)) and amount_val < rule['if_amount_less_than']):
+                if conditions_met and 'if_amount_less_than' in rule and not (isinstance(amount_val, (int, float)) and amount_val < float(rule['if_amount_less_than'])):
                     conditions_met = False
-                if conditions_met and 'if_amount_greater_than' in rule and not (isinstance(amount_val, (int, float)) and amount_val > rule['if_amount_greater_than']):
+                if conditions_met and 'if_amount_greater_than' in rule and not (isinstance(amount_val, (int, float)) and amount_val > float(rule['if_amount_greater_than'])):
                     conditions_met = False
-                if conditions_met and 'if_amount_equals' in rule and not (isinstance(amount_val, (int, float)) and amount_val == rule['if_amount_equals']):
+                if conditions_met and 'if_amount_equals' in rule and not (isinstance(amount_val, (int, float)) and amount_val == float(rule['if_amount_equals'])):
                     conditions_met = False
                 if conditions_met and 'if_note_equals' in rule and note_val != rule['if_note_equals']:
                     conditions_met = False
