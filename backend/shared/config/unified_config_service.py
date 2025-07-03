@@ -80,7 +80,7 @@ class UnifiedBankConfig:
     # Categorization
     categorization_rules: Dict[str, str]
     default_category_rules: Dict[str, str]
-    conditional_overrides: List[Dict[str, Any]]
+    conditional_description_overrides: List[Dict[str, Any]]
     
     # Bank info (with defaults)
     currency_primary: str = "USD"
@@ -231,7 +231,7 @@ class UnifiedConfigService:
             default_category_rules = dict(config['default_category_rules']) if 'default_category_rules' in config else {}
             
             # Build conditional overrides
-            conditional_overrides = self._extract_conditional_overrides(config)
+            conditional_description_overrides = self._extract_conditional_overrides(config)
             
             return UnifiedBankConfig(
                 name=bank_name,
@@ -247,7 +247,7 @@ class UnifiedConfigService:
                 incoming_patterns=incoming_patterns,
                 categorization_rules=categorization_rules,
                 default_category_rules=default_category_rules,
-                conditional_overrides=conditional_overrides
+                conditional_description_overrides=conditional_description_overrides
             )
             
         except KeyError as e:
@@ -513,26 +513,22 @@ class UnifiedConfigService:
         cleaned_description = description
         
         # Apply each cleaning rule
-        for pattern, replacement in bank_config.data_cleaning.description_cleaning_rules.items():
+        for rule_name, rule_pattern in bank_config.data_cleaning.description_cleaning_rules.items():
             import re
             try:
                 # Check if it's a regex replacement pattern (contains |)
-                if '|' in replacement:
-                    # Format: pattern|replacement
-                    pattern_parts = replacement.split('|', 1)
-                    if len(pattern_parts) == 2:
-                        regex_pattern = pattern_parts[0]
-                        replacement_text = pattern_parts[1]
-                        cleaned_description = re.sub(regex_pattern, replacement_text, cleaned_description)
-                    else:
-                        # Simple replacement
-                        cleaned_description = cleaned_description.replace(pattern, replacement)
+                if '|' in rule_pattern:
+                    # Format: pattern|replacement (split from right to handle pipes in pattern)
+                    pattern, replacement = rule_pattern.rsplit('|', 1)
+                    pattern = pattern.strip()
+                    replacement = replacement.strip()
+                    cleaned_description = re.sub(pattern, replacement, cleaned_description, flags=re.IGNORECASE)
                 else:
-                    # Simple replacement
-                    cleaned_description = cleaned_description.replace(pattern, replacement)
+                    # Simple replacement using rule name as pattern
+                    cleaned_description = cleaned_description.replace(rule_name, rule_pattern)
             except re.error:
                 # If regex fails, do simple replacement
-                cleaned_description = cleaned_description.replace(pattern, replacement)
+                cleaned_description = cleaned_description.replace(rule_name, rule_pattern)
         
         return cleaned_description
     

@@ -52,6 +52,10 @@ class CashewTransformer:
                 'account': existing_account
             }
             
+            # Preserve _source_bank for bank matching in description cleaning
+            if '_source_bank' in row:
+                cashew_row['_source_bank'] = row['_source_bank']
+            
             # Handle account mapping when no explicit account column mapping exists
             if 'currency' in row or 'Currency' in row:  # Support both cases during transition
                 currency = str(row.get('currency', row.get('Currency', '')))
@@ -173,7 +177,7 @@ class CashewTransformer:
     
     def _convert_to_final_cashew_format(self, lowercase_row: Dict) -> Dict:
         """Convert lowercase internal format to uppercase Cashew export format"""
-        return {
+        final_row = {
             'Date': lowercase_row.get('date', ''),
             'Amount': lowercase_row.get('amount', ''),
             'Category': lowercase_row.get('category', ''),
@@ -181,6 +185,12 @@ class CashewTransformer:
             'Note': lowercase_row.get('note', ''),
             'Account': lowercase_row.get('account', '')
         }
+        
+        # Preserve _source_bank field for bank matching in description cleaning
+        if '_source_bank' in lowercase_row:
+            final_row['_source_bank'] = lowercase_row['_source_bank']
+            
+        return final_row
 
     def parse_date(self, date_str: str) -> str:
         """

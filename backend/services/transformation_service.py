@@ -254,15 +254,17 @@ class TransformationService:
             print(f"   [SUCCESS] Using pre-cleaned data as-is")
             
             # Get Account name from bank configuration
-            account_name = self._get_account_name(bank_info, filename)
+            base_account_name = self._get_account_name(bank_info, filename)
             
             # Update Account field and add bank source for each row
             detected_bank_name = bank_info.get('bank_name', bank_info.get('detected_bank', 'unknown'))
             for row in csv_file_data:
-                row['Account'] = account_name
+                # For multi-currency banks like Wise, map account name based on currency
+                final_account_name = self._map_account_by_currency(detected_bank_name, base_account_name, row, filename)
+                row['Account'] = final_account_name
                 row['_source_bank'] = detected_bank_name  # For bank-specific account mapping
             
-            print(f"   [SUCCESS] Account field '{account_name}' set for all {len(csv_file_data)} rows")
+            print(f"   [SUCCESS] Account field '{base_account_name}' set for all {len(csv_file_data)} rows")
             
             # Add cleaned data to combined results
             all_transformed_data.extend(csv_file_data)
@@ -335,32 +337,77 @@ class TransformationService:
         if bank_info:
             detected_bank = bank_info.get('bank_name', bank_info.get('detected_bank'))
         if detected_bank and detected_bank != 'unknown':
-                try:
-                    bank_config = self.bank_config_manager.get_bank_config(detected_bank)
-                    if bank_config and bank_config.has_section('bank_info'):
-                        # Check if this bank uses account mapping (multi-currency) or single cashew_account
-                        has_account_mapping = bank_config.has_section('account_mapping')
-                        cashew_account = bank_config.get('bank_info', 'cashew_account', fallback=None)
-                        
-                        if has_account_mapping:
-                            account_name = 'Multi-Currency'  # Placeholder, will be mapped per transaction
-                            print(f"    Using account_mapping from {detected_bank} config (multi-currency)")
-                        elif cashew_account:
-                            account_name = cashew_account
-                            print(f"    Using cashew_account from {detected_bank} config: '{account_name}'")
-                        else:
-                            print(f"   [WARNING]  No cashew_account or account_mapping in {detected_bank} config")
+            try:
+                bank_config = self.bank_config_manager.get_bank_config(detected_bank)
+                if bank_config and bank_config.has_section('bank_info'):
+                    # Check if this bank uses account mapping (multi-currency) or single cashew_account
+                    has_account_mapping = bank_config.has_section('account_mapping')
+                    cashew_account = bank_config.get('bank_info', 'cashew_account', fallback=None)
+                    
+                    if cashew_account:
+                        # Single account bank (like NayaPay, Erste)
+                        account_name = cashew_account
+                        print(f"    Using cashew_account from {detected_bank} config: '{account_name}'")
+                    elif has_account_mapping:
+                        # Multi-currency bank (like Wise) - need currency info to determine account
+                        print(f"    Multi-currency bank {detected_bank} detected, will need currency mapping")
+                        account_name = 'Multi-Currency'  # Placeholder, will be mapped per transaction
                     else:
-                        print(f"   [WARNING]  Could not load config for {detected_bank}")
-                except Exception as e:
-                    print(f"   [WARNING]  Error loading config for {detected_bank}: {e}")
+                        print(f"   [WARNING]  No cashew_account or account_mapping in {detected_bank} config")
+                else:
+                    print(f"   [WARNING]  Could not load config for {detected_bank}")
+            except Exception as e:
+                print(f"   [WARNING]  Error loading config for {detected_bank}: {e}")
         
         # Fallback to filename if config loading failed
-        if account_name == 'Unknown':
-            account_name = filename.replace('.csv', '').replace('_', ' ').replace('-', ' ').title()
-            print(f"    Using filename fallback: '{account_name}'")
+        if account_name == 'Unknown' or account_name == 'Multi-Currency':
+            filename_fallback = filename.replace('.csv', '').replace('_', ' ').replace('-', ' ').title()
+            if account_name == 'Multi-Currency':
+                print(f"    Multi-currency mapping needed, using filename fallback: '{filename_fallback}'")
+                account_name = filename_fallback
+            else:
+                print(f"    Using filename fallback: '{filename_fallback}'")
+                account_name = filename_fallback
         
         return account_name
+    
+    def _map_account_by_currency(self, detected_bank: str, base_account_name: str, row: dict, filename: str):
+        """Map account name based on currency for multi-currency banks like Wise"""
+        if not detected_bank or detected_bank == 'unknown':
+            return base_account_name
+        
+        try:
+            bank_config = self.bank_config_manager.get_bank_config(detected_bank)
+            if bank_config and bank_config.has_section('account_mapping'):
+                # Get currency from row - check multiple possible field names
+                currency = row.get('Currency', row.get('currency', row.get('CURRENCY', '')))
+                currency = currency.strip() if currency else ''
+                
+                # Debug: Show what we're looking for
+                print(f"      [DEBUG] Looking for currency in row. Available fields: {list(row.keys())}")
+                print(f"      [DEBUG] Currency value found: '{currency}'")
+                
+                if currency:
+                    # Map currency to account name (case-insensitive lookup)
+                    account_mapping = dict(bank_config.items('account_mapping'))
+                    print(f"      [DEBUG] Available account mappings: {account_mapping}")
+                    
+                    # Try case-insensitive lookup
+                    mapped_account = account_mapping.get(currency.lower())
+                    if mapped_account:
+                        print(f"      [CURRENCY MAP] {currency} → '{mapped_account}'")
+                        return mapped_account
+                    else:
+                        print(f"      [WARNING] Currency '{currency}' not found in account_mapping for {detected_bank}")
+                        print(f"      [DEBUG] Available currencies: {list(account_mapping.keys())}")
+                        print(f"      [DEBUG] Tried lookup with: '{currency.lower()}'")
+                else:
+                    print(f"      [WARNING] No currency field found for multi-currency bank {detected_bank}")
+        except Exception as e:
+            print(f"      [WARNING] Error mapping currency for {detected_bank}: {e}")
+        
+        # Fallback to base account name
+        return base_account_name
     
     def _apply_advanced_processing(self, transformed_data: list, raw_data: dict):
         """Apply description cleaning and transfer detection to transformed data"""
@@ -418,23 +465,47 @@ class TransformationService:
             
             print(f"    Row {row_idx + 1}: Account='{account}', Title='{row.get('Title', '')}'")
             
-            # Find bank type based on Account name
+            # Find bank type based on Account name matching
             for csv_idx, csv_data in enumerate(csv_data_list):
                 bank_info = csv_data.get('bank_info', {})
                 detected_bank = bank_info.get('bank_name', bank_info.get('detected_bank'))
                 print(f"       CSV {csv_idx}: detected_bank='{detected_bank}'")
                 
                 if detected_bank and detected_bank != 'unknown':
-                    # Get cashew account name for this bank
+                    # Get expected account name for this bank and check if it matches
                     try:
                         bank_config = self.bank_config_manager.get_bank_config(detected_bank)
                         if bank_config and bank_config.has_section('bank_info'):
                             cashew_account = bank_config.get('bank_info', 'cashew_account', fallback=None)
+                            has_account_mapping = bank_config.has_section('account_mapping')
                             print(f"          Bank config cashew_account: '{cashew_account}'")
-                            if detected_bank and detected_bank != 'unknown':
-                                bank_name = detected_bank  # Use detected bank directly
+                            
+                            # Check if this transaction's account matches this bank's account
+                            account_matches = False
+                            if cashew_account and account == cashew_account:
+                                # Single account bank - direct match
+                                account_matches = True
+                                print(f"          [MATCH] Account '{account}' matches cashew_account '{cashew_account}'")
+                            elif has_account_mapping:
+                                # Multi-currency bank - check account_mapping
+                                account_mapping = dict(bank_config.items('account_mapping'))
+                                if account in account_mapping.values():
+                                    account_matches = True
+                                    print(f"          [MATCH] Account '{account}' found in account_mapping")
+                                else:
+                                    # For multi-currency, also check filename-based fallbacks
+                                    csv_filename = csv_data.get('filename', '')
+                                    filename_fallback = csv_filename.replace('.csv', '').replace('_', ' ').replace('-', ' ').title()
+                                    if account == filename_fallback:
+                                        account_matches = True
+                                        print(f"          [MATCH] Account '{account}' matches filename fallback for multi-currency bank")
+                            
+                            if account_matches:
+                                bank_name = detected_bank
                                 print(f"         [SUCCESS] MATCH! Using bank: {bank_name}")
                                 break  # Found our match
+                            else:
+                                print(f"          [NO MATCH] Account '{account}' doesn't match this bank")
                     except Exception as e:
                         print(f"         [WARNING]  Error getting bank config: {e}")
                         continue

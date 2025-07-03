@@ -35,6 +35,7 @@ class BankDetectionFacade:
                 config['bank_info'] = {
                     'bank_name': bank_config.name,
                     'display_name': bank_config.display_name,
+                    'cashew_account': bank_config.cashew_account,
                     'file_patterns': ', '.join(bank_config.detection_info.filename_patterns),
                     'detection_content_signatures': ', '.join(bank_config.detection_info.content_signatures),
                     'expected_headers': ', '.join(bank_config.detection_info.required_headers)
@@ -49,6 +50,10 @@ class BankDetectionFacade:
                 
                 # Column mapping section
                 config['column_mapping'] = bank_config.column_mapping
+                
+                # Account mapping section (for multi-currency banks)
+                if bank_config.account_mapping:
+                    config['account_mapping'] = bank_config.account_mapping
                 
                 # Store in legacy format
                 self._bank_configs[bank_name] = config
