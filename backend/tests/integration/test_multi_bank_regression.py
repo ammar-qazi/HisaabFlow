@@ -7,14 +7,8 @@ These tests verify that the major bugs reported by the user have been fixed:
 3. Conditional overrides not applying
 """
 import pytest
-import sys
-import os
 
-# Add backend to path for imports
-backend_dir = os.path.join(os.path.dirname(__file__), '..', '..')
-sys.path.insert(0, backend_dir)
-
-from services.transformation_service import TransformationService
+from backend.services.transformation_service import TransformationService
 
 
 @pytest.mark.integration

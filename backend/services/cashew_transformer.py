@@ -104,6 +104,14 @@ class CashewTransformer:
                     else:
                         cashew_row[cashew_col] = str(row[source_col])
             
+            # Preserve exchange fields for transfer detection (keep original source column names)
+            for source_col in row.keys():
+                if any(keyword in source_col.lower() for keyword in ['exchange', 'convert', 'target', 'destination']):
+                    if source_col not in cashew_row:  # Don't override mapped fields
+                        cashew_row[source_col] = row[source_col]
+                        if idx < 3:
+                            print(f"    Row {idx} Preserving exchange field: {source_col} = {row[source_col]}")
+            
             # Apply universal fallback logic for any empty field (lowercase internally)
             for cashew_field in ['date', 'title', 'amount', 'currency']:
                 if not cashew_row.get(cashew_field):
@@ -189,6 +197,11 @@ class CashewTransformer:
         # Preserve _source_bank field for bank matching in description cleaning
         if '_source_bank' in lowercase_row:
             final_row['_source_bank'] = lowercase_row['_source_bank']
+        
+        # Preserve exchange fields for transfer detection
+        for field_name, value in lowercase_row.items():
+            if any(keyword in field_name.lower() for keyword in ['exchange', 'convert', 'target', 'destination']):
+                final_row[field_name] = value
             
         return final_row
 

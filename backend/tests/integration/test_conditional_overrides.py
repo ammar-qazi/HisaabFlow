@@ -5,15 +5,9 @@ These tests verify that bank-specific conditional overrides work correctly,
 particularly for NayaPay ride-hailing service detection.
 """
 import pytest
-import sys
-import os
 
-# Add backend to path for imports
-backend_dir = os.path.join(os.path.dirname(__file__), '..', '..')
-sys.path.insert(0, backend_dir)
-
-from services.transformation_service import TransformationService
-from tests.fixtures.sample_transactions import (
+from backend.services.transformation_service import TransformationService
+from backend.tests.fixtures.sample_transactions import (
     nayapay_easypaisa_transactions,
     nayapay_non_easypaisa_transactions,
     raw_data_multi_csv

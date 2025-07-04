@@ -5,15 +5,9 @@ These tests verify that cross-bank transfer detection works correctly
 and that transfer patterns are properly applied.
 """
 import pytest
-import sys
-import os
 
-# Add backend to path for imports
-backend_dir = os.path.join(os.path.dirname(__file__), '..', '..')
-sys.path.insert(0, backend_dir)
-
-from services.transformation_service import TransformationService
-from tests.fixtures.sample_transactions import (
+from backend.services.transformation_service import TransformationService
+from backend.tests.fixtures.sample_transactions import (
     cross_bank_transfer_pair,
     raw_data_multi_csv
 )
