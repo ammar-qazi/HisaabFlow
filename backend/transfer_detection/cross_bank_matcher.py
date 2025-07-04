@@ -42,7 +42,18 @@ class CrossBankMatcher:
             for pattern in outgoing_patterns:
                 print(f"DEBUG CBM find_candidates:   Checking OUT pattern '{pattern}' for desc '{original_description[:50]}...' (Bank: {bank_type})")
                 extracted_name = self.config.extract_name_from_transfer_pattern(pattern, original_description) # Pass original_description
+                
+                # Check if pattern matches (either name extracted OR direct pattern match)
+                pattern_matches = False
                 if extracted_name is not None:
+                    pattern_matches = True
+                elif '{name}' not in pattern and '{user_name}' not in pattern:
+                    # Pattern without placeholder - check direct match
+                    if pattern.lower() in original_description.lower():
+                        pattern_matches = True
+                        extracted_name = "DIRECT_MATCH"  # Placeholder for patterns without names
+                
+                if pattern_matches:
                     candidates.append({
                         **transaction,
                         '_transfer_pattern': pattern,
@@ -60,7 +71,18 @@ class CrossBankMatcher:
                 for pattern in incoming_patterns:
                     print(f"DEBUG CBM find_candidates:   Checking IN pattern '{pattern}' for desc '{original_description[:50]}...' (Bank: {bank_type})")
                     extracted_name = self.config.extract_name_from_transfer_pattern(pattern, original_description) # Pass original_description
+                    
+                    # Check if pattern matches (either name extracted OR direct pattern match)
+                    pattern_matches = False
                     if extracted_name is not None:
+                        pattern_matches = True
+                    elif '{name}' not in pattern and '{user_name}' not in pattern:
+                        # Pattern without placeholder - check direct match
+                        if pattern.lower() in original_description.lower():
+                            pattern_matches = True
+                            extracted_name = "DIRECT_MATCH"  # Placeholder for patterns without names
+                    
+                    if pattern_matches:
                         candidates.append({
                             **transaction,
                             '_transfer_pattern': pattern,

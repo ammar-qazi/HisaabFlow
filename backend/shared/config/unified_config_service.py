@@ -590,17 +590,52 @@ class UnifiedConfigService:
         
         # Create a regex pattern by escaping the original pattern and replacing placeholder
         escaped_pattern = re.escape(pattern)
-        name_regex = escaped_pattern.replace(re.escape(placeholder_text), r'(.+?)')
+        name_regex = escaped_pattern.replace(re.escape(placeholder_text), r'([^,\(\)]+)')
         
         try:
             match = re.search(name_regex, description, re.IGNORECASE)
             if match:
                 extracted_name = match.group(1).strip()
-                return extracted_name if extracted_name else None
+                
+                # Validate extracted name quality
+                if extracted_name and self._is_valid_name(extracted_name):
+                    return extracted_name
         except re.error:
             pass
         
         return None
+    
+    def _is_valid_name(self, name: str) -> bool:
+        """Validate if extracted name is meaningful enough for transfer matching"""
+        if not name or len(name.strip()) < 2:
+            return False
+        
+        # Reject single characters or just symbols
+        if len(name.strip()) == 1:
+            return False
+            
+        # Reject names that are mostly symbols or numbers
+        alpha_count = len([c for c in name if c.isalpha()])
+        symbol_count = len([c for c in name if not c.isalnum() and not c.isspace()])
+        
+        # Must have at least 2 alphabetic characters
+        if alpha_count < 2:
+            return False
+            
+        # Reject if more symbols than letters (likely card numbers, IDs, etc.)
+        if symbol_count > alpha_count:
+            return False
+            
+        # Reject obviously bad extractions
+        bad_patterns = ['*', '**', '***', '****', '...', '..', '.']
+        if name.strip() in bad_patterns:
+            return False
+            
+        # Reject patterns that start with ** (card numbers)
+        if name.strip().startswith('**'):
+            return False
+            
+        return True
 
 
 # Singleton instance for global access

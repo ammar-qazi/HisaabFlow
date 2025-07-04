@@ -16,6 +16,7 @@ class ExchangeAnalyzer:
             'Exchange_To_Amount',  # Underscore format
             'ExchangeToAmount',    # CamelCase format
             'exchange_to_amount',  # Lowercase
+            'exchangetoamount',    # Lowercase no spaces (from config mapping)
             'Exchange Amount',     # Without "To"
             'ExchangeAmount',      # Without "To" CamelCase
             'exchange_amount',     # Without "To" lowercase
@@ -106,6 +107,7 @@ class ExchangeAnalyzer:
             'Exchange_To',
             'ExchangeTo',
             'exchange_to',
+            'exchangetocurrency',    # Lowercase no spaces (from config mapping)
             'Target Currency', 
             'Destination Currency',
             'To Currency',
