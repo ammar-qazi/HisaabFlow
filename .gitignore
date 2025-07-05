@@ -45,9 +45,7 @@ real_*.csv
 *_personal.csv
 
 # Configuration files with personal data
-configs/app.conf
-configs/*.conf
-!configs/*.conf.template
+configs/*_personal.conf
 
 # IDE & Editor
 .vscode/

@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rg:*)",
+      "Bash(ls:*)",
+      "Bash(npm test:*)",
+      "Bash(mkdir:*)",
+      "Bash(find:*)",
+      "Bash(source:*)",
+      "Bash(python:*)",
+      "Bash(grep:*)",
+      "Bash(sed:*)",
+      "Bash(PYTHONPATH=. python -c \"\nfrom services.bank_header_detector import BankHeaderDetector\nprint(''✅ BankHeaderDetector imported successfully'')\n\")",
+      "Bash(mv:*)",
+      "Bash(pkill:*)",
+      "Bash(true)"
+    ],
+    "deny": []
+  }
+}
