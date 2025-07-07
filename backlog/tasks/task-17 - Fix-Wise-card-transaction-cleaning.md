@@ -1,10 +1,14 @@
 ---
 id: task-17
 title: Fix Wise card transaction cleaning
-status: To Do
+status: Done
 assignee: []
 created_date: '2025-07-06'
-labels: ["Bug Fix", "Backend", "High Priority"]
+updated_date: '2025-07-07'
+labels:
+  - Bug Fix
+  - Backend
+  - High Priority
 dependencies: []
 ---
 
