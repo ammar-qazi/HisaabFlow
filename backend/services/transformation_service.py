@@ -611,6 +611,20 @@ class TransformationService:
             print(f"   Applied {conditional_changes_count} conditional override changes.")
         return data
 
+    def _account_matches_bank(self, bank_config, account, csv_data_list):
+        """Check if account matches bank configuration for both single and multi-currency banks"""
+        # Tier 1: Single-currency banks (cashew_account match)
+        if bank_config.cashew_account and bank_config.cashew_account == account:
+            return True
+            
+        # Tier 2: Multi-currency banks (account_mapping values match)
+        if bank_config.account_mapping:
+            for currency, account_name in bank_config.account_mapping.items():
+                if account_name == account:
+                    return True
+        
+        return False
+
     def _apply_keyword_categorization(self, data: list, raw_data: dict) -> list:
         """Apply keyword-based categorization from .conf files using final descriptions."""
         print(f" Applying keyword-based categorization (post-cleaning)...")
@@ -630,7 +644,7 @@ class TransformationService:
                 if detected_bank and detected_bank != 'unknown':
                     try:
                         bank_cfg_obj_check = self.shared_transfer_config.get_bank_config(detected_bank)
-                        if bank_cfg_obj_check and bank_cfg_obj_check.cashew_account == account:
+                        if bank_cfg_obj_check and self._account_matches_bank(bank_cfg_obj_check, account, csv_data_list):
                             bank_name_for_row = detected_bank
                             break
                     except Exception: # pylint: disable=broad-except

@@ -1,10 +1,9 @@
 """
 Configuration-driven cross-bank transfer matching
 """
-from typing import Dict, List, Set, Optional # Added Optional
+from typing import Dict, List, Set, Optional
 from .amount_parser import AmountParser
 from .date_parser import DateParser
-from .exchange_analyzer import ExchangeAnalyzer # Keep this
 from .confidence_calculator import ConfidenceCalculator
 from ..shared.config.unified_config_service import get_unified_config_service
 
@@ -21,7 +20,6 @@ class CrossBankMatcher:
         self.confidence_threshold = self.config.get_confidence_threshold()
         # self.currency_converter = CurrencyConverter() # Already initialized in main_detector
         
-        self.exchange_analyzer = ExchangeAnalyzer()
         self.confidence_calculator = ConfidenceCalculator()
         
         print(f" CrossBankMatcher: Banks: {', '.join(self.config.list_banks())}")
@@ -164,8 +162,8 @@ class CrossBankMatcher:
               f"Bank='{outgoing.get('_bank_type')}', CSV='{outgoing.get('_csv_name')}'")
 
         outgoing_amount = abs(AmountParser.parse_amount(outgoing.get('Amount', '0')))
-        exchange_amount = self.exchange_analyzer.get_exchange_to_amount(outgoing)
-        exchange_currency = self.exchange_analyzer.get_exchange_to_currency(outgoing)
+        exchange_amount = self._get_exchange_amount_from_csv(outgoing)
+        exchange_currency = self._get_exchange_currency_from_csv(outgoing)
 
         # === Logging as per request ===
         print(f"\nDEBUG CBM _find_best_match: === EVALUATING INCOMING CANDIDATES ===")
@@ -481,7 +479,7 @@ class CrossBankMatcher:
         else: # exchange_amount or exchange_currency is None/empty
             print(f"DEBUG CBM _eval_strat: Strategy 1 (Exchange Amount) SKIPPED - Missing exchange_amount ({exchange_amount}) or exchange_currency ({exchange_currency}) on outgoing tx.")
 
-        # Strategy 2: Traditional amount matching (with currency conversion if needed)
+        # Strategy 2: Traditional amount matching (same currency only)
         if outgoing_currency == incoming_currency:
             if AmountParser.amounts_match(outgoing_amount_orig_curr, incoming_amount_orig_curr):
                 confidence = self.confidence_calculator.calculate_confidence(
@@ -494,48 +492,8 @@ class CrossBankMatcher:
                     'match_details': f"Traditional {outgoing_amount_orig_curr} {outgoing_currency}"
                 })
                 print(f"DEBUG CBM _eval_strat: Strategy 2 (Traditional Same Currency) MATCHED. Conf: {confidence:.2f}")
-        else: # Different currencies, try to use ExchangeAnalyzer for potential conversion info
-            print(f"DEBUG CBM _eval_strat: Strategy 2 (Traditional) - Currencies differ ({outgoing_currency} vs {incoming_currency}). Checking ExchangeAnalyzer.")
-            
-            # Check if the outgoing transaction has enough info to imply the incoming amount in its currency
-            # This is where "Sent money to X, which was YYY PKR" would be useful if ExchangeAnalyzer could get YYY PKR.
-            # For now, ExchangeAnalyzer primarily looks for "Exchange To Amount" and "Exchange To Currency" columns.
-            # If the outgoing Wise transaction for "Sent money to USER" has "Exchange To Amount" (e.g., 50000)
-            # and "Exchange To Currency" (e.g., PKR), then `exchange_amount` and `exchange_currency` would be set.
-            # This case is already handled by Strategy 1.
-            
-            # If Strategy 1 didn't match (e.g., exchange_currency was not PKR, or exchange_amount was None),
-            # we don't have a direct converted amount from the outgoing transaction's row to match the incoming.
-            # Without an external currency conversion API or more detailed parsing from description for *this specific scenario*,
-            # we cannot reliably match amounts across different currencies here.
-            
-            # The placeholder `self.currency_converter.convert_amount_for_matching` was removed as per user's request
-            # to not rely on external APIs or historical data for this step.
-            # The matching must rely on data present in the CSVs themselves (like "Exchange To Amount").
-
-            # If we reach here, it means:
-            # 1. Strategy 1 (direct exchange_amount match) failed.
-            # 2. Currencies are different.
-            # 3. We are not using an external API for conversion.
-            # Therefore, we cannot match based on amount for this strategy if currencies differ
-            # unless the `exchange_amount` and `exchange_currency` from the outgoing transaction
-            # (used in Strategy 1) perfectly matched the incoming transaction's currency and amount.
-            print(f"DEBUG CBM _eval_strat:   Strategy 2 (Traditional Different Currency) - Cannot match amounts without explicit conversion data in CSV or external API.")
-
-        # Strategy 3: Flexible amount matching (Original fallback, if no other matches)
-        # This was the original "Strategy 3: Flexible amount matching for currency conversion"
-        # It's kept as a last resort but might be too loose.
-        if not matches: # Only if no other strategies matched
-            amount_diff_percentage = AmountParser.calculate_percentage_difference(outgoing_amount_orig_curr, incoming_amount_orig_curr)
-            if amount_diff_percentage < 1.0: # Allows large difference, assuming it's due to currency
-                confidence = self.confidence_calculator.calculate_confidence(outgoing, incoming, is_cross_bank=True) - 0.15 # Higher penalty
-                matches.append({
-                    'type': 'flexible_currency_fallback',
-                    'confidence': max(0, confidence), # Ensure confidence is not negative
-                    'matched_amount': incoming_amount_orig_curr,
-                    'match_details': f"Flexible Fallback (diff: {amount_diff_percentage*100:.1f}%) {outgoing_amount_orig_curr} {outgoing_currency} vs {incoming_amount_orig_curr} {incoming_currency}"
-                })
-                print(f"DEBUG CBM _eval_strat: Strategy 3 (Flexible Fallback) considered. Conf: {confidence:.2f}")
+        else:
+            print(f"DEBUG CBM _eval_strat: Strategy 2 (Traditional) - Currencies differ ({outgoing_currency} vs {incoming_currency}). SKIPPING - no exchange data available.")
         
         if not matches:
             print(f"DEBUG CBM _eval_strat: No matching strategies found for this pair.")
@@ -548,9 +506,7 @@ class CrossBankMatcher:
         
         # Set exchange_amount based on strategy
         if best_match['type'] == 'exchange_amount':
-            exchange_amount = self.exchange_analyzer.get_exchange_to_amount(outgoing)
-        elif best_match['type'] == 'flexible_currency':
-            exchange_amount = incoming_amount  # For currency conversion, the incoming amount is the exchange amount
+            exchange_amount = self._get_exchange_amount_from_csv(outgoing)
         else:
             exchange_amount = incoming_amount  # Default to incoming amount
         
@@ -578,6 +534,47 @@ class CrossBankMatcher:
             transaction.get('DESCRIPTION', '') or 
             transaction.get('TYPE', '')
         )
+    
+    def _get_exchange_amount_from_csv(self, transaction: Dict) -> Optional[float]:
+        """Get exchange amount from static CSV columns only"""
+        exchange_amount_columns = [
+            'Exchange To Amount',
+            'Exchange_To_Amount', 
+            'ExchangeToAmount',
+            'exchange_to_amount',
+            'exchangetoamount'
+        ]
+        
+        for col in exchange_amount_columns:
+            if col in transaction:
+                exchange_value = transaction[col]
+                if exchange_value and str(exchange_value).strip() not in ['', 'nan', 'NaN', 'null', 'None']:
+                    try:
+                        parsed_amount = AmountParser.parse_amount(str(exchange_value))
+                        if parsed_amount != 0:
+                            return abs(parsed_amount)
+                    except (ValueError, TypeError):
+                        continue
+        return None
+    
+    def _get_exchange_currency_from_csv(self, transaction: Dict) -> Optional[str]:
+        """Get exchange currency from static CSV columns only"""
+        exchange_currency_columns = [
+            'Exchange To',
+            'Exchange_To',
+            'ExchangeTo',
+            'exchange_to',
+            'exchangetocurrency'
+        ]
+        
+        for col in exchange_currency_columns:
+            if col in transaction:
+                currency_value = transaction[col]
+                if currency_value and str(currency_value).strip() not in ['', 'nan', 'NaN', 'null', 'None']:
+                    val_str = str(currency_value).strip().upper()
+                    if len(val_str) == 3 and val_str.isalpha():
+                        return val_str
+        return None
     
     def _validate_amount_matching(self, outgoing: Dict, incoming: Dict,
                                 outgoing_amount: float, incoming_amount: float,

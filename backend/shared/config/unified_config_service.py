@@ -9,6 +9,7 @@ from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 from pathlib import Path
 import csv
+import re
 import sys
 
 # Add project root to path for imports
@@ -492,14 +493,14 @@ class UnifiedConfigService:
         
         merchant_lower = merchant.lower()
         
-        # Check categorization rules
+        # Check categorization rules with word boundary matching
         for pattern, category in bank_config.categorization_rules.items():
-            if pattern.lower() in merchant_lower:
+            if re.search(r'\b' + re.escape(pattern.lower()) + r'\b', merchant_lower):
                 return category
         
-        # Check default category rules
+        # Check default category rules with word boundary matching
         for pattern, category in bank_config.default_category_rules.items():
-            if pattern.lower() in merchant_lower:
+            if re.search(r'\b' + re.escape(pattern.lower()) + r'\b', merchant_lower):
                 return category
         
         return None

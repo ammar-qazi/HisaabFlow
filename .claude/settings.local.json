@@ -13,7 +13,12 @@
       "Bash(PYTHONPATH=. python -c \"\nfrom services.bank_header_detector import BankHeaderDetector\nprint(''✅ BankHeaderDetector imported successfully'')\n\")",
       "Bash(mv:*)",
       "Bash(pkill:*)",
-      "Bash(true)"
+      "Bash(true)",
+      "Bash(gemini:*)",
+      "Bash(PYTHONPATH=. pytest backend/tests/integration/test_multi_bank_regression.py::test_multi_bank_processing_full_pipeline -v)",
+      "Bash(PYTHONPATH=. python -m pytest backend/tests/integration/test_multi_bank_regression.py::test_multi_bank_processing_full_pipeline -v)",
+      "Bash(PYTHONPATH=. python -m pytest backend/tests/integration/test_multi_bank_regression.py -v --collect-only)",
+      "Bash(PYTHONPATH=. python -m pytest backend/tests/integration/test_multi_bank_regression.py::TestMultiBankRegressionFixes::test_full_pipeline_integration -v -s)"
     ],
     "deny": []
   }

@@ -143,7 +143,7 @@ class TestMultiBankRegressionFixes:
         
         # Assert - Check that specific regex patterns worked
         expected_cleanings = {
-            0: 'Outgoing fund transfer to Surraiya Riaz (Asaan Ac) Meezan Bank-2660|Transaction ID 679fb6a0462d384309905d16',  # No cleaning pattern for this in anonymized config
+            0: 'Outgoing fund transfer to Surraiya Riaz (Asaan Ac) Meezan Bank-2660',  # Transaction ID cleaned per config rule
             1: 'Mobile topup for Ammar Zong',  # Mobile top-up pattern
             2: 'Revolut**0540* Dublin'  # Card transaction cleanup pattern working
         }
