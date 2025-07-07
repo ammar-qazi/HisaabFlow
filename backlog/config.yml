@@ -1,8 +1,10 @@
-project_name: "hello-"
+project_name: "HisaabFlow"
 default_status: "To Do"
 statuses: ["To Do", "In Progress", "Done"]
-labels: []
+labels: ["Phase 2", "Phase 3", "Phase 4", "Phase 5", "Bug Fix", "Config", "API", "Frontend", "Backend", "High Priority", "Medium Priority", "Low Priority"]
 milestones: []
 date_format: yyyy-mm-dd
 max_column_width: 20
 backlog_directory: "backlog"
+auto_open_browser: true
+default_port: 6420
