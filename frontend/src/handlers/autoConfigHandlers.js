@@ -39,7 +39,7 @@ export const autoConfigureFile = async (fileId, bankDetection, previewData, setU
   try {
     // Load the configuration
     console.log(` DEBUG: Loading configuration: ${configName}`);
-    const configResponse = await axios.get(`${API_BASE}/api/v3/config/${encodeURIComponent(configName)}`);
+    const configResponse = await axios.get(`${API_V1_BASE}/config/${encodeURIComponent(configName)}`);
     const config = configResponse.data.config;
     
     // Auto-map columns based on detected headers

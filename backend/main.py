@@ -68,12 +68,6 @@ if ROUTERS_AVAILABLE:
     v1_router.include_router(config_router, tags=["configs"])
     
     app.include_router(v1_router, prefix="/api/v1")
-    
-    # Add direct preview route for frontend compatibility
-    app.include_router(parse_router, prefix="", tags=["preview"])
-    
-    # Add v3 compatibility routes for legacy frontend
-    app.include_router(config_router, prefix="/api/v3", tags=["legacy-v3"])
 else:
     print("[WARNING]  No API routers available - using minimal endpoints only")
 

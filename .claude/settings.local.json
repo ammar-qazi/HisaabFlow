@@ -18,7 +18,8 @@
       "Bash(PYTHONPATH=. pytest backend/tests/integration/test_multi_bank_regression.py::test_multi_bank_processing_full_pipeline -v)",
       "Bash(PYTHONPATH=. python -m pytest backend/tests/integration/test_multi_bank_regression.py::test_multi_bank_processing_full_pipeline -v)",
       "Bash(PYTHONPATH=. python -m pytest backend/tests/integration/test_multi_bank_regression.py -v --collect-only)",
-      "Bash(PYTHONPATH=. python -m pytest backend/tests/integration/test_multi_bank_regression.py::TestMultiBankRegressionFixes::test_full_pipeline_integration -v -s)"
+      "Bash(PYTHONPATH=. python -m pytest backend/tests/integration/test_multi_bank_regression.py::TestMultiBankRegressionFixes::test_full_pipeline_integration -v -s)",
+      "Bash(PYTHONPATH=. python -c \"from backend.shared.config.api_facade import APIConfigFacade; print(''APIConfigFacade works'')\")"
     ],
     "deny": []
   }
