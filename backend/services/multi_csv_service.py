@@ -11,7 +11,6 @@ from backend.bank_detection import BankDetector
 from backend.shared.config.unified_config_service import get_unified_config_service
 from backend.csv_parser import EncodingDetector
 from backend.csv_preprocessing.csv_preprocessor import CSVPreprocessor
-from backend.transfer_detection.config_manager import ConfigurationManager
 
 class MultiCSVService:
     """Service for handling multi-CSV parsing operations"""
@@ -24,12 +23,7 @@ class MultiCSVService:
         self.csv_preprocessor = CSVPreprocessor()
         self.encoding_detector = EncodingDetector() # Initialize EncodingDetector
         
-        # Initialize configuration manager for getting user_name from config
-        from pathlib import Path
-        current_file_dir = Path(__file__).resolve().parent
-        project_root = current_file_dir.parent.parent 
-        config_dir_path = project_root / "configs"
-        self.config_manager = ConfigurationManager(config_dir=str(config_dir_path))
+        # Configuration service is already initialized as self.config_service
     
     def parse_multiple_files(self, file_infos: list, parse_configs: list, 
                            enable_cleaning: bool = True, use_pydantic: bool = False):
@@ -46,7 +40,7 @@ class MultiCSVService:
             dict: Multi-CSV parsing result
         """
         # Get user_name from config instead of parameter
-        user_name = self.config_manager.get_user_name()
+        user_name = self.config_service.get_user_name()
         print(f"ℹ [MIGRATION][MultiCSVService] parse_multiple_files called for {len(file_infos)} files.")
         print(f"  User name from config: {user_name}")
         print(f"  Data cleaning enabled: {enable_cleaning}")

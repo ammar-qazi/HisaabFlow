@@ -8,7 +8,7 @@ from typing import Dict, List, Optional
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from transfer_detection.enhanced_config_manager import EnhancedConfigurationManager
+from backend.shared.config.unified_config_service import get_unified_config_service
 
 try:
     from api.models import SaveTemplateRequest
@@ -40,11 +40,11 @@ class TemplateManager:
         else:
             self.config_dir = config_dir
             
-        self.enhanced_config_manager = EnhancedConfigurationManager(self.config_dir)
+        self.config_service = get_unified_config_service(self.config_dir)
         
         print(f" TemplateManager (config-based) initialized")
         print(f"  Config dir: {config_dir}")
-        print(f" Available configs: {self.enhanced_config_manager.list_configured_banks()}")
+        print(f" Available configs: {self.config_service.list_banks()}")
         print(f" Templates are now configuration-based - no more .json files needed!")
     
     def save_template(self, request: SaveTemplateRequest) -> Dict[str, any]:
@@ -63,7 +63,7 @@ class TemplateManager:
         """List available configurations (replaces templates)"""
         try:
             # Return available bank configurations
-            available_configs = self.enhanced_config_manager.list_configured_banks()
+            available_configs = self.config_service.list_banks()
             
             # Also check for legacy template files
             legacy_templates = []
@@ -97,7 +97,7 @@ class TemplateManager:
             if bank_name:
                 print(f"[SUCCESS] Found matching bank config: {bank_name}")
                 print(f" DEBUG: Getting config for bank_name = '{bank_name}'")
-                config = self.enhanced_config_manager.get_bank_config(bank_name)
+                config = self.config_service.get_bank_config(bank_name)
                 print(f" DEBUG: Retrieved config = {config is not None}")
                 
                 # Convert to template-style format for backward compatibility
@@ -115,7 +115,7 @@ class TemplateManager:
             
             # No matching config found
             print(f"[ERROR]  No matching config found for: {template_name}")
-            available_configs = self.enhanced_config_manager.list_configured_banks()
+            available_configs = self.config_service.list_banks()
             print(f" Available configs: {available_configs}")
             
             raise HTTPException(
@@ -135,7 +135,7 @@ class TemplateManager:
         template_name_lower = template_name.lower()
         print(f" DEBUG: template_name_lower = '{template_name_lower}'")
         
-        available_banks = self.enhanced_config_manager.list_configured_banks()
+        available_banks = self.config_service.list_banks()
         print(f" DEBUG: Available banks = {available_banks}")
         
         # Direct name match first
@@ -149,10 +149,10 @@ class TemplateManager:
         # Pattern matching - check if template name contains bank patterns
         print(f" DEBUG: Trying pattern matching...")
         for bank_name in available_banks:
-            bank_config = self.enhanced_config_manager.get_bank_config(bank_name)
+            bank_config = self.config_service.get_bank_config(bank_name)
             if bank_config:
-                print(f" DEBUG: Bank {bank_name} patterns: {bank_config.file_patterns}")
-                for pattern in bank_config.file_patterns:
+                print(f" DEBUG: Bank {bank_name} patterns: {bank_config.detection_info.filename_patterns}")
+                for pattern in bank_config.detection_info.filename_patterns:
                     print(f" DEBUG: Checking pattern: '{pattern.lower()}' in '{template_name_lower}'")
                     if pattern.lower() in template_name_lower:
                         print(f" DEBUG: Pattern match found: {bank_name} (pattern: {pattern})")
@@ -196,7 +196,6 @@ class TemplateManager:
             "csv_config": {
                 "has_header": config.csv_config.has_header,
                 "skip_rows": config.csv_config.skip_rows,
-                "date_format": config.csv_config.date_format,
                 "encoding": config.csv_config.encoding
             },
             "column_mapping": config.column_mapping,
@@ -209,26 +208,14 @@ class TemplateManager:
                 "remove_invalid_rows": config.data_cleaning.remove_invalid_rows,
                 "default_currency": config.data_cleaning.default_currency
             },
-            "date_formats": config.date_formats,
+            "date_formats": config.data_cleaning.date_formats,
             "amount_parsing": {
-                "format": config.amount_parsing.format,
-                "decimal_separator": config.amount_parsing.decimal_separator,
-                "thousand_separator": config.amount_parsing.thousand_separator,
-                "currency_symbol": config.amount_parsing.currency_symbol
+                "decimal_separator": config.data_cleaning.amount_decimal_separator,
+                "thousand_separator": config.data_cleaning.amount_thousand_separator
             },
             "default_category_rules": config.default_category_rules,
             "version": "4.0",
             "source": "configuration_system"
         }
-        
-        # Add range configuration if specified
-        if config.csv_config.start_row is not None:
-            template_format["start_row"] = config.csv_config.start_row
-        if config.csv_config.end_row is not None:
-            template_format["end_row"] = config.csv_config.end_row
-        if config.csv_config.start_col is not None:
-            template_format["start_col"] = config.csv_config.start_col
-        if config.csv_config.end_col is not None:
-            template_format["end_col"] = config.csv_config.end_col
         
         return template_format

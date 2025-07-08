@@ -7,7 +7,7 @@ from typing import Dict, List, Optional
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from transfer_detection.enhanced_config_manager import EnhancedConfigurationManager
+from backend.shared.config.unified_config_service import get_unified_config_service
 
 # Import HTTPException only when needed
 try:
@@ -46,11 +46,11 @@ class ConfigManager:
                 self.config_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "configs"))
         else:
             self.config_dir = config_dir
-        self.enhanced_config_manager = EnhancedConfigurationManager(self.config_dir)
+        self.config_service = get_unified_config_service(self.config_dir)
         
         print(f" [api.ConfigManager] Initialized (no more templates!)")
         print(f"  [api.ConfigManager] Effective config directory: {self.config_dir}")
-        print(f" Available bank configurations: {self.enhanced_config_manager.list_configured_banks()}")    
+        print(f" Available bank configurations: {self.config_service.list_banks()}")    
     def save_config(self, request: SaveTemplateRequest) -> Dict[str, any]:
         """Save bank configuration (replaces save_template)"""
         print(f" Saving bank configuration: {request.template_name}")
@@ -78,13 +78,13 @@ class ConfigManager:
         print(f" [api.ConfigManager] Listing available bank configurations...")
         
         try:
-            available_configs = self.enhanced_config_manager.list_configured_banks()
-            print(f" [api.ConfigManager] Raw banks from EnhancedConfigurationManager: {available_configs}")
+            available_configs = self.config_service.list_banks()
+            print(f" [api.ConfigManager] Raw banks from UnifiedConfigService: {available_configs}")
             
             # Return user-friendly names
             config_display_names = []
             for bank_name in available_configs:
-                config = self.enhanced_config_manager.get_bank_config(bank_name)
+                config = self.config_service.get_bank_config(bank_name)
                 if config:
                     display_name = f"{config.name.title()} Configuration"
                     config_display_names.append(display_name)
@@ -111,14 +111,14 @@ class ConfigManager:
             print(f" Matched bank name: '{bank_name}'")
             
             if not bank_name:
-                available = self.enhanced_config_manager.list_configured_banks()
+                available = self.config_service.list_banks()
                 raise HTTPException(
                     status_code=404, 
                     detail=f"Configuration '{config_name}' not found. Available: {available}"
                 )
             
             # Load the configuration
-            config = self.enhanced_config_manager.get_bank_config(bank_name)
+            config = self.config_service.get_bank_config(bank_name)
             if not config:
                 raise HTTPException(
                     status_code=500, 
@@ -150,7 +150,7 @@ class ConfigManager:
         print(f" Finding bank name for: '{config_name}'")
         
         config_name_lower = config_name.lower()
-        available_banks = self.enhanced_config_manager.list_configured_banks()
+        available_banks = self.config_service.list_banks()
         
         # Direct bank name match
         if config_name_lower in [bank.lower() for bank in available_banks]:
@@ -168,9 +168,9 @@ class ConfigManager:
         
         # Pattern matching
         for bank_name in available_banks:
-            config = self.enhanced_config_manager.get_bank_config(bank_name)
+            config = self.config_service.get_bank_config(bank_name)
             if config:
-                for pattern in config.file_patterns:
+                for pattern in config.detection_info.filename_patterns:
                     if pattern.lower() in config_name_lower:
                         print(f"[SUCCESS] Pattern match: {bank_name} (pattern: {pattern})")
                         return bank_name
@@ -184,10 +184,10 @@ class ConfigManager:
         
         frontend_config = {
             # Range settings
-            "start_row": getattr(config.csv_config, 'start_row', 0),
-            "end_row": getattr(config.csv_config, 'end_row', None),
-            "start_col": getattr(config.csv_config, 'start_col', 0),
-            "end_col": getattr(config.csv_config, 'end_col', None),
+            "start_row": 0,
+            "end_row": None,
+            "start_col": 0,
+            "end_col": None,
             
             # Column mapping
             "column_mapping": config.column_mapping,
@@ -198,7 +198,7 @@ class ConfigManager:
             "account": config.cashew_account,
             
             # Advanced settings (for future use)
-            "categorization_rules": getattr(config, 'categorization_rules', {}),
+            "categorization_rules": config.categorization_rules,
             "default_category_rules": config.default_category_rules,
             "account_mapping": config.account_mapping,
             "data_cleaning": {
