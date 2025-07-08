@@ -8,7 +8,7 @@ from decimal import Decimal
 from backend.csv_parser import UnifiedCSVParser
 from backend.data_cleaner import DataCleaner
 from backend.bank_detection import BankDetector
-from backend.shared.config.bank_detection_facade import BankDetectionFacade
+from backend.shared.config.unified_config_service import get_unified_config_service
 from backend.csv_parser import EncodingDetector
 from backend.csv_preprocessing.csv_preprocessor import CSVPreprocessor
 from backend.transfer_detection.config_manager import ConfigurationManager
@@ -19,8 +19,8 @@ class MultiCSVService:
     def __init__(self):
         self.unified_parser = UnifiedCSVParser() # New parser instance
         self.data_cleaner = DataCleaner()
-        self.bank_config_manager = BankDetectionFacade()
-        self.bank_detector = BankDetector(self.bank_config_manager)
+        self.config_service = get_unified_config_service()
+        self.bank_detector = BankDetector(self.config_service)
         self.csv_preprocessor = CSVPreprocessor()
         self.encoding_detector = EncodingDetector() # Initialize EncodingDetector
         
@@ -117,7 +117,7 @@ class MultiCSVService:
                 data_type_for_response = 'dict'
 
                 if use_pydantic and bank_info_pydantic.bank_name != 'unknown':
-                    column_mapping = self.bank_config_manager.get_column_mapping(bank_info_pydantic.bank_name)
+                    column_mapping = self.config_service.get_column_mapping(bank_info_pydantic.bank_name)
                     if column_mapping:
                         try:
                             pydantic_data = self._map_to_pydantic_rows(final_data_for_response, column_mapping)
@@ -222,10 +222,25 @@ class MultiCSVService:
             detected_bank_name = bank_detection_result.bank_name
             print(f" Tentatively detected bank: {detected_bank_name} (confidence: {bank_detection_result.confidence:.2f})")
 
-            bank_csv_config = self.bank_config_manager.get_csv_config(detected_bank_name)
-            bank_config_header_row = bank_csv_config.get('header_row')
-            # 'data_start_row' from get_csv_config is guaranteed to be header_row + 1 or more
-            bank_config_data_start_row = bank_csv_config.get('data_start_row')
+            bank_csv_config = self.config_service.get_csv_config(detected_bank_name)
+            
+            # Get header_row and data_start_row from full bank config (not in CSVConfig object)
+            full_bank_config = self.config_service.get_bank_config(detected_bank_name)
+            bank_config_header_row = None
+            bank_config_data_start_row = None
+            
+            if full_bank_config:
+                # These values might be in the CSV config section - use legacy facade temporarily
+                try:
+                    from backend.shared.config.bank_detection_facade import BankDetectionFacade
+                    temp_facade = BankDetectionFacade()
+                    legacy_csv_config = temp_facade.get_csv_config(detected_bank_name)
+                    bank_config_header_row = legacy_csv_config.get('header_row')
+                    bank_config_data_start_row = legacy_csv_config.get('data_start_row') 
+                except Exception as e:
+                    print(f"[WARNING] Could not get header_row/data_start_row from config: {e}")
+                    bank_config_header_row = None
+                    bank_config_data_start_row = None
 
             print(f"  Bank-specific config for {detected_bank_name}: header_row={bank_config_header_row}, data_start_row={bank_config_data_start_row}")
 
@@ -240,9 +255,16 @@ class MultiCSVService:
             # Prioritize dynamic detection if preprocessing was applied or if bank config doesn't have a fixed header_row
             elif preprocessing_applied or bank_config_header_row is None:
                 print(f"  Preprocessing applied ({preprocessing_applied}) or bank_config_header_row is None. Attempting dynamic header detection on file '{os.path.basename(file_path)}' using BankConfigManager for {detected_bank_name}.")
-                header_detection_cfg_result = self.bank_config_manager.detect_header_row(
-                    file_path, detected_bank_name, file_encoding
-                )
+                # Use temporary facade for header detection until implemented in UnifiedConfigService
+                try:
+                    from backend.shared.config.bank_detection_facade import BankDetectionFacade
+                    temp_facade = BankDetectionFacade()
+                    header_detection_cfg_result = temp_facade.detect_header_row(
+                        file_path, detected_bank_name, file_encoding
+                    )
+                except Exception as e:
+                    print(f"[WARNING] Header detection failed: {e}")
+                    header_detection_cfg_result = {'success': False, 'error': str(e)}
                 if header_detection_cfg_result['success'] and header_detection_cfg_result.get('header_row') is not None:
                     effective_header_row = header_detection_cfg_result['header_row']
                     effective_data_start_row = header_detection_cfg_result['data_start_row']
@@ -290,7 +312,14 @@ class MultiCSVService:
         """DEPRECATED: Find headers dynamically. BankConfigManager.detect_header_row is preferred."""
         print(f"[WARNING] [MultiCSVService] _find_headers_dynamically is deprecated and should not be called directly. Using BankConfigManager.detect_header_row instead.")
         # Fallback to BankConfigManager's method if somehow called.
-        header_detection_result = self.bank_config_manager.detect_header_row(file_path, bank_name, config.get('encoding', 'utf-8'))
+        # Use temporary facade for header detection
+        try:
+            from backend.shared.config.bank_detection_facade import BankDetectionFacade
+            temp_facade = BankDetectionFacade()
+            header_detection_result = temp_facade.detect_header_row(file_path, bank_name, config.get('encoding', 'utf-8'))
+        except Exception as e:
+            print(f"[WARNING] Header detection failed: {e}")
+            header_detection_result = {'success': False, 'error': str(e)}
         if header_detection_result['success']:
             return header_detection_result['header_row'], header_detection_result['data_start_row']
         return config.get('header_row'), config.get('start_row', config.get('header_row', 0) + 1 if config.get('header_row') is not None else 1)
@@ -363,12 +392,17 @@ class MultiCSVService:
             # Create bank-specific cleaning config
             bank_cleaning_config = None
             if bank_info['detected_bank'] != 'unknown':
-                bank_column_mapping = self.bank_config_manager.get_column_mapping(bank_info['detected_bank'])
-                bank_csv_cfg = self.bank_config_manager.get_csv_config(bank_info['detected_bank'])
+                bank_column_mapping = self.config_service.get_column_mapping(bank_info['detected_bank'])
+                # Get expected headers from bank detection info instead of CSV config
+                detection_patterns = self.config_service.get_detection_patterns()
+                expected_headers = []
+                if bank_info['detected_bank'] in detection_patterns:
+                    expected_headers = detection_patterns[bank_info['detected_bank']].required_headers
+                
                 bank_cleaning_config = {
                     'column_mapping': bank_column_mapping,
                     'bank_name': bank_info['detected_bank'],
-                    'expected_headers': bank_csv_cfg.get('expected_headers', []) # Pass expected_headers
+                    'expected_headers': expected_headers # Pass expected_headers from detection info
                 }
                 print(f" Using bank-specific cleaning config for {bank_info['detected_bank']}: {bank_cleaning_config}")
             

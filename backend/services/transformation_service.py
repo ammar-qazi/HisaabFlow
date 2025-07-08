@@ -6,7 +6,6 @@ import json
 
 from backend.services.cashew_transformer import CashewTransformer
 from backend.bank_detection import BankDetector
-from backend.shared.config.bank_detection_facade import BankDetectionFacade
 from backend.transfer_detection.main_detector import TransferDetector
 from backend.shared.config.unified_config_service import get_unified_config_service
 
@@ -15,8 +14,8 @@ class TransformationService:
     
     def __init__(self):
         self.transformer = CashewTransformer() # New transformer instance
-        self.bank_config_manager = BankDetectionFacade()
-        self.bank_detector = BankDetector(self.bank_config_manager)
+        self.config_service = get_unified_config_service()
+        self.bank_detector = BankDetector(self.config_service)
 
         # Determine the config directory path.
         # This should ideally be an absolute path or a path reliably relative to the project root.
@@ -300,12 +299,21 @@ class TransformationService:
             
             if detected_bank and detected_bank != 'unknown':
                 try:
-                    bank_config = self.bank_config_manager.get_bank_config(detected_bank)
+                    bank_config = self.config_service.get_bank_config(detected_bank)
                     if bank_config:
-                        # Convert ConfigParser to dict for easier access
-                        config_dict = {}
-                        for section in bank_config.sections():
-                            config_dict[section] = dict(bank_config.items(section))
+                        # Convert UnifiedBankConfig to dict structure for compatibility
+                        config_dict = {
+                            'bank_info': {
+                                'name': bank_config.name,
+                                'display_name': bank_config.display_name,
+                                'cashew_account': bank_config.cashew_account,
+                                'currency_primary': bank_config.currency_primary
+                            },
+                            'column_mapping': bank_config.column_mapping,
+                            'account_mapping': bank_config.account_mapping,
+                            'categorization': bank_config.categorization_rules,
+                            'default_category_rules': bank_config.default_category_rules
+                        }
                         configs[detected_bank] = config_dict
                         print(f"    Loaded config for {detected_bank}")
                 except Exception as e:
@@ -338,11 +346,11 @@ class TransformationService:
             detected_bank = bank_info.get('bank_name', bank_info.get('detected_bank'))
         if detected_bank and detected_bank != 'unknown':
             try:
-                bank_config = self.bank_config_manager.get_bank_config(detected_bank)
-                if bank_config and bank_config.has_section('bank_info'):
+                bank_config = self.config_service.get_bank_config(detected_bank)
+                if bank_config:
                     # Check if this bank uses account mapping (multi-currency) or single cashew_account
-                    has_account_mapping = bank_config.has_section('account_mapping')
-                    cashew_account = bank_config.get('bank_info', 'cashew_account', fallback=None)
+                    has_account_mapping = bool(bank_config.account_mapping)
+                    cashew_account = bank_config.cashew_account
                     
                     if cashew_account:
                         # Single account bank (like NayaPay, Erste)
@@ -377,8 +385,8 @@ class TransformationService:
             return base_account_name
         
         try:
-            bank_config = self.bank_config_manager.get_bank_config(detected_bank)
-            if bank_config and bank_config.has_section('account_mapping'):
+            bank_config = self.config_service.get_bank_config(detected_bank)
+            if bank_config and bank_config.account_mapping:
                 # Get currency from row - check multiple possible field names
                 currency = row.get('Currency', row.get('currency', row.get('CURRENCY', '')))
                 currency = currency.strip() if currency else ''
@@ -389,7 +397,7 @@ class TransformationService:
                 
                 if currency:
                     # Map currency to account name (case-insensitive lookup)
-                    account_mapping = dict(bank_config.items('account_mapping'))
+                    account_mapping = bank_config.account_mapping
                     print(f"      [DEBUG] Available account mappings: {account_mapping}")
                     
                     # Try case-insensitive lookup
@@ -474,7 +482,7 @@ class TransformationService:
                 if detected_bank and detected_bank != 'unknown':
                     # Get expected account name for this bank and check if it matches
                     try:
-                        bank_config = self.bank_config_manager.get_bank_config(detected_bank)
+                        bank_config = self.config_service.get_bank_config(detected_bank)
                         if bank_config and bank_config.has_section('bank_info'):
                             cashew_account = bank_config.get('bank_info', 'cashew_account', fallback=None)
                             has_account_mapping = bank_config.has_section('account_mapping')
@@ -710,7 +718,7 @@ class TransformationService:
                     detected_bank = csv_bank_info.get('bank_name', csv_bank_info.get('detected_bank'))
                     if detected_bank and detected_bank != 'unknown':
                         try:
-                            bank_config = self.bank_config_manager.get_bank_config(detected_bank)
+                            bank_config = self.config_service.get_bank_config(detected_bank)
                             if bank_config and bank_config.has_section('bank_info'):
                                 cashew_account = bank_config.get('bank_info', 'cashew_account', fallback='')
                                 if cashew_account == account:

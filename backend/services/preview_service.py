@@ -4,7 +4,7 @@ Preview service for CSV files with bank-aware header detection
 from typing import Optional
 from backend.csv_parser import UnifiedCSVParser
 from backend.bank_detection import BankDetector
-from backend.shared.config.bank_detection_facade import BankDetectionFacade
+from backend.shared.config.unified_config_service import get_unified_config_service
 
 
 class PreviewService:
@@ -12,8 +12,8 @@ class PreviewService:
     
     def __init__(self):
         self.unified_parser = UnifiedCSVParser()
-        self.bank_config_manager = BankDetectionFacade()
-        self.bank_detector = BankDetector(self.bank_config_manager)
+        self.config_service = get_unified_config_service()
+        self.bank_detector = BankDetector(self.config_service)
     
     def preview_csv_file(self, file_path: str, filename: str, encoding: Optional[str] = None, header_row: Optional[int] = None):
         """
@@ -82,9 +82,17 @@ class PreviewService:
             
             if bank_detection.bank_name != 'unknown' and bank_detection.confidence >= 0.5:
                 print(f" Step 2: Using bank-specific header detection for {bank_detection.bank_name}")
-                header_detection_result = self.bank_config_manager.detect_header_row(
-                    file_path, bank_detection.bank_name, effective_encoding
-                )
+                # Use UnifiedConfigService for header detection through facade-like method
+                # Note: This functionality may need to be implemented in UnifiedConfigService if not available
+                try:
+                    from backend.shared.config.bank_detection_facade import BankDetectionFacade
+                    temp_facade = BankDetectionFacade()
+                    header_detection_result = temp_facade.detect_header_row(
+                        file_path, bank_detection.bank_name, effective_encoding
+                    )
+                except Exception as e:
+                    print(f"[WARNING] Header detection failed: {e}")
+                    header_detection_result = {'success': False, 'error': str(e)}
                 
                 if header_detection_result['success']:
                     detected_header_row = header_detection_result['header_row']

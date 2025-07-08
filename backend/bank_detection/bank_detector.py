@@ -3,15 +3,15 @@ Bank detector for identifying bank type from CSV files
 """
 import re
 from typing import Any, Dict, List, Tuple
-from backend.shared.config.bank_detection_facade import BankDetectionFacade
+from backend.shared.config.unified_config_service import get_unified_config_service, BankDetectionInfo
 from backend.models.csv_models import BankDetectionResult
 
 class BankDetector:
     """Detects bank type from CSV files using content signatures and header analysis"""
     
-    def __init__(self, config_manager: BankDetectionFacade = None):
-        self.config_manager = config_manager or BankDetectionFacade()
-        self.detection_patterns = self.config_manager.get_detection_patterns()
+    def __init__(self, config_service=None):
+        self.config_service = config_service or get_unified_config_service()
+        self.detection_patterns = self.config_service.get_detection_patterns()
         
         print(f" BankDetector initialized with {len(self.detection_patterns)} bank patterns")
     
@@ -52,25 +52,25 @@ class BankDetector:
             return BankDetectionResult(bank_name='unknown', confidence=0.0, reasons=['No patterns matched'])
     
     def _calculate_confidence(self, filename: str, content: str, headers: List[str], 
-                            patterns: Dict[str, Any]) -> Tuple[float, List[str]]:
+                            patterns: BankDetectionInfo) -> Tuple[float, List[str]]:
         """Calculate confidence score for a bank pattern"""
         confidence = 0.0
         reasons = []
         
         # 1. Filename pattern matching (20% weight)
-        filename_score = self._check_filename_patterns(filename, patterns.get('filename_patterns', []))
+        filename_score = self._check_filename_patterns(filename, patterns.filename_patterns)
         if filename_score > 0:
             confidence += filename_score * 0.2
             reasons.append(f"filename_match({filename_score:.1f})")
         
         # 2. Content signature matching (40% weight)
-        content_score = self._check_content_signatures(content, patterns.get('content_signatures', []))
+        content_score = self._check_content_signatures(content, patterns.content_signatures)
         if content_score > 0:
             confidence += content_score * 0.4
             reasons.append(f"content_signature({content_score:.1f})")
         
         # 3. Header matching (40% weight)
-        header_score = self._check_header_patterns(headers, patterns.get('required_headers', []))
+        header_score = self._check_header_patterns(headers, patterns.required_headers)
         if header_score > 0:
             confidence += header_score * 0.4
             reasons.append(f"header_match({header_score:.1f})")
@@ -191,4 +191,4 @@ class BankDetector:
     
     def get_available_banks(self) -> List[str]:
         """Get list of available bank names"""
-        return self.config_manager.get_available_banks()
+        return self.config_service.list_banks()

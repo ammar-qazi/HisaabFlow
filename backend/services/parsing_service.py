@@ -4,7 +4,7 @@ Parsing service for single CSV file operations
 from backend.csv_parser import UnifiedCSVParser
 from backend.data_cleaner import DataCleaner
 from backend.bank_detection import BankDetector
-from backend.shared.config.bank_detection_facade import BankDetectionFacade
+from backend.shared.config.unified_config_service import get_unified_config_service
 
 
 class ParseConfig:
@@ -25,8 +25,8 @@ class ParsingService:
     def __init__(self):
         self.unified_parser = UnifiedCSVParser() # New parser instance
         self.data_cleaner = DataCleaner()
-        self.bank_config_manager = BankDetectionFacade()
-        self.bank_detector = BankDetector(self.bank_config_manager)
+        self.config_service = get_unified_config_service()
+        self.bank_detector = BankDetector(self.config_service)
         print(f"ℹ [MIGRATION][ParsingService] Initialized with UnifiedCSVParser.")
     
     def parse_single_file(self, file_path: str, filename: str, config: ParseConfig):
@@ -98,7 +98,7 @@ class ParsingService:
                 # Create bank-specific cleaning config
                 bank_cleaning_config = None
                 if bank_info['detected_bank'] != 'unknown':
-                    bank_column_mapping = self.bank_config_manager.get_column_mapping(bank_info['detected_bank'])
+                    bank_column_mapping = self.config_service.get_column_mapping(bank_info['detected_bank'])
                     bank_cleaning_config = {
                         'column_mapping': bank_column_mapping,
                         'bank_name': bank_info['detected_bank']
