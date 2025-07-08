@@ -321,25 +321,25 @@ class TestCategorizationRegression:
             f"Shell Petrol Station should be categorized as Transport, got '{shell_petrol_transaction['Category']}'"
         )
         
-        # Test 2: Shell Petrol... should be Transport (not Shopping)
+        # Test 2: Shell Petrol... should be Transport (not Electronics)
         shell_petrol_ellipsis = next((tx for tx in result if 'Shell Petrol...' in tx.get('Title', '')), None)
         assert shell_petrol_ellipsis is not None, "Shell Petrol... transaction should be found"
         assert shell_petrol_ellipsis['Category'] == 'Transport', (
-            f"Shell Petrol... should be categorized as Transport (not Shopping), got '{shell_petrol_ellipsis['Category']}'"
+            f"Shell Petrol... should be categorized as Transport (not Electronics), got '{shell_petrol_ellipsis['Category']}'"
         )
         
-        # Test 3: Electronics Store Purchase should be Shopping
+        # Test 3: Electronics Store Purchase should be Electronics
         electronics_transaction = next((tx for tx in result if 'Electronics Store' in tx.get('Title', '')), None)
         assert electronics_transaction is not None, "Electronics Store transaction should be found"
-        assert electronics_transaction['Category'] == 'Shopping', (
-            f"Electronics Store should be categorized as Shopping, got '{electronics_transaction['Category']}'"
+        assert electronics_transaction['Category'] == 'Electronics', (
+            f"Electronics Store should be categorized as Electronics, got '{electronics_transaction['Category']}'"
         )
         
         # Test 4: Shell Station should NOT match Electronics (should stay as original category or get Transport)
         shell_station = next((tx for tx in result if 'Shell Station' in tx.get('Title', '')), None)
         assert shell_station is not None, "Shell Station transaction should be found"
-        assert shell_station['Category'] != 'Shopping', (
-            f"Shell Station should NOT be categorized as Shopping (from Electronics match), got '{shell_station['Category']}'"
+        assert shell_station['Category'] != 'Electronics', (
+            f"Shell Station should NOT be categorized as Electronics (from Electronics match), got '{shell_station['Category']}'"
         )
     
     def test_word_boundary_matching_edge_cases(self):
@@ -392,23 +392,23 @@ class TestCategorizationRegression:
         # Assert - Check word boundary matching behavior
         assert len(result) == 3, "Expected 3 transactions in result"
         
-        # Test 1: Shell Electronics - should match Electronics (Shopping), not based on Shell
+        # Test 1: Shell Electronics - should match Electronics (Electronics), not based on Shell
         shell_electronics = next((tx for tx in result if 'Shell Electronics' in tx.get('Title', '')), None)
         assert shell_electronics is not None, "Shell Electronics transaction should be found"
-        assert shell_electronics['Category'] == 'Shopping', (
-            f"Shell Electronics should be categorized as Shopping (Electronics match), got '{shell_electronics['Category']}'"
+        assert shell_electronics['Category'] == 'Electronics', (
+            f"Shell Electronics should be categorized as Electronics (Electronics match), got '{shell_electronics['Category']}'"
         )
         
         # Test 2: ELECTRONICS store - should match Electronics (case insensitive)
         electronics_upper = next((tx for tx in result if 'ELECTRONICS store' in tx.get('Title', '')), None)
         assert electronics_upper is not None, "ELECTRONICS store transaction should be found"
-        assert electronics_upper['Category'] == 'Shopping', (
-            f"ELECTRONICS store should be categorized as Shopping, got '{electronics_upper['Category']}'"
+        assert electronics_upper['Category'] == 'Electronics', (
+            f"ELECTRONICS store should be categorized as Electronics, got '{electronics_upper['Category']}'"
         )
         
         # Test 3: Microelectronics - should NOT match Electronics (no word boundary)
         microelectronics = next((tx for tx in result if 'Microelectronics' in tx.get('Title', '')), None)
         assert microelectronics is not None, "Microelectronics transaction should be found"
-        assert microelectronics['Category'] != 'Shopping', (
-            f"Microelectronics should NOT be categorized as Shopping (no word boundary), got '{microelectronics['Category']}'"
+        assert microelectronics['Category'] != 'Electronics', (
+            f"Microelectronics should NOT be categorized as Electronics (no word boundary), got '{microelectronics['Category']}'"
         )

@@ -483,9 +483,9 @@ class TransformationService:
                     # Get expected account name for this bank and check if it matches
                     try:
                         bank_config = self.config_service.get_bank_config(detected_bank)
-                        if bank_config and bank_config.has_section('bank_info'):
-                            cashew_account = bank_config.get('bank_info', 'cashew_account', fallback=None)
-                            has_account_mapping = bank_config.has_section('account_mapping')
+                        if bank_config:
+                            cashew_account = bank_config.cashew_account
+                            has_account_mapping = bool(bank_config.account_mapping)
                             print(f"          Bank config cashew_account: '{cashew_account}'")
                             
                             # Check if this transaction's account matches this bank's account
@@ -496,7 +496,7 @@ class TransformationService:
                                 print(f"          [MATCH] Account '{account}' matches cashew_account '{cashew_account}'")
                             elif has_account_mapping:
                                 # Multi-currency bank - check account_mapping
-                                account_mapping = dict(bank_config.items('account_mapping'))
+                                account_mapping = bank_config.account_mapping
                                 if account in account_mapping.values():
                                     account_matches = True
                                     print(f"          [MATCH] Account '{account}' found in account_mapping")
@@ -719,8 +719,8 @@ class TransformationService:
                     if detected_bank and detected_bank != 'unknown':
                         try:
                             bank_config = self.config_service.get_bank_config(detected_bank)
-                            if bank_config and bank_config.has_section('bank_info'):
-                                cashew_account = bank_config.get('bank_info', 'cashew_account', fallback='')
+                            if bank_config:
+                                cashew_account = bank_config.cashew_account or ''
                                 if cashew_account == account:
                                     bank_info = csv_bank_info
                                     break
