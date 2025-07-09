@@ -84,17 +84,20 @@ class MultiCSVService:
                     # It's a dictionary - use dictionary merging
                     current_config = {**config, 'encoding': effective_encoding}
                 
-                # Step 2: Generic CSV preprocessing
-                preprocessing_result = self._apply_preprocessing(file_path, current_config)
+                # Step 2: Quick bank detection for preprocessing decisions
+                quick_bank_detection = self._quick_bank_detection(filename)
                 
-                # Step 3: Bank detection and header finding
+                # Step 3: Generic CSV preprocessing (conditional)
+                preprocessing_result = self._apply_preprocessing(file_path, current_config, quick_bank_detection)
+                
+                # Step 4: Bank detection and header finding
                 bank_detection, header_info = self._detect_bank_and_headers(
                     preprocessing_result['file_path'], filename, current_config,
                     effective_encoding, # Pass effective_encoding
                     preprocessing_result['info']['applied'] # Pass preprocessing status
                 )
                 
-                # Step 4: Parse with enhanced parser
+                # Step 5: Parse with enhanced parser
                 parse_result = self._parse_with_bank_info(
                     preprocessing_result['file_path'], current_config, header_info # Pass current_config
                 )
@@ -103,7 +106,7 @@ class MultiCSVService:
                 if not parse_result['success']:
                     raise Exception(f"Failed to parse {filename}: {parse_result.get('error', 'Unknown error')}")
                 
-                # Step 4: Final bank detection on parsed data
+                # Step 6: Final bank detection on parsed data
                 final_bank_info = self._finalize_bank_detection( # Renamed from Step 4 to Step 5
                     filename, parse_result, bank_detection, preprocessing_result['info']
                 )
@@ -165,16 +168,52 @@ class MultiCSVService:
                 "error": str(e)
             }
     
-    def _apply_preprocessing(self, file_path: str, config: dict):
+    def _quick_bank_detection(self, filename: str) -> dict:
+        """Quick filename-based bank detection for preprocessing decisions"""
+        # Simple filename-based detection to determine preprocessing strategy
+        bank_result = self.bank_detector.detect_bank(filename, "", [])
+        
+        if bank_result.bank_name != 'unknown' and bank_result.confidence >= 0.1:
+            try:
+                # Check if this bank uses header_row_absolute
+                from backend.shared.config.bank_detection_facade import BankDetectionFacade
+                temp_facade = BankDetectionFacade()
+                csv_config = temp_facade.get_csv_config(bank_result.bank_name)
+                uses_absolute_positioning = csv_config.get('header_row_absolute') is not None
+                
+                return {
+                    'bank_name': bank_result.bank_name,
+                    'confidence': bank_result.confidence,
+                    'uses_absolute_positioning': uses_absolute_positioning
+                }
+            except Exception:
+                pass
+        
+        return {
+            'bank_name': 'unknown',
+            'confidence': 0.0,
+            'uses_absolute_positioning': False
+        }
+    
+    def _apply_preprocessing(self, file_path: str, config: dict, quick_detection: dict = None):
         """Apply generic CSV preprocessing"""
         print(f" Step 1: Generic CSV preprocessing (bank-agnostic)")
+        
+        # Check if we should skip empty row removal for absolute positioning banks
+        skip_empty_row_removal = False
+        if quick_detection and quick_detection.get('uses_absolute_positioning', False):
+            skip_empty_row_removal = True
+            print(f" Using bank-aware preprocessing for {quick_detection['bank_name']} (preserving empty rows)")
+        else:
+            print(f" Using bank-agnostic CSV preprocessing (bank_type 'generic' ignored)")
         
         # Apply generic CSV preprocessing (fixes multiline fields, encoding, etc.)
         # Ensure the preprocessor uses the provided encoding from config
         preprocessing_result = self.csv_preprocessor.preprocess_csv(
             file_path, 
             'generic',  # Bank-agnostic preprocessing
-            config.encoding # Use the effective_encoding from the config
+            config.encoding, # Use the effective_encoding from the config
+            skip_empty_row_removal=skip_empty_row_removal
         )
         
         # Use preprocessed file if successful, otherwise use original
@@ -201,7 +240,7 @@ class MultiCSVService:
     
     def _detect_bank_and_headers(self, file_path: str, filename: str, current_file_config: dict, file_encoding: str, preprocessing_applied: bool):
         """Detect bank and determine effective header_row and data_start_row, considering preprocessing."""
-        print(f" Step 2: Detecting bank and headers for {filename} with encoding {file_encoding}")
+        print(f" Step 4: Detecting bank and headers for {filename} with encoding {file_encoding}")
 
         # ParseConfig model uses start_row as header row, not header_row
         user_header_row = current_file_config.start_row
@@ -233,33 +272,39 @@ class MultiCSVService:
 
             bank_csv_config = self.config_service.get_csv_config(detected_bank_name)
             
-            # Get header_row and data_start_row from full bank config (not in CSVConfig object)
-            full_bank_config = self.config_service.get_bank_config(detected_bank_name)
-            bank_config_header_row = None
-            bank_config_data_start_row = None
-            
-            if full_bank_config:
-                # These values might be in the CSV config section - use legacy facade temporarily
-                try:
-                    from backend.shared.config.bank_detection_facade import BankDetectionFacade
-                    temp_facade = BankDetectionFacade()
-                    legacy_csv_config = temp_facade.get_csv_config(detected_bank_name)
+            # Get header_row configuration from bank config
+            try:
+                from backend.shared.config.bank_detection_facade import BankDetectionFacade
+                temp_facade = BankDetectionFacade()
+                legacy_csv_config = temp_facade.get_csv_config(detected_bank_name)
+                
+                # Check for new simple approach first
+                header_row_absolute = legacy_csv_config.get('header_row_absolute')
+                data_start_row_absolute = legacy_csv_config.get('data_start_row_absolute')
+                
+                if header_row_absolute is not None:
+                    # New simple approach - use absolute positioning
+                    effective_header_row = header_row_absolute
+                    effective_data_start_row = data_start_row_absolute
+                    print(f"  Bank-specific config for {detected_bank_name}: header_row_absolute={header_row_absolute}, data_start_row_absolute={data_start_row_absolute}")
+                    print(f"  Using bank-specific absolute positioning: header_row={effective_header_row}, data_start_row={effective_data_start_row} from {detected_bank_name} config")
+                else:
+                    # Legacy approach
                     bank_config_header_row = legacy_csv_config.get('header_row')
-                    bank_config_data_start_row = legacy_csv_config.get('data_start_row') 
-                except Exception as e:
-                    print(f"[WARNING] Could not get header_row/data_start_row from config: {e}")
-                    bank_config_header_row = None
-                    bank_config_data_start_row = None
+                    bank_config_data_start_row = legacy_csv_config.get('data_start_row')
+                    print(f"  Bank-specific config for {detected_bank_name}: header_row={bank_config_header_row}, data_start_row={bank_config_data_start_row}")
+                    
+                    if bank_config_header_row is not None:
+                        effective_header_row = bank_config_header_row
+                        effective_data_start_row = bank_config_data_start_row
+                        print(f"  Using bank-specific header_row: {effective_header_row}, data_start_row: {effective_data_start_row} from {detected_bank_name} config")
+            except Exception as e:
+                print(f"[WARNING] Could not get header_row configuration from config: {e}")
+                bank_config_header_row = None
+                bank_config_data_start_row = None
 
-            print(f"  Bank-specific config for {detected_bank_name}: header_row={bank_config_header_row}, data_start_row={bank_config_data_start_row}")
-
-            # Priority 1: Use bank-specific configuration if available (most reliable)
-            if bank_config_header_row is not None:
-                effective_header_row = bank_config_header_row
-                effective_data_start_row = bank_config_data_start_row
-                print(f"  Using bank-specific header_row: {effective_header_row}, data_start_row: {effective_data_start_row} from {detected_bank_name} config")
-            # Priority 2: Use user-provided configuration if no bank config
-            elif user_header_row is not None:
+            # Priority 2: Use user-provided configuration if no bank config  
+            if effective_header_row is None and user_header_row is not None:
                 effective_header_row = user_header_row
                 print(f"  Using user-provided header_row: {effective_header_row}")
                 if user_data_start_row is not None: # User also provided data_start_row
@@ -267,7 +312,7 @@ class MultiCSVService:
                 elif effective_header_row is not None: # User provided header_row, derive data_start_row
                     effective_data_start_row = effective_header_row + 1
             # Priority 3: Dynamic detection if preprocessing was applied or as fallback
-            else:
+            if effective_header_row is None:
                 print(f"  No bank config or user config found. Attempting dynamic header detection on file '{os.path.basename(file_path)}' using BankConfigManager for {detected_bank_name}.")
                 # Use temporary facade for header detection until implemented in UnifiedConfigService
                 try:
@@ -369,7 +414,7 @@ class MultiCSVService:
     def _finalize_bank_detection(self, filename: str, parse_result: dict, 
                                 bank_detection, preprocessing_info: dict):
         """Finalize bank detection on parsed data"""
-        print(f" Step 4: Final bank detection on parsed data for {filename}")
+        print(f" Step 6: Final bank detection on parsed data for {filename}")
         
         detection_result = self.bank_detector.detect_bank_from_data(
             filename, 

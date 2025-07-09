@@ -79,13 +79,14 @@ def _extract_headers(normalized_rows: List[List[str]], header_row: Optional[int]
 
 def _extract_data_rows(normalized_rows: List[List[str]], header_row: Optional[int]) -> Dict:
     """
-    Extract data rows (excluding header row)
+    Extract data rows (excluding header row) with row mapping tracking
     """
     if not normalized_rows:
         return {
             'data_rows': [],
             'skipped_header': False,
-            'empty_rows_filtered': 0
+            'empty_rows_filtered': 0,
+            'row_mapping': {}
         }
     
     data_start_row = 0
@@ -99,12 +100,20 @@ def _extract_data_rows(normalized_rows: List[List[str]], header_row: Optional[in
     
     data_rows = []
     empty_rows_filtered = 0
+    row_mapping = {}  # Maps processed row index to original row index
+    processed_row_index = 0
     
-    for row in raw_data_rows:
+    for original_row_index, row in enumerate(raw_data_rows):
+        original_absolute_index = data_start_row + original_row_index
+        
         if any(cell.strip() for cell in row):
             data_rows.append(row)
+            row_mapping[processed_row_index] = original_absolute_index
+            processed_row_index += 1
         else:
             empty_rows_filtered += 1
+            # Track empty rows in mapping for debugging
+            # row_mapping[f"empty_{empty_rows_filtered}"] = original_absolute_index
     
     return {
         'data_rows': data_rows,
@@ -112,7 +121,8 @@ def _extract_data_rows(normalized_rows: List[List[str]], header_row: Optional[in
         'skipped_header': skipped_header,
         'empty_rows_filtered': empty_rows_filtered,
         'original_data_rows': len(raw_data_rows),
-        'final_data_rows': len(data_rows)
+        'final_data_rows': len(data_rows),
+        'row_mapping': row_mapping
     }
 
 def _convert_to_dictionaries(headers: List[str], data_rows: List[List[str]]) -> List[Dict]:

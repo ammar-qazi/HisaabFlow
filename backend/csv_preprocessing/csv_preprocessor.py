@@ -24,7 +24,7 @@ class GenericCSVPreprocessor:
     def __init__(self):
         self.debug = True
         
-    def preprocess_csv(self, file_path: str, encoding: str = 'utf-8') -> Dict:
+    def preprocess_csv(self, file_path: str, encoding: str = 'utf-8', skip_empty_row_removal: bool = False) -> Dict:
         """
         Generic CSV preprocessing that works for any bank
         
@@ -58,8 +58,11 @@ class GenericCSVPreprocessor:
             # Step 4: Fix multiline fields (the main issue)
             cleaned_content = self._fix_multiline_fields(cleaned_content, issues_fixed)
             
-            # Step 5: Clean up empty rows and basic structure
-            cleaned_content = self._cleanup_structure(cleaned_content, issues_fixed)
+            # Step 5: Clean up empty rows and basic structure (conditional)
+            if not skip_empty_row_removal:
+                cleaned_content = self._cleanup_structure(cleaned_content, issues_fixed)
+            else:
+                issues_fixed.append("Preserved empty rows for absolute positioning")
             
             # Step 6: Validate and count final rows
             final_lines = cleaned_content.splitlines()
@@ -273,9 +276,8 @@ class CSVPreprocessor:
     def __init__(self):
         self.generic_preprocessor = GenericCSVPreprocessor()
     
-    def preprocess_csv(self, file_path: str, bank_type: str, encoding: str = 'utf-8') -> Dict:
+    def preprocess_csv(self, file_path: str, bank_type: str, encoding: str = 'utf-8', skip_empty_row_removal: bool = False) -> Dict:
         """
         Bank-agnostic preprocessing (bank_type parameter ignored)
         """
-        print(f" Using bank-agnostic CSV preprocessing (bank_type '{bank_type}' ignored)")
-        return self.generic_preprocessor.preprocess_csv(file_path, encoding)
+        return self.generic_preprocessor.preprocess_csv(file_path, encoding, skip_empty_row_removal)

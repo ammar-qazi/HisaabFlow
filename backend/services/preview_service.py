@@ -104,9 +104,20 @@ class PreviewService:
             # Step 3: Generate enhanced preview with proper headers
             print(f" Step 3: Generating enhanced preview with header_row={detected_header_row}")
             
+            # Get CSV config to check for start_row parameter
+            start_row = None
+            if bank_detection.bank_name != 'unknown' and bank_detection.confidence >= 0.5:
+                try:
+                    csv_config = temp_facade.get_csv_config(bank_detection.bank_name)
+                    start_row = csv_config.get('start_row')
+                    if start_row is not None:
+                        print(f"ℹ [PreviewService] Using start_row={start_row} for bank {bank_detection.bank_name}")
+                except Exception as e:
+                    print(f"[WARNING] Could not get CSV config: {e}")
+            
             # Use the detected header row for the final preview
-            print(f"ℹ [PreviewService] Calling unified_parser.preview_csv for final preview. Effective header_row: {detected_header_row}. Effective encoding: {effective_encoding}. Detected bank: {bank_detection.bank_name}")
-            result = self.unified_parser.preview_csv(file_path, effective_encoding, header_row=detected_header_row)
+            print(f"ℹ [PreviewService] Calling unified_parser.preview_csv for final preview. Effective header_row: {detected_header_row}. start_row: {start_row}. Effective encoding: {effective_encoding}. Detected bank: {bank_detection.bank_name}")
+            result = self.unified_parser.preview_csv(file_path, effective_encoding, header_row=detected_header_row, start_row=start_row)
             if not result['success']:
                 return {
                     'success': False,

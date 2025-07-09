@@ -115,36 +115,44 @@ class BankDetectionFacade:
             'skip_rows': csv_config.skip_rows
         }
         
-        # Add header_row and data_start_row from raw config file
+        # Add header_row_absolute from raw config file
         config_file_path = os.path.join(self.config_dir, f"{bank_name}.conf")
         if os.path.exists(config_file_path):
             raw_config = configparser.ConfigParser()
             raw_config.read(config_file_path)
             
             if raw_config.has_section('csv_config'):
-                header_row = raw_config.getint('csv_config', 'header_row', fallback=None)
-                data_start_row = raw_config.getint('csv_config', 'data_start_row', fallback=None)
-                result['header_row'] = header_row
-                result['data_start_row'] = data_start_row
+                header_row_absolute = raw_config.getint('csv_config', 'header_row_absolute', fallback=None)
+                if header_row_absolute is not None:
+                    result['header_row_absolute'] = header_row_absolute
+                    result['data_start_row_absolute'] = header_row_absolute + 1
+                else:
+                    # Fallback to old parameters for backward compatibility
+                    header_row = raw_config.getint('csv_config', 'header_row', fallback=None)
+                    data_start_row = raw_config.getint('csv_config', 'data_start_row', fallback=None)
+                    start_row = raw_config.getint('csv_config', 'start_row', fallback=None)
+                    result['header_row'] = header_row
+                    result['data_start_row'] = data_start_row
+                    result['start_row'] = start_row
         
         return result
     
     def detect_header_row(self, file_path: str, bank_name: str = None, encoding: str = 'utf-8') -> Dict[str, Any]:
         """
-        Detect header row in CSV file
-        This method uses the original logic but with unified config service
+        Detect header row in CSV file with support for original vs. processed row positions
+        This method handles empty rows that get removed during processing
         """
         try:
-            # If bank_name provided, get its expected headers
+            # If bank_name provided, get its expected headers and configuration
             expected_headers = []
-            fixed_header_row = None
+            header_row_absolute = None
             
             if bank_name:
                 bank_config = self.unified_service.get_bank_config(bank_name)
                 if bank_config:
                     expected_headers = bank_config.detection_info.required_headers
                 
-                # Check for fixed header row configuration by reading raw config file
+                # Check for header row configuration by reading raw config file
                 config_file_path = os.path.join(self.config_dir, f"{bank_name}.conf")
                 if os.path.exists(config_file_path):
                     raw_config = configparser.ConfigParser()
@@ -153,17 +161,26 @@ class BankDetectionFacade:
                     if raw_config.has_section('csv_config'):
                         header_detection_method = raw_config.get('csv_config', 'header_detection_method', fallback=None)
                         if header_detection_method == 'fixed':
-                            fixed_header_row = raw_config.getint('csv_config', 'header_row', fallback=None)
-                            print(f"[INFO] [BankDetectionFacade] Using fixed header row {fixed_header_row} for bank {bank_name}")
+                            # Try new simple approach first
+                            header_row_absolute = raw_config.getint('csv_config', 'header_row_absolute', fallback=None)
+                            if header_row_absolute is not None:
+                                print(f"[INFO] [BankDetectionFacade] Using header_row_absolute={header_row_absolute} for bank {bank_name}")
+                            else:
+                                # Fallback to old complex approach
+                                fixed_header_row = raw_config.getint('csv_config', 'header_row', fallback=None)
+                                fixed_header_row_original = raw_config.getint('csv_config', 'header_row_original', fallback=None)
+                                start_row = raw_config.getint('csv_config', 'start_row', fallback=None)
+                                print(f"[INFO] [BankDetectionFacade] Using legacy header row {fixed_header_row} (original: {fixed_header_row_original}) for bank {bank_name}")
             
-            # Read first few rows to detect header
+            # Read rows from CSV file (keep original structure intact)
             with open(file_path, 'r', encoding=encoding) as file:
                 import csv
                 reader = csv.reader(file)
                 rows = []
-                for i, row in enumerate(reader):
+                
+                for row_index, row in enumerate(reader):
                     rows.append(row)
-                    if i >= 20:  # Read more rows to cover fixed header rows
+                    if row_index >= 50:  # Read enough rows to cover most scenarios
                         break
             
             if not rows:
@@ -175,13 +192,28 @@ class BankDetectionFacade:
                     'detected_headers': []
                 }
             
-            # If fixed header row is specified, use it directly
-            if fixed_header_row is not None:
+            # If header_row_absolute is specified, use it directly (new simple approach)
+            if header_row_absolute is not None:
+                if header_row_absolute < len(rows):
+                    return {
+                        'success': True,
+                        'header_row_absolute': header_row_absolute,
+                        'header_row': header_row_absolute,  # For backward compatibility
+                        'confidence': 100.0,  # High confidence for fixed configuration
+                        'detected_headers': rows[header_row_absolute],
+                        'data_start_row_absolute': header_row_absolute + 1,
+                        'data_start_row': header_row_absolute + 1  # For backward compatibility
+                    }
+                else:
+                    print(f"[WARNING] [BankDetectionFacade] header_row_absolute {header_row_absolute} exceeds file rows {len(rows)}")
+            
+            # Legacy support for old complex approach
+            if 'fixed_header_row' in locals() and fixed_header_row is not None:
                 if fixed_header_row < len(rows):
                     return {
                         'success': True,
                         'header_row': fixed_header_row,
-                        'confidence': 100.0,  # High confidence for fixed configuration
+                        'confidence': 100.0,
                         'detected_headers': rows[fixed_header_row],
                         'data_start_row': fixed_header_row + 1
                     }
@@ -202,10 +234,12 @@ class BankDetectionFacade:
             
             return {
                 'success': True,
-                'header_row': best_header_row,
+                'header_row_absolute': best_header_row,
+                'header_row': best_header_row,  # For backward compatibility
                 'confidence': best_confidence,
                 'detected_headers': best_headers,
-                'data_start_row': best_header_row + 1
+                'data_start_row_absolute': best_header_row + 1,
+                'data_start_row': best_header_row + 1  # For backward compatibility
             }
             
         except Exception as e:

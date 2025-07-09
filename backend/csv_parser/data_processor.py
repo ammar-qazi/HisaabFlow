@@ -105,7 +105,9 @@ class DataProcessor:
                 'validation': validation,
                 'type_estimates': type_estimates,
                 'headers_info': headers_result,
-                'data_rows_info': data_rows_result
+                'data_rows_info': data_rows_result,
+                'row_mapping': data_rows_result.get('row_mapping', {}),
+                'empty_rows_filtered': data_rows_result.get('empty_rows_filtered', 0)
             }
             
             return {
