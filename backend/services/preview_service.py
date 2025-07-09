@@ -82,38 +82,61 @@ class PreviewService:
             
             if bank_detection.bank_name != 'unknown' and bank_detection.confidence >= 0.5:
                 print(f" Step 2: Using bank-specific header detection for {bank_detection.bank_name}")
-                # Use UnifiedConfigService for header detection through facade-like method
-                # Note: This functionality may need to be implemented in UnifiedConfigService if not available
                 try:
-                    from backend.shared.config.bank_detection_facade import BankDetectionFacade
-                    temp_facade = BankDetectionFacade()
-                    header_detection_result = temp_facade.detect_header_row(
-                        file_path, bank_detection.bank_name, effective_encoding
-                    )
-                except Exception as e:
-                    print(f"[WARNING] Header detection failed: {e}")
-                    header_detection_result = {'success': False, 'error': str(e)}
-                
-                if header_detection_result['success']:
-                    detected_header_row = header_detection_result['header_row']
-                    header_detection_info = header_detection_result
-                    print(f" Bank-specific header detection: row {detected_header_row}")
-                else:
-                    print(f"[WARNING] Bank-specific header detection failed: {header_detection_result.get('error', 'Unknown error')}")
+                    from backend.csv_parser.header_validator import find_and_validate_header, HeaderValidationError
+                    
+                    # Get bank config and read header_row from config file
+                    bank_config = self.config_service.get_bank_config(bank_detection.bank_name)
+                    if bank_config:
+                        import os
+                        import configparser
+                        config_file_path = os.path.join(self.config_service.config_dir, f"{bank_detection.bank_name}.conf")
+                        
+                        if os.path.exists(config_file_path):
+                            raw_config = configparser.ConfigParser()
+                            raw_config.read(config_file_path)
+                            
+                            configured_row_1_indexed = raw_config.getint('csv_config', 'header_row', fallback=None)
+                            if configured_row_1_indexed is not None:
+                                header_row_0_indexed = configured_row_1_indexed - 1
+                                
+                                # Validate header using HeaderValidator
+                                actual_headers = find_and_validate_header(
+                                    file_path=file_path,
+                                    encoding=effective_encoding,
+                                    configured_header_row=header_row_0_indexed,
+                                    expected_headers=bank_config.detection_info.required_headers
+                                )
+                                
+                                detected_header_row = header_row_0_indexed
+                                header_detection_info = {
+                                    'success': True,
+                                    'header_row': header_row_0_indexed,
+                                    'data_start_row': header_row_0_indexed + 1,
+                                    'detected_headers': actual_headers,
+                                    'confidence': 100.0
+                                }
+                                print(f" Bank-specific header detection: row {detected_header_row}")
+                            else:
+                                print(f"[WARNING] No header_row configured for {bank_detection.bank_name}")
+                        else:
+                            print(f"[WARNING] Config file not found for {bank_detection.bank_name}")
+                    else:
+                        print(f"[WARNING] Bank config not found for {bank_detection.bank_name}")
+                        
+                except (HeaderValidationError, Exception) as e:
+                    print(f"[WARNING] Header validation failed: {e}")
+                    header_detection_info = {'success': False, 'error': str(e)}
             
             # Step 3: Generate enhanced preview with proper headers
             print(f" Step 3: Generating enhanced preview with header_row={detected_header_row}")
             
-            # Get CSV config to check for start_row parameter
+            # Use data start row from header detection if available
             start_row = None
-            if bank_detection.bank_name != 'unknown' and bank_detection.confidence >= 0.5:
-                try:
-                    csv_config = temp_facade.get_csv_config(bank_detection.bank_name)
-                    start_row = csv_config.get('start_row')
-                    if start_row is not None:
-                        print(f"ℹ [PreviewService] Using start_row={start_row} for bank {bank_detection.bank_name}")
-                except Exception as e:
-                    print(f"[WARNING] Could not get CSV config: {e}")
+            if header_detection_info and header_detection_info.get('success'):
+                start_row = header_detection_info.get('data_start_row')
+                if start_row is not None:
+                    print(f"ℹ [PreviewService] Using start_row={start_row} for bank {bank_detection.bank_name}")
             
             # Use the detected header row for the final preview
             print(f"ℹ [PreviewService] Calling unified_parser.preview_csv for final preview. Effective header_row: {detected_header_row}. start_row: {start_row}. Effective encoding: {effective_encoding}. Detected bank: {bank_detection.bank_name}")
@@ -131,7 +154,7 @@ class PreviewService:
                 'reasons': bank_detection.reasons
             }
             
-            if header_detection_info:
+            if header_detection_info and header_detection_info.get('success'):
                 result['header_detection'] = header_detection_info
                 result['suggested_header_row'] = header_detection_info['header_row']
                 result['suggested_data_start_row'] = header_detection_info['data_start_row']
