@@ -74,8 +74,8 @@ class TestMultiBankRegressionFixes:
         }
         
         # Act - Process through the transformation pipeline
-        enhanced_data, transfer_analysis = self.transformation_service._apply_advanced_processing(
-            test_data, raw_data
+        enhanced_data = self.transformation_service.data_cleaning_service.apply_advanced_processing(
+            test_data, raw_data['csv_data_list']
         )
         
         # Assert - Should complete without errors and map currencies correctly
@@ -137,8 +137,8 @@ class TestMultiBankRegressionFixes:
         }
         
         # Act - Apply description cleaning
-        result = self.transformation_service._apply_standard_description_cleaning(
-            test_data, raw_data
+        result = self.transformation_service.data_cleaning_service._apply_standard_description_cleaning(
+            test_data, raw_data['csv_data_list']
         )
         
         # Assert - Check that specific regex patterns worked
@@ -202,8 +202,8 @@ class TestMultiBankRegressionFixes:
         }
         
         # Act - Apply conditional overrides
-        result = self.transformation_service._apply_conditional_description_overrides(
-            test_data, raw_data
+        result = self.transformation_service.data_cleaning_service._apply_conditional_description_overrides(
+            test_data, raw_data['csv_data_list']
         )
         
         # Assert - Check that easypaisa transactions became "Ride Hailing Services"
@@ -294,8 +294,8 @@ class TestMultiBankRegressionFixes:
         }
         
         # Act - Run the complete processing pipeline
-        enhanced_data, transfer_analysis = self.transformation_service._apply_advanced_processing(
-            test_data, raw_data
+        enhanced_data = self.transformation_service.data_cleaning_service.apply_advanced_processing(
+            test_data, raw_data['csv_data_list']
         )
         
         # Assert - Verify all fixes work correctly
@@ -326,10 +326,4 @@ class TestMultiBankRegressionFixes:
             )
         
         # Verify processing completed without errors
-        assert 'summary' in transfer_analysis, (
-            "Transfer analysis should be present"
-        )
-        
-        assert transfer_analysis['summary']['total_transactions'] == 4, (
-            "Transfer analysis should show all 4 transactions"
-        )
+        assert len(enhanced_data) == 4, "Expected 4 transactions after processing"

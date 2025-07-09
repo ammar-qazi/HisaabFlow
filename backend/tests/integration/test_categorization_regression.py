@@ -82,8 +82,8 @@ class TestCategorizationRegression:
             ]
         }
         
-        # Act - Apply keyword categorization
-        result = self.transformation_service._apply_keyword_categorization(test_data, raw_data)
+        # Act - Apply keyword categorization using the new DataCleaningService
+        result = self.transformation_service.data_cleaning_service._apply_keyword_categorization(test_data, raw_data['csv_data_list'])
         
         # Assert - Check that categorization worked
         assert len(result) == 3, "Expected 3 transactions in result"
@@ -160,8 +160,8 @@ class TestCategorizationRegression:
         }
         
         # Act - Apply full processing pipeline (including currency mapping and categorization)
-        enhanced_data, transfer_analysis = self.transformation_service._apply_advanced_processing(
-            test_data, raw_data
+        enhanced_data = self.transformation_service.data_cleaning_service.apply_advanced_processing(
+            test_data, raw_data['csv_data_list']
         )
         
         # Assert - Check that both currency mapping and categorization worked
@@ -192,11 +192,8 @@ class TestCategorizationRegression:
                     f"ATM transaction should be properly categorized, got '{category}'"
                 )
         
-        # Verify that transfer analysis completed successfully
-        assert 'summary' in transfer_analysis, "Transfer analysis should be present"
-        assert transfer_analysis['summary']['total_transactions'] == 2, (
-            "Transfer analysis should show correct transaction count"
-        )
+        # Verify that data processing completed successfully
+        assert len(enhanced_data) == 2, "Expected 2 transactions after processing"
     
     def test_categorization_applies_keyword_rules(self):
         """
@@ -234,8 +231,8 @@ class TestCategorizationRegression:
             ]
         }
         
-        # Act - Apply keyword categorization
-        result = self.transformation_service._apply_keyword_categorization(test_data, raw_data)
+        # Act - Apply keyword categorization using the new DataCleaningService
+        result = self.transformation_service.data_cleaning_service._apply_keyword_categorization(test_data, raw_data['csv_data_list'])
         
         # Assert - Check categorization behavior
         assert len(result) == 2, "Expected 2 transactions in result"
@@ -308,8 +305,8 @@ class TestCategorizationRegression:
             ]
         }
         
-        # Act - Apply keyword categorization
-        result = self.transformation_service._apply_keyword_categorization(test_data, raw_data)
+        # Act - Apply keyword categorization using the new DataCleaningService
+        result = self.transformation_service.data_cleaning_service._apply_keyword_categorization(test_data, raw_data['csv_data_list'])
         
         # Assert - Check specific categorization results
         assert len(result) == 4, "Expected 4 transactions in result"
@@ -386,8 +383,8 @@ class TestCategorizationRegression:
             ]
         }
         
-        # Act - Apply keyword categorization
-        result = self.transformation_service._apply_keyword_categorization(test_data, raw_data)
+        # Act - Apply keyword categorization using the new DataCleaningService
+        result = self.transformation_service.data_cleaning_service._apply_keyword_categorization(test_data, raw_data['csv_data_list'])
         
         # Assert - Check word boundary matching behavior
         assert len(result) == 3, "Expected 3 transactions in result"

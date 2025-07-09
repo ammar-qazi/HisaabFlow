@@ -45,8 +45,8 @@ class TestConditionalDescriptionOverrides:
         raw_data['csv_data_list'][0]['data'] = test_data
         
         # Act - Apply conditional overrides
-        result = self.transformation_service._apply_conditional_description_overrides(
-            test_data, raw_data
+        result = self.transformation_service.data_cleaning_service._apply_conditional_description_overrides(
+            test_data, raw_data['csv_data_list']
         )
         
         # Assert - All easypaisa transactions should become 'Ride Hailing Services'
@@ -75,8 +75,8 @@ class TestConditionalDescriptionOverrides:
         raw_data['csv_data_list'][0]['data'] = test_data
         
         # Act
-        result = self.transformation_service._apply_conditional_description_overrides(
-            test_data, raw_data
+        result = self.transformation_service.data_cleaning_service._apply_conditional_description_overrides(
+            test_data, raw_data['csv_data_list']
         )
         
         # Assert - Titles should remain unchanged
@@ -108,8 +108,8 @@ class TestConditionalDescriptionOverrides:
         raw_data['csv_data_list'][0]['data'] = matching_transaction
         
         # Act
-        result = self.transformation_service._apply_conditional_description_overrides(
-            matching_transaction, raw_data
+        result = self.transformation_service.data_cleaning_service._apply_conditional_description_overrides(
+            matching_transaction, raw_data['csv_data_list']
         )
         
         # Assert
@@ -162,8 +162,8 @@ class TestConditionalDescriptionOverrides:
             raw_data['csv_data_list'][0]['data'] = transaction
             
             # Act
-            result = self.transformation_service._apply_conditional_description_overrides(
-                transaction, raw_data
+            result = self.transformation_service.data_cleaning_service._apply_conditional_description_overrides(
+                transaction, raw_data['csv_data_list']
             )
             
             # Assert
@@ -225,8 +225,8 @@ class TestConditionalDescriptionOverrides:
             raw_data['csv_data_list'][0]['data'] = transaction
             
             # Act
-            result = self.transformation_service._apply_conditional_description_overrides(
-                transaction, raw_data
+            result = self.transformation_service.data_cleaning_service._apply_conditional_description_overrides(
+                transaction, raw_data['csv_data_list']
             )
             
             # Assert

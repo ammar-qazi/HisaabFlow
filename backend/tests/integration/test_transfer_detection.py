@@ -100,8 +100,13 @@ class TestTransferDetection:
         raw_data['csv_data_list'][1]['data'] = [incoming]  # Wise
         
         # Act
-        enhanced_data, transfer_analysis = self.transformation_service._apply_advanced_processing(
-            test_data, raw_data
+        # Apply data cleaning
+        enhanced_data = self.transformation_service.data_cleaning_service.apply_advanced_processing(
+            test_data, raw_data['csv_data_list']
+        )
+        # Apply transfer detection
+        transfer_analysis = self.transformation_service.transfer_processing_service.run_transfer_detection(
+            enhanced_data, raw_data['csv_data_list']
         )
         
         # Assert - Check that transfer candidates were found (even if not matched)
@@ -151,8 +156,13 @@ class TestTransferDetection:
         raw_data['csv_data_list'][1]['data'] = [outgoing_transfers[1]]
         
         # Act
-        enhanced_data, transfer_analysis = self.transformation_service._apply_advanced_processing(
-            outgoing_transfers, raw_data
+        # Apply data cleaning
+        enhanced_data = self.transformation_service.data_cleaning_service.apply_advanced_processing(
+            outgoing_transfers, raw_data['csv_data_list']
+        )
+        # Apply transfer detection
+        transfer_analysis = self.transformation_service.transfer_processing_service.run_transfer_detection(
+            enhanced_data, raw_data['csv_data_list']
         )
         
         # Assert - Should find outgoing transactions for matching
@@ -208,8 +218,13 @@ class TestTransferDetection:
         }
         
         # Act
-        enhanced_data, transfer_analysis = self.transformation_service._apply_advanced_processing(
-            test_data, raw_data
+        # Apply data cleaning
+        enhanced_data = self.transformation_service.data_cleaning_service.apply_advanced_processing(
+            test_data, raw_data['csv_data_list']
+        )
+        # Apply transfer detection
+        transfer_analysis = self.transformation_service.transfer_processing_service.run_transfer_detection(
+            enhanced_data, raw_data['csv_data_list']
         )
         
         # Assert
