@@ -56,7 +56,7 @@ class MultiCSVService:
                 filename = file_info["original_name"]
                 
                 # Step 1: Determine effective encoding
-                encoding_from_config = config.get('encoding')
+                encoding_from_config = config.encoding
                 effective_encoding = encoding_from_config
                 
                 # If config encoding is None or a generic 'utf-8' (which might be a default), try to detect.
@@ -68,7 +68,21 @@ class MultiCSVService:
                     print(f" [MultiCSVService] Detected encoding for '{filename}': {effective_encoding} (confidence: {detection_result['confidence']:.2f})")
                 
                 # Update config with the effective encoding to be used by subsequent steps
-                current_config = {**config, 'encoding': effective_encoding}
+                # Create a new ParseConfig with updated encoding
+                if hasattr(config, 'encoding'):
+                    # It's a Pydantic model - create a new instance with updated encoding
+                    from backend.api.models import ParseConfig
+                    current_config = ParseConfig(
+                        start_row=config.start_row,
+                        end_row=config.end_row,
+                        start_col=config.start_col,
+                        end_col=config.end_col,
+                        encoding=effective_encoding,
+                        enable_cleaning=config.enable_cleaning
+                    )
+                else:
+                    # It's a dictionary - use dictionary merging
+                    current_config = {**config, 'encoding': effective_encoding}
                 
                 # Step 2: Generic CSV preprocessing
                 preprocessing_result = self._apply_preprocessing(file_path, current_config)
@@ -160,7 +174,7 @@ class MultiCSVService:
         preprocessing_result = self.csv_preprocessor.preprocess_csv(
             file_path, 
             'generic',  # Bank-agnostic preprocessing
-            config['encoding'] # Use the effective_encoding from the config
+            config.encoding # Use the effective_encoding from the config
         )
         
         # Use preprocessed file if successful, otherwise use original
@@ -189,8 +203,9 @@ class MultiCSVService:
         """Detect bank and determine effective header_row and data_start_row, considering preprocessing."""
         print(f" Step 2: Detecting bank and headers for {filename} with encoding {file_encoding}")
 
-        user_header_row = current_file_config.get('header_row')
-        user_data_start_row = current_file_config.get('start_row') # This is the 'start_row' from the input parse_configs
+        # ParseConfig model uses start_row as header row, not header_row
+        user_header_row = current_file_config.start_row
+        user_data_start_row = current_file_config.start_row
         print(f"  Initial user-provided config: header_row={user_header_row}, data_start_row={user_data_start_row}")
 
         # Read initial content for more accurate bank detection
@@ -238,17 +253,22 @@ class MultiCSVService:
 
             print(f"  Bank-specific config for {detected_bank_name}: header_row={bank_config_header_row}, data_start_row={bank_config_data_start_row}")
 
-            if user_header_row is not None:
+            # Priority 1: Use bank-specific configuration if available (most reliable)
+            if bank_config_header_row is not None:
+                effective_header_row = bank_config_header_row
+                effective_data_start_row = bank_config_data_start_row
+                print(f"  Using bank-specific header_row: {effective_header_row}, data_start_row: {effective_data_start_row} from {detected_bank_name} config")
+            # Priority 2: Use user-provided configuration if no bank config
+            elif user_header_row is not None:
                 effective_header_row = user_header_row
                 print(f"  Using user-provided header_row: {effective_header_row}")
                 if user_data_start_row is not None: # User also provided data_start_row
                     effective_data_start_row = user_data_start_row
                 elif effective_header_row is not None: # User provided header_row, derive data_start_row
                     effective_data_start_row = effective_header_row + 1
-            # If no user_header_row, proceed with detection logic
-            # Prioritize dynamic detection if preprocessing was applied or if bank config doesn't have a fixed header_row
-            elif preprocessing_applied or bank_config_header_row is None:
-                print(f"  Preprocessing applied ({preprocessing_applied}) or bank_config_header_row is None. Attempting dynamic header detection on file '{os.path.basename(file_path)}' using BankConfigManager for {detected_bank_name}.")
+            # Priority 3: Dynamic detection if preprocessing was applied or as fallback
+            else:
+                print(f"  No bank config or user config found. Attempting dynamic header detection on file '{os.path.basename(file_path)}' using BankConfigManager for {detected_bank_name}.")
                 # Use temporary facade for header detection until implemented in UnifiedConfigService
                 try:
                     from backend.shared.config.bank_detection_facade import BankDetectionFacade
@@ -263,18 +283,9 @@ class MultiCSVService:
                     effective_header_row = header_detection_cfg_result['header_row']
                     effective_data_start_row = header_detection_cfg_result['data_start_row']
                     print(f"  Dynamically detected header_row: {effective_header_row}, data_start_row: {effective_data_start_row} using BankConfigManager (method: {header_detection_cfg_result.get('method')}).")
-                # Fallback to bank_config_header_row if dynamic detection failed but a config value exists
-                elif bank_config_header_row is not None:
-                    effective_header_row = bank_config_header_row
-                    effective_data_start_row = bank_config_data_start_row
-                    print(f"  Dynamic detection failed. Using header_row {effective_header_row} from {detected_bank_name} config as fallback.")
                 else:
                     print(f"  [WARNING] Dynamic header detection using BankConfigManager failed for {detected_bank_name}. Error: {header_detection_cfg_result.get('error')}")
                     # effective_header_row remains None or its previous value
-            elif bank_config_header_row is not None: # No user override, no preprocessing (or preproc didn't trigger dynamic), but bank_config_header_row exists
-                effective_header_row = bank_config_header_row
-                effective_data_start_row = bank_config_data_start_row
-                print(f"  Using header_row {effective_header_row} from {detected_bank_name} config (preprocessing_applied={preprocessing_applied}).")
 
             # If user_data_start_row was explicitly provided, it should override any derived data_start_row,
             # unless user_header_row was also provided (handled above).
@@ -310,36 +321,38 @@ class MultiCSVService:
         try:
             from backend.shared.config.bank_detection_facade import BankDetectionFacade
             temp_facade = BankDetectionFacade()
-            header_detection_result = temp_facade.detect_header_row(file_path, bank_name, config.get('encoding', 'utf-8'))
+            header_detection_result = temp_facade.detect_header_row(file_path, bank_name, config.encoding)
         except Exception as e:
             print(f"[WARNING] Header detection failed: {e}")
             header_detection_result = {'success': False, 'error': str(e)}
         if header_detection_result['success']:
             return header_detection_result['header_row'], header_detection_result['data_start_row']
-        return config.get('header_row'), config.get('start_row', config.get('header_row', 0) + 1 if config.get('header_row') is not None else 1)
+        return config.start_row, config.start_row if config.start_row is not None else 1
     
     def _parse_with_bank_info(self, file_path: str, config: dict, header_info: dict):
         """Parse file with enhanced parser using bank-detected info"""
         print(f"ℹ [MIGRATION][MultiCSVService] _parse_with_bank_info using UnifiedCSVParser.")
-        print(f"  Config: end_row={config.get('end_row')}, start_col={config.get('start_col', 0)}, end_col={config.get('end_col')}, encoding={config['encoding']}")
+        print(f"  Config: end_row={config.end_row}, start_col={config.start_col}, end_col={config.end_col}, encoding={config.encoding}")
         print(f"  Header info: data_start_row={header_info['data_start_row']}, header_row={header_info['header_row']}")
 
         header_row_for_unified = header_info['header_row']
+        data_start_row_for_unified = header_info['data_start_row']
         max_rows_for_unified = None
-        if config.get('end_row') is not None and header_row_for_unified is not None and config.get('end_row') >= header_row_for_unified:
+        if config.end_row is not None and header_row_for_unified is not None and config.end_row >= header_row_for_unified:
              # max_rows is number of data rows after header
-            max_rows_for_unified = config.get('end_row') - header_row_for_unified
+            max_rows_for_unified = config.end_row - header_row_for_unified
         
-        if config.get('start_col', 0) != 0 or config.get('end_col') is not None:
-            print(f"[WARNING] [MIGRATION][MultiCSVService] Column range (start_col={config.get('start_col', 0)}, end_col={config.get('end_col')}) is not supported by UnifiedCSVParser. All columns will be parsed.")
+        if config.start_col != 0 or config.end_col is not None:
+            print(f"[WARNING] [MIGRATION][MultiCSVService] Column range (start_col={config.start_col}, end_col={config.end_col}) is not supported by UnifiedCSVParser. All columns will be parsed.")
 
-        print(f"  UnifiedParser params: encoding='{config['encoding']}', header_row={header_row_for_unified}, max_rows={max_rows_for_unified}")
+        print(f"  UnifiedParser params: encoding='{config.encoding}', header_row={header_row_for_unified}, start_row={data_start_row_for_unified}, max_rows={max_rows_for_unified}")
 
         # Parse with UnifiedCSVParser
         parse_result = self.unified_parser.parse_csv(
             file_path,
-            encoding=config['encoding'],
+            encoding=config.encoding,
             header_row=header_row_for_unified,
+            start_row=data_start_row_for_unified,
             max_rows=max_rows_for_unified
         )
         print(f"  UnifiedParser parse_csv result success: {parse_result.get('success')}")

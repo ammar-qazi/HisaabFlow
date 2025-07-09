@@ -21,7 +21,14 @@ except ImportError:
         return None
 
 # Import models from centralized location
-from backend.api.models import MultiCSVParseRequest
+from backend.api.models import (
+    MultiCSVParseRequest, 
+    ParseRangeRequest, 
+    PreviewResponse, 
+    DetectRangeResponse, 
+    ParseResponse, 
+    MultiCSVParseResponse
+)
 
 parse_router = APIRouter()
 
@@ -31,16 +38,7 @@ parsing_service = ParsingService()
 multi_csv_service = MultiCSVService()
 
 
-class ParseRangeRequest(BaseModel):
-    start_row: int
-    end_row: Optional[int] = None
-    start_col: int = 0
-    end_col: Optional[int] = None
-    encoding: str = "utf-8"
-    enable_cleaning: bool = True
-
-
-@parse_router.get("/preview/{file_id}")
+@parse_router.get("/preview/{file_id}", response_model=PreviewResponse)
 async def preview_csv(file_id: str, encoding: str = "utf-8", header_row: int = None):
     """Preview uploaded CSV file with bank-aware header detection"""
     print(f"‍ Preview request for file_id: {file_id}, header_row: {header_row}")
@@ -62,7 +60,7 @@ async def preview_csv(file_id: str, encoding: str = "utf-8", header_row: int = N
     return result
 
 
-@parse_router.get("/detect-range/{file_id}")
+@parse_router.get("/detect-range/{file_id}", response_model=DetectRangeResponse)
 async def detect_data_range(file_id: str, encoding: str = "utf-8"):
     """Auto-detect data range in CSV"""
     print(f" Detect range request for file_id: {file_id}")
@@ -82,7 +80,7 @@ async def detect_data_range(file_id: str, encoding: str = "utf-8"):
     return result
 
 
-@parse_router.post("/parse-range/{file_id}")
+@parse_router.post("/parse-range/{file_id}", response_model=ParseResponse)
 async def parse_range(file_id: str, request: ParseRangeRequest):
     """Parse CSV with specified range and data cleaning"""
     print(f"‍ Parse range request for file_id: {file_id}")
@@ -113,7 +111,7 @@ async def parse_range(file_id: str, request: ParseRangeRequest):
     return result
 
 
-@parse_router.post("/multi-csv/parse")
+@parse_router.post("/multi-csv/parse", response_model=MultiCSVParseResponse)
 async def parse_multiple_csvs(
     request: MultiCSVParseRequest,
     use_pydantic: bool = Query(False, description="Return Pydantic models instead of dicts")

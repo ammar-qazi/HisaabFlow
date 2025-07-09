@@ -5,12 +5,15 @@ from fastapi import APIRouter, UploadFile, File, HTTPException
 import tempfile
 import os
 
+# Import models from centralized location
+from backend.api.models import UploadResponse, CleanupResponse
+
 file_router = APIRouter()
 
 # Store uploaded files
 uploaded_files = {}
 
-@file_router.post("/upload")
+@file_router.post("/upload", response_model=UploadResponse)
 async def upload_file(file: UploadFile = File(...)):
     """Upload CSV file and return file info"""
     try:
@@ -35,7 +38,7 @@ async def upload_file(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@file_router.delete("/cleanup/{file_id}")
+@file_router.delete("/cleanup/{file_id}", response_model=CleanupResponse)
 async def cleanup_file(file_id: str):
     """Remove uploaded file from temp storage"""
     if file_id in uploaded_files:

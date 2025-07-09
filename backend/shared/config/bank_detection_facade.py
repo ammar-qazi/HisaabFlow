@@ -92,15 +92,42 @@ class BankDetectionFacade:
         """Get CSV configuration for bank in legacy format"""
         csv_config = self.unified_service.get_csv_config(bank_name)
         if not csv_config:
+            # Try to read header_row and data_start_row from raw config file
+            config_file_path = os.path.join(self.config_dir, f"{bank_name}.conf")
+            if os.path.exists(config_file_path):
+                raw_config = configparser.ConfigParser()
+                raw_config.read(config_file_path)
+                
+                if raw_config.has_section('csv_config'):
+                    header_row = raw_config.getint('csv_config', 'header_row', fallback=None)
+                    data_start_row = raw_config.getint('csv_config', 'data_start_row', fallback=None)
+                    return {
+                        'header_row': header_row,
+                        'data_start_row': data_start_row
+                    }
             return {}
         
-        return {
+        result = {
             'delimiter': csv_config.delimiter,
             'quote_char': csv_config.quote_char,
             'encoding': csv_config.encoding,
             'has_header': csv_config.has_header,
             'skip_rows': csv_config.skip_rows
         }
+        
+        # Add header_row and data_start_row from raw config file
+        config_file_path = os.path.join(self.config_dir, f"{bank_name}.conf")
+        if os.path.exists(config_file_path):
+            raw_config = configparser.ConfigParser()
+            raw_config.read(config_file_path)
+            
+            if raw_config.has_section('csv_config'):
+                header_row = raw_config.getint('csv_config', 'header_row', fallback=None)
+                data_start_row = raw_config.getint('csv_config', 'data_start_row', fallback=None)
+                result['header_row'] = header_row
+                result['data_start_row'] = data_start_row
+        
+        return result
     
     def detect_header_row(self, file_path: str, bank_name: str = None, encoding: str = 'utf-8') -> Dict[str, Any]:
         """
@@ -110,10 +137,24 @@ class BankDetectionFacade:
         try:
             # If bank_name provided, get its expected headers
             expected_headers = []
+            fixed_header_row = None
+            
             if bank_name:
                 bank_config = self.unified_service.get_bank_config(bank_name)
                 if bank_config:
                     expected_headers = bank_config.detection_info.required_headers
+                
+                # Check for fixed header row configuration by reading raw config file
+                config_file_path = os.path.join(self.config_dir, f"{bank_name}.conf")
+                if os.path.exists(config_file_path):
+                    raw_config = configparser.ConfigParser()
+                    raw_config.read(config_file_path)
+                    
+                    if raw_config.has_section('csv_config'):
+                        header_detection_method = raw_config.get('csv_config', 'header_detection_method', fallback=None)
+                        if header_detection_method == 'fixed':
+                            fixed_header_row = raw_config.getint('csv_config', 'header_row', fallback=None)
+                            print(f"[INFO] [BankDetectionFacade] Using fixed header row {fixed_header_row} for bank {bank_name}")
             
             # Read first few rows to detect header
             with open(file_path, 'r', encoding=encoding) as file:
@@ -122,7 +163,7 @@ class BankDetectionFacade:
                 rows = []
                 for i, row in enumerate(reader):
                     rows.append(row)
-                    if i >= 10:  # Read first 10 rows max
+                    if i >= 20:  # Read more rows to cover fixed header rows
                         break
             
             if not rows:
@@ -134,7 +175,20 @@ class BankDetectionFacade:
                     'detected_headers': []
                 }
             
-            # Analyze rows to find header
+            # If fixed header row is specified, use it directly
+            if fixed_header_row is not None:
+                if fixed_header_row < len(rows):
+                    return {
+                        'success': True,
+                        'header_row': fixed_header_row,
+                        'confidence': 100.0,  # High confidence for fixed configuration
+                        'detected_headers': rows[fixed_header_row],
+                        'data_start_row': fixed_header_row + 1
+                    }
+                else:
+                    print(f"[WARNING] [BankDetectionFacade] Fixed header row {fixed_header_row} exceeds file rows {len(rows)}")
+            
+            # Analyze rows to find header (fallback to automatic detection)
             best_header_row = 0
             best_confidence = 0.0
             best_headers = rows[0] if rows else []

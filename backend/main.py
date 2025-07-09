@@ -13,6 +13,9 @@ import sys
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
+
+# Import response models after path setup
+from backend.api.models import HealthResponse
  
 # Import modular API routers directly using absolute paths
 try:
@@ -82,11 +85,13 @@ async def root():
             "No template system", 
             "Clean modular architecture",
             "Under 300-line main.py",
-            f"Routers available: {ROUTERS_AVAILABLE}"
+            f"Routers available: {ROUTERS_AVAILABLE}",
+            "Strict API contract validation with Pydantic models",
+            "Enhanced API documentation with response schemas"
         ]
     }
 
-@app.get("/health")
+@app.get("/health", response_model=HealthResponse)
 async def health_check():
     return {"status": "healthy", "version": "3.0.0"}
 

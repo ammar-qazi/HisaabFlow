@@ -21,7 +21,8 @@ class UnifiedCSVParser:
         self.structure_analyzer = StructureAnalyzer()
     
     def preview_csv(self, file_path: str, encoding: Optional[str] = None, bank_name: Optional[str] = None, 
-                   config_manager: Optional[Any] = None, header_row: Optional[int] = None, max_rows: int = 20) -> Dict:
+                   config_manager: Optional[Any] = None, header_row: Optional[int] = None, max_rows: int = 20, 
+                   start_row: Optional[int] = None) -> Dict:
         """
         Preview CSV file with automatic detection - maintains existing interface
         
@@ -32,6 +33,7 @@ class UnifiedCSVParser:
             config_manager: Optional config manager (not used directly, maintained for compatibility)
             header_row: Optional header row override
             max_rows: Maximum rows to preview
+            start_row: Optional starting row index (skip rows before this)
             
         Returns:
             dict: Preview result compatible with existing PreviewService
@@ -53,7 +55,7 @@ class UnifiedCSVParser:
             
             # Step 3: Parse with strategies
             parsing_result = self.parsing_strategies.parse_with_fallbacks(
-                file_path, encoding, dialect_result, header_row, max_rows
+                file_path, encoding, dialect_result, header_row, max_rows, start_row
             )
             
             if not parsing_result['success']:
@@ -65,8 +67,10 @@ class UnifiedCSVParser:
             print(f"   [SUCCESS] Parsing succeeded with {parsing_result['strategy_used']} strategy")
             
             # Step 4: Process data
+            # If we used start_row filtering, the header is now at position 0
+            effective_header_row = 0 if start_row is not None and header_row is not None and header_row < start_row else header_row
             processing_result = self.data_processor.process_raw_data(
-                parsing_result['raw_rows'], header_row
+                parsing_result['raw_rows'], effective_header_row
             )
             
             if not processing_result['success']:
@@ -117,6 +121,7 @@ class UnifiedCSVParser:
             # Extract options
             header_row = parsing_options.get('header_row')
             max_rows = parsing_options.get('max_rows')
+            start_row = parsing_options.get('start_row')
             
             # Step 1: Detect encoding
             if encoding is None:
@@ -130,15 +135,17 @@ class UnifiedCSVParser:
             
             # Step 3: Parse with strategies
             parsing_result = self.parsing_strategies.parse_with_fallbacks(
-                file_path, encoding, dialect_result, header_row, max_rows
+                file_path, encoding, dialect_result, header_row, max_rows, start_row
             )
             
             if not parsing_result['success']:
                 raise CSVParsingError(parsing_result['error'], file_path)
             
             # Step 4: Process data
+            # If we used start_row filtering, the header is now at position 0
+            effective_header_row = 0 if start_row is not None and header_row is not None and header_row < start_row else header_row
             processing_result = self.data_processor.process_raw_data(
-                parsing_result['raw_rows'], header_row
+                parsing_result['raw_rows'], effective_header_row
             )
             
             if not processing_result['success']:

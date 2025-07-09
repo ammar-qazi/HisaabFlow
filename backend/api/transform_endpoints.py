@@ -2,9 +2,16 @@
 Data transformation endpoints - Refactored to use services
 """
 from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel
 from typing import Dict, List, Any, Optional
 import json
+
+# Import models from centralized location
+from backend.api.models import (
+    TransformRequest, 
+    TransformResponse, 
+    MultiCSVResponse, 
+    ExportResponse
+)
 
 # Import services
 from backend.services.transformation_service import TransformationService
@@ -17,16 +24,7 @@ transformation_service = TransformationService()
 export_service = ExportService()
 
 
-class TransformRequest(BaseModel):
-    data: List[Dict[str, Any]]
-    column_mapping: Dict[str, str]
-    bank_name: str = ""
-    categorization_rules: Optional[List[Dict[str, Any]]] = None
-    default_category_rules: Optional[Dict[str, str]] = None
-    account_mapping: Optional[Dict[str, str]] = None
-
-
-@transform_router.post("/transform")
+@transform_router.post("/transform", response_model=TransformResponse)
 async def transform_data(request: TransformRequest):
     """Transform data to Cashew format"""
     try:
@@ -49,7 +47,7 @@ async def transform_data(request: TransformRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@transform_router.post("/multi-csv/transform")
+@transform_router.post("/multi-csv/transform", response_model=MultiCSVResponse)
 async def transform_multi_csv_data(request: Request):
     """Transform multi-CSV data to Cashew format"""
     print(f" Multi-CSV transform request received")
@@ -80,7 +78,7 @@ async def transform_multi_csv_data(request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@transform_router.post("/apply-transfer-categorization")
+@transform_router.post("/apply-transfer-categorization", response_model=TransformResponse)
 async def apply_transfer_categorization(request: Request):
     """Apply transfer categorization to existing transformed data"""
     print(f" Transfer categorization request received")
@@ -111,7 +109,7 @@ async def apply_transfer_categorization(request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@transform_router.post("/export")
+@transform_router.post("/export", response_model=ExportResponse)
 async def export_csv_data(request: Request):
     """Export transformed data as CSV file"""
     print(f"[IN] Export request received")

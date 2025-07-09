@@ -5,18 +5,7 @@ from backend.csv_parser import UnifiedCSVParser
 from backend.data_cleaner import DataCleaner
 from backend.bank_detection import BankDetector
 from backend.shared.config.unified_config_service import get_unified_config_service
-
-
-class ParseConfig:
-    """Configuration for parsing operations"""
-    def __init__(self, start_row: int, end_row: int = None, start_col: int = 0, 
-                 end_col: int = None, encoding: str = "utf-8", enable_cleaning: bool = True):
-        self.start_row = start_row
-        self.end_row = end_row
-        self.start_col = start_col
-        self.end_col = end_col
-        self.encoding = encoding
-        self.enable_cleaning = enable_cleaning
+from backend.api.models import ParseConfig
 
 
 class ParsingService:

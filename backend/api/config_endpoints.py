@@ -2,9 +2,16 @@
 Configuration endpoints for bank configurations
 """
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
 from typing import Dict, List, Any, Optional
 from backend.shared.config.api_facade import APIConfigFacade
+
+# Import models from centralized location
+from backend.api.models import (
+    SaveTemplateRequest, 
+    ConfigListResponse, 
+    ConfigResponse, 
+    SaveConfigResponse
+)
 
 config_router = APIRouter()
 
@@ -25,11 +32,7 @@ def get_config_manager():
 
 config_manager = get_config_manager()
 
-class SaveConfigRequest(BaseModel):
-    config_name: str
-    config: Dict[str, Any]
-
-@config_router.get("/configs")
+@config_router.get("/configs", response_model=ConfigListResponse)
 async def list_configs():
     """List available bank configurations"""
     print(f" API: Listing available bank configurations...")
@@ -56,7 +59,7 @@ async def list_configs():
         print(f"[ERROR]  Config list error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@config_router.get("/config/{config_name}")
+@config_router.get("/config/{config_name}", response_model=ConfigResponse)
 async def load_config(config_name: str):
     """Load bank configuration by display name or bank name"""
     print(f" API: Loading bank configuration '{config_name}'")
@@ -120,12 +123,12 @@ async def load_config(config_name: str):
         print(f"[ERROR]  Config load error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error loading configuration: {str(e)}")
 
-@config_router.post("/save-config")
-async def save_config(request: SaveConfigRequest):
+@config_router.post("/save-config", response_model=SaveConfigResponse)
+async def save_config(request: SaveTemplateRequest):
     """Save bank configuration"""
-    print(f" API: Saving bank configuration: {request.config_name}")
+    print(f" API: Saving bank configuration: {request.template_name}")
     try:
-        config_filename = f"{request.config_name.lower().replace(' ', '_')}.conf"
+        config_filename = f"{request.template_name.lower().replace(' ', '_')}.conf"
         print(f" Configuration should be saved to: ../configs/{config_filename}")
         print(f" Config data: {request.config}")
         

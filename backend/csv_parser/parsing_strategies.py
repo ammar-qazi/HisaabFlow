@@ -15,7 +15,8 @@ class ParsingStrategies:
         self.strategy_names = ['pandas', 'csv_module', 'manual']
     
     def parse_with_fallbacks(self, file_path: str, encoding: str, dialect_result: Dict, 
-                           header_row: Optional[int] = None, max_rows: Optional[int] = None) -> Dict:
+                           header_row: Optional[int] = None, max_rows: Optional[int] = None, 
+                           start_row: Optional[int] = None) -> Dict:
         """
         Try multiple parsing strategies with fallbacks
         
@@ -25,6 +26,7 @@ class ParsingStrategies:
             dialect_result: Dialect detection results
             header_row: Optional header row index
             max_rows: Optional limit on rows to parse
+            start_row: Optional starting row index (skip rows before this)
             
         Returns:
             dict: {'success': bool, 'raw_rows': List[List[str]], 'error': str, 'strategy_used': str}
@@ -35,7 +37,7 @@ class ParsingStrategies:
         
         # Strategy 1: Try Pandas first
         print("   [DATA] Strategy 1: Pandas")
-        result = self._parse_with_pandas(file_path, encoding, dialect_result, header_row, max_rows)
+        result = self._parse_with_pandas(file_path, encoding, dialect_result, header_row, max_rows, start_row)
         if result['success']:
             print(f"   [SUCCESS] Pandas parsing succeeded")
             result['strategy_used'] = 'pandas'
@@ -46,7 +48,7 @@ class ParsingStrategies:
         
         # Strategy 2: Try CSV module
         print("    Strategy 2: CSV module")
-        result = self._parse_with_csv_module(file_path, encoding, dialect_result, header_row, max_rows)
+        result = self._parse_with_csv_module(file_path, encoding, dialect_result, header_row, max_rows, start_row)
         if result['success']:
             print(f"   [SUCCESS] CSV module parsing succeeded")
             result['strategy_used'] = 'csv_module'
@@ -57,7 +59,7 @@ class ParsingStrategies:
         
         # Strategy 3: Manual parsing as last resort
         print("    Strategy 3: Manual parsing")
-        result = self._parse_manually(file_path, encoding, dialect_result, header_row, max_rows)
+        result = self._parse_manually(file_path, encoding, dialect_result, header_row, max_rows, start_row)
         if result['success']:
             print(f"   [SUCCESS] Manual parsing succeeded")
             result['strategy_used'] = 'manual'
@@ -75,7 +77,8 @@ class ParsingStrategies:
         }
     
     def _parse_with_pandas(self, file_path: str, encoding: str, dialect_result: Dict, 
-                          header_row: Optional[int], max_rows: Optional[int]) -> Dict:
+                          header_row: Optional[int], max_rows: Optional[int], 
+                          start_row: Optional[int] = None) -> Dict:
         """Parse using pandas with detected dialect parameters"""
         try:
             # Prepare pandas parameters
@@ -131,7 +134,8 @@ class ParsingStrategies:
             }
     
     def _parse_with_csv_module(self, file_path: str, encoding: str, dialect_result: Dict, 
-                              header_row: Optional[int], max_rows: Optional[int]) -> Dict:
+                              header_row: Optional[int], max_rows: Optional[int], 
+                              start_row: Optional[int] = None) -> Dict:
         """Parse using Python's csv module with detected dialect"""
         try:
             raw_rows = []
@@ -150,12 +154,42 @@ class ParsingStrategies:
                 CustomDialect.quoting = csv.QUOTE_ALL
                 CustomDialect.doublequote = True
             
+            # Special handling when both header_row and start_row are specified
+            header_row_data = None
+            if header_row is not None and start_row is not None and header_row < start_row:
+                # Read the header row separately first
+                with open(file_path, 'r', encoding=encoding, newline='') as csvfile:
+                    reader = csv.reader(csvfile, dialect=CustomDialect)
+                    for row_num, row in enumerate(reader):
+                        if row_num == header_row:
+                            # Clean the header row
+                            clean_header_row = []
+                            for cell in row:
+                                if isinstance(cell, str):
+                                    clean_cell = cell.replace('\ufeff', '').strip()
+                                    clean_header_row.append(clean_cell)
+                                else:
+                                    clean_header_row.append(str(cell))
+                            header_row_data = clean_header_row
+                            break
+            
             # Read file with custom dialect
             with open(file_path, 'r', encoding=encoding, newline='') as csvfile:
                 reader = csv.reader(csvfile, dialect=CustomDialect)
                 
+                rows_processed = 0
                 for row_num, row in enumerate(reader):
-                    if max_rows is not None and row_num >= max_rows:
+                    # If we have separate header data, include it first
+                    if header_row_data is not None and rows_processed == 0:
+                        raw_rows.append(header_row_data)
+                        rows_processed += 1
+                    
+                    # Skip rows before start_row if specified
+                    if start_row is not None and row_num < start_row:
+                        continue
+                    
+                    # Apply max_rows limit to processed rows (after start_row, excluding header)
+                    if max_rows is not None and rows_processed - (1 if header_row_data else 0) >= max_rows:
                         break
                     
                     # Convert all cells to strings and handle encoding issues
@@ -169,8 +203,10 @@ class ParsingStrategies:
                             clean_row.append(str(cell))
                     
                     raw_rows.append(clean_row)
+                    rows_processed += 1
             
-            print(f"       CSV module read {len(raw_rows)} rows with {len(raw_rows[0]) if raw_rows else 0} columns")
+            start_info = f" (starting from row {start_row})" if start_row is not None else ""
+            print(f"       CSV module read {len(raw_rows)} rows with {len(raw_rows[0]) if raw_rows else 0} columns{start_info}")
             
             return {
                 'success': True,
@@ -186,7 +222,8 @@ class ParsingStrategies:
             }
     
     def _parse_manually(self, file_path: str, encoding: str, dialect_result: Dict, 
-                       header_row: Optional[int], max_rows: Optional[int]) -> Dict:
+                       header_row: Optional[int], max_rows: Optional[int], 
+                       start_row: Optional[int] = None) -> Dict:
         """Manual parsing as fallback for problematic files"""
         try:
             raw_rows = []

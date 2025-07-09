@@ -4,7 +4,7 @@ This file maintains backward compatibility while using the new modular structure
 """
 
 # Import the new modular DataCleaner
-from data_cleaning.data_cleaner import DataCleaner
+from backend.data_cleaning.data_cleaner import DataCleaner
 
 # Export the class so existing imports continue to work
 __all__ = ['DataCleaner']
