@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 const API_BASE = window.BACKEND_URL || 'http://127.0.0.1:8000';
+const API_V1_BASE = `${API_BASE}/api/v1`;
 
 // Configure axios defaults
 axios.defaults.timeout = 15000;
@@ -16,7 +17,7 @@ export class ConfigurationService {
   static async loadConfigurations() {
     try {
       console.log(' Loading bank configurations from /api/v1/configs');
-      const response = await axios.get(`${API_BASE}/api/v1/configs`);
+      const response = await axios.get(`${API_V1_BASE}/configs`);
       console.log('[SUCCESS] Configurations loaded:', response.data);
       return {
         success: true,
@@ -49,7 +50,7 @@ export class ConfigurationService {
     
     try {
       console.log(` Loading configuration: ${configName}`);
-      const response = await axios.get(`${API_BASE}/api/v1/config/${encodeURIComponent(configName)}`);
+      const response = await axios.get(`${API_V1_BASE}/config/${encodeURIComponent(configName)}`);
       const config = response.data.config;
       
       console.log(` Configuration ${configName} loaded:`, config);
