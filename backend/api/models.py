@@ -3,7 +3,7 @@ Pydantic models for API requests and responses
 Centralized definition of all data models used by the FastAPI endpoints
 """
 from pydantic import BaseModel
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Any
 
 
 class PreviewRequest(BaseModel):
@@ -104,6 +104,9 @@ class TransferMatch(BaseModel):
     incoming_transaction: Dict[str, Union[str, int, float]]
     confidence: float
     match_type: str
+    # Frontend compatibility fields
+    outgoing: Optional[Dict[str, Union[str, int, float]]] = None
+    incoming: Optional[Dict[str, Union[str, int, float]]] = None
 
 class TransferAnalysis(BaseModel):
     total_matches: int
@@ -111,6 +114,13 @@ class TransferAnalysis(BaseModel):
     medium_confidence_matches: int
     low_confidence_matches: int
     matches: List[TransferMatch]
+    # Frontend compatibility fields
+    transfers: Optional[List[TransferMatch]] = None
+    summary: Optional[Dict[str, Any]] = None
+    potential_pairs: Optional[List[Dict[str, Any]]] = None
+    potential_transfers: Optional[List[Dict[str, Any]]] = None
+    conflicts: Optional[List[Dict[str, Any]]] = None
+    flagged_transactions: Optional[List[Dict[str, Any]]] = None
 
 class TransformationSummary(BaseModel):
     total_files: int
@@ -118,6 +128,8 @@ class TransformationSummary(BaseModel):
     successful_transformations: int
     failed_transformations: int
     banks_processed: List[str]
+    # Frontend compatibility field
+    total_transactions: Optional[int] = None
 
 class FileResult(BaseModel):
     file_id: str

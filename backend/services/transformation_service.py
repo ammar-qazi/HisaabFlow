@@ -205,11 +205,14 @@ class TransformationService:
             
             # Create proper TransformationSummary structure
             transformation_summary = {
+                # Pydantic model fields (required for validation)
                 "total_files": len(csv_data_list),
                 "total_rows": len(cleaned_transformed_data),
                 "successful_transformations": len([fr for fr in file_results if fr["success"]]),
                 "failed_transformations": len([fr for fr in file_results if not fr["success"]]),
-                "banks_processed": banks_processed
+                "banks_processed": banks_processed,
+                # Frontend compatibility field
+                "total_transactions": len(cleaned_transformed_data)  # Frontend expects this field
             }
             
             # Response matching MultiCSVResponse model exactly
@@ -946,27 +949,69 @@ class TransformationService:
         
         Removes metadata fields and ensures all values are str, int, or float
         """
+        print(f"[DEBUG] Original transaction keys: {list(transaction.keys()) if transaction else 'None'}")
+        if transaction:
+            print(f"[DEBUG] Original transaction sample: {dict(list(transaction.items())[:5])}")
+        
         cleaned_transaction = {}
+        essential_fields = ['Date', 'Account', 'Amount', 'Currency', 'Title', 'Description', 'Note']
         
         for key, value in transaction.items():
             # Skip metadata fields (starting with _)
             if key.startswith('_'):
                 continue
             
-            # Handle None values
-            if value is None:
-                cleaned_transaction[key] = ""
-                continue
-            
-            # Ensure value is one of the allowed types
-            if isinstance(value, (str, int, float)):
-                cleaned_transaction[key] = value
-            elif isinstance(value, bool):
-                # Convert bool to int (0/1)
-                cleaned_transaction[key] = int(value)
+            # Special handling for essential display fields
+            if key in essential_fields:
+                if key == 'Date':
+                    # Ensure date is properly formatted
+                    if value is None or value == '':
+                        cleaned_transaction[key] = ""
+                    else:
+                        # Convert datetime objects to ISO string, preserve strings
+                        try:
+                            if hasattr(value, 'isoformat'):
+                                cleaned_transaction[key] = value.isoformat()
+                            else:
+                                cleaned_transaction[key] = str(value)
+                        except:
+                            cleaned_transaction[key] = str(value)
+                elif key == 'Amount':
+                    # Ensure amount is numeric or convertible
+                    if value is None or value == '':
+                        cleaned_transaction[key] = "0"
+                    else:
+                        try:
+                            # Try to preserve as float if possible
+                            float_val = float(value)
+                            cleaned_transaction[key] = value if isinstance(value, (int, float)) else str(value)
+                        except:
+                            cleaned_transaction[key] = str(value)
+                else:
+                    # For other essential fields, preserve as string
+                    if value is None:
+                        cleaned_transaction[key] = ""
+                    else:
+                        cleaned_transaction[key] = str(value)
             else:
-                # Convert other types to string
-                cleaned_transaction[key] = str(value)
+                # Regular field processing for non-essential fields
+                if value is None:
+                    cleaned_transaction[key] = ""
+                    continue
+                
+                # Ensure value is one of the allowed types
+                if isinstance(value, (str, int, float)):
+                    cleaned_transaction[key] = value
+                elif isinstance(value, bool):
+                    # Convert bool to int (0/1)
+                    cleaned_transaction[key] = int(value)
+                else:
+                    # Convert other types to string
+                    cleaned_transaction[key] = str(value)
+        
+        print(f"[DEBUG] Cleaned transaction keys: {list(cleaned_transaction.keys())}")
+        essential_data = {k: v for k, v in cleaned_transaction.items() if k in essential_fields}
+        print(f"[DEBUG] Cleaned essential fields: {essential_data}")
         
         return cleaned_transaction
     
@@ -999,22 +1044,38 @@ class TransformationService:
             clean_outgoing = self._clean_single_transaction(outgoing)
             clean_incoming = self._clean_single_transaction(incoming)
             
+            # Debug: Log the exact structure being sent to frontend
+            print(f"[DEBUG] Transfer Match Structure for Frontend:")
+            print(f"  Original outgoing keys: {list(outgoing.keys()) if outgoing else 'None'}")
+            print(f"  Original incoming keys: {list(incoming.keys()) if incoming else 'None'}")
+            print(f"  Clean outgoing: {clean_outgoing}")
+            print(f"  Clean incoming: {clean_incoming}")
+            
             # Format as TransferMatch
             match = {
+                # Pydantic model fields (required for validation)
                 "outgoing_transaction": clean_outgoing,
                 "incoming_transaction": clean_incoming,
                 "confidence": confidence,
-                "match_type": match_type
+                "match_type": match_type,
+                # Frontend compatibility fields (frontend expects these names)
+                "outgoing": clean_outgoing,
+                "incoming": clean_incoming
             }
+            
+            print(f"[DEBUG] Final match structure: {match}")
             formatted_matches.append(match)
         
         # Return formatted structure matching TransferAnalysis model
         return {
+            # Pydantic model fields (required for validation)
             "total_matches": len(transfers),
             "high_confidence_matches": high_confidence_matches,
             "medium_confidence_matches": medium_confidence_matches,
             "low_confidence_matches": low_confidence_matches,
             "matches": formatted_matches,
+            # Frontend compatibility fields
+            "transfers": formatted_matches,  # Frontend expects this field
             # Keep additional fields for backward compatibility
             "summary": transfer_analysis_raw.get('summary', {}),
             "potential_transfers": transfer_analysis_raw.get('potential_transfers', []),
