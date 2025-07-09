@@ -1,11 +1,16 @@
 ---
 id: task-14
 title: Create global state context
-status: To Do
+status: Done
 assignee: []
 created_date: '2025-07-06'
-labels: ["Phase 5", "Frontend", "Medium Priority"]
-dependencies: ["task-13"]
+updated_date: '2025-07-09'
+labels:
+  - Phase 5
+  - Frontend
+  - Medium Priority
+dependencies:
+  - task-13
 ---
 
 ## Description
