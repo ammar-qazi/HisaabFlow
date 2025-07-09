@@ -1,7 +1,7 @@
 """
 Data transformation endpoints - Refactored to use services
 """
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 from typing import Dict, List, Any, Optional
 import json
 
@@ -13,19 +13,22 @@ from backend.api.models import (
     ExportResponse
 )
 
-# Import services
-from backend.services.transformation_service import TransformationService
-from backend.services.export_service import ExportService
+# Import dependencies
+from backend.api.dependencies import (
+    get_transformation_service,
+    get_export_service
+)
 
 transform_router = APIRouter()
 
-# Initialize services
-transformation_service = TransformationService()
-export_service = ExportService()
+# Services are now injected via dependencies
 
 
 @transform_router.post("/transform", response_model=TransformResponse)
-async def transform_data(request: TransformRequest):
+async def transform_data(
+    request: TransformRequest,
+    transformation_service = Depends(get_transformation_service)
+):
     """Transform data to Cashew format"""
     try:
         # Use transformation service
@@ -48,7 +51,10 @@ async def transform_data(request: TransformRequest):
 
 
 @transform_router.post("/multi-csv/transform", response_model=MultiCSVResponse)
-async def transform_multi_csv_data(request: Request):
+async def transform_multi_csv_data(
+    request: Request,
+    transformation_service = Depends(get_transformation_service)
+):
     """Transform multi-CSV data to Cashew format"""
     print(f" Multi-CSV transform request received")
     
@@ -79,7 +85,10 @@ async def transform_multi_csv_data(request: Request):
 
 
 @transform_router.post("/apply-transfer-categorization", response_model=TransformResponse)
-async def apply_transfer_categorization(request: Request):
+async def apply_transfer_categorization(
+    request: Request,
+    transformation_service = Depends(get_transformation_service)
+):
     """Apply transfer categorization to existing transformed data"""
     print(f" Transfer categorization request received")
     
@@ -110,7 +119,10 @@ async def apply_transfer_categorization(request: Request):
 
 
 @transform_router.post("/export", response_model=ExportResponse)
-async def export_csv_data(request: Request):
+async def export_csv_data(
+    request: Request,
+    export_service = Depends(get_export_service)
+):
     """Export transformed data as CSV file"""
     print(f"[IN] Export request received")
     

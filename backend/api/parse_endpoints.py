@@ -1,15 +1,18 @@
 """
 CSV parsing endpoints with preprocessing layer - Refactored to use services
 """
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 import os
 
-# Import services
-from backend.services.preview_service import PreviewService
-from backend.services.parsing_service import ParsingService, ParseConfig
-from backend.services.multi_csv_service import MultiCSVService
+# Import services and dependencies
+from backend.services.parsing_service import ParseConfig
+from backend.api.dependencies import (
+    get_preview_service,
+    get_parsing_service,
+    get_multi_csv_service
+)
 
 # Import file helper function
 try:
@@ -32,14 +35,16 @@ from backend.api.models import (
 
 parse_router = APIRouter()
 
-# Initialize services
-preview_service = PreviewService()
-parsing_service = ParsingService()
-multi_csv_service = MultiCSVService()
+# Services are now injected via dependencies
 
 
 @parse_router.get("/preview/{file_id}", response_model=PreviewResponse)
-async def preview_csv(file_id: str, encoding: str = "utf-8", header_row: int = None):
+async def preview_csv(
+    file_id: str, 
+    encoding: str = "utf-8", 
+    header_row: int = None,
+    preview_service = Depends(get_preview_service)
+):
     """Preview uploaded CSV file with bank-aware header detection"""
     print(f"‍ Preview request for file_id: {file_id}, header_row: {header_row}")
     
@@ -61,7 +66,11 @@ async def preview_csv(file_id: str, encoding: str = "utf-8", header_row: int = N
 
 
 @parse_router.get("/detect-range/{file_id}", response_model=DetectRangeResponse)
-async def detect_data_range(file_id: str, encoding: str = "utf-8"):
+async def detect_data_range(
+    file_id: str, 
+    encoding: str = "utf-8",
+    preview_service = Depends(get_preview_service)
+):
     """Auto-detect data range in CSV"""
     print(f" Detect range request for file_id: {file_id}")
     
@@ -81,7 +90,11 @@ async def detect_data_range(file_id: str, encoding: str = "utf-8"):
 
 
 @parse_router.post("/parse-range/{file_id}", response_model=ParseResponse)
-async def parse_range(file_id: str, request: ParseRangeRequest):
+async def parse_range(
+    file_id: str, 
+    request: ParseRangeRequest,
+    parsing_service = Depends(get_parsing_service)
+):
     """Parse CSV with specified range and data cleaning"""
     print(f"‍ Parse range request for file_id: {file_id}")
     
@@ -114,7 +127,8 @@ async def parse_range(file_id: str, request: ParseRangeRequest):
 @parse_router.post("/multi-csv/parse", response_model=MultiCSVParseResponse)
 async def parse_multiple_csvs(
     request: MultiCSVParseRequest,
-    use_pydantic: bool = Query(False, description="Return Pydantic models instead of dicts")
+    use_pydantic: bool = Query(False, description="Return Pydantic models instead of dicts"),
+    multi_csv_service = Depends(get_multi_csv_service)
 ):
     """Parse multiple CSV files"""
     print(f"[START] Multi-CSV parse request for {len(request.file_ids)} files")

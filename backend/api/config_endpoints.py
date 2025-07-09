@@ -1,9 +1,9 @@
 """
 Configuration endpoints for bank configurations
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from typing import Dict, List, Any, Optional
-from backend.shared.config.api_facade import APIConfigFacade
+from backend.api.dependencies import get_config_manager
 
 # Import models from centralized location
 from backend.api.models import (
@@ -15,25 +15,10 @@ from backend.api.models import (
 
 config_router = APIRouter()
 
-# Initialize config manager with Nuitka detection
-def get_config_manager():
-    """Get config manager with proper path detection"""
-    from backend.csv_parser.utils import get_config_dir_for_manager
-    import os
-    
-    user_config_dir = get_config_dir_for_manager()
-    if user_config_dir:
-        config_dir = user_config_dir
-    else:
-        # Fallback to relative path
-        config_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "configs"))
-    
-    return APIConfigFacade(config_dir)
-
-config_manager = get_config_manager()
+# Config manager is now injected via dependencies
 
 @config_router.get("/configs", response_model=ConfigListResponse)
-async def list_configs():
+async def list_configs(config_manager = Depends(get_config_manager)):
     """List available bank configurations"""
     print(f" API: Listing available bank configurations...")
     try:
@@ -60,12 +45,15 @@ async def list_configs():
         raise HTTPException(status_code=500, detail=str(e))
 
 @config_router.get("/config/{config_name}", response_model=ConfigResponse)
-async def load_config(config_name: str):
+async def load_config(
+    config_name: str,
+    config_manager = Depends(get_config_manager)
+):
     """Load bank configuration by display name or bank name"""
     print(f" API: Loading bank configuration '{config_name}'")
     try:
         # Find matching bank name
-        bank_name = _find_matching_bank_name(config_name)
+        bank_name = _find_matching_bank_name(config_name, config_manager)
         print(f" Matched bank name: '{bank_name}'")
         
         if not bank_name:
@@ -124,7 +112,10 @@ async def load_config(config_name: str):
         raise HTTPException(status_code=500, detail=f"Error loading configuration: {str(e)}")
 
 @config_router.post("/save-config", response_model=SaveConfigResponse)
-async def save_config(request: SaveTemplateRequest):
+async def save_config(
+    request: SaveTemplateRequest,
+    config_manager = Depends(get_config_manager)
+):
     """Save bank configuration"""
     print(f" API: Saving bank configuration: {request.template_name}")
     try:
@@ -142,7 +133,7 @@ async def save_config(request: SaveTemplateRequest):
         print(f"[ERROR]  Config save error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error saving configuration: {str(e)}")
 
-def _find_matching_bank_name(config_name: str) -> Optional[str]:
+def _find_matching_bank_name(config_name: str, config_manager) -> Optional[str]:
     """Find bank name from configuration display name or direct name"""
     print(f" Finding bank name for: '{config_name}'")
     
