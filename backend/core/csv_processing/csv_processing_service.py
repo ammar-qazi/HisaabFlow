@@ -6,7 +6,7 @@ import configparser
 from typing import Dict, List, Any, Optional, Tuple
 
 from backend.csv_parser import UnifiedCSVParser, EncodingDetector
-from backend.data_cleaner import DataCleaner
+from backend.data_cleaning.data_cleaner import DataCleaner
 from backend.bank_detection import BankDetector
 from backend.csv_preprocessing.csv_preprocessor import CSVPreprocessor
 from backend.shared.config.unified_config_service import get_unified_config_service
