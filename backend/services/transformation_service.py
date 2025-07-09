@@ -165,29 +165,63 @@ class TransformationService:
             
             # Apply description cleaning and transfer detection
             print(f"\n Applying description cleaning and transfer detection...")
-            enhanced_result, transfer_analysis = self._apply_advanced_processing(result, raw_data)
+            enhanced_result, transfer_analysis_raw = self._apply_advanced_processing(result, raw_data)
+            
+            # Convert transfer analysis to match TransferAnalysis model
+            transfer_analysis = self._format_transfer_analysis(transfer_analysis_raw)
+            
+            # Clean enhanced_result to match model requirements
+            print(f" Cleaning transformed data for API response...")
+            cleaned_transformed_data = self._clean_transformed_data(enhanced_result)
+            print(f"   [DATA] Cleaned {len(enhanced_result)} rows, removed metadata fields")
             
             print(f" Transfer detection summary:")
-            print(f"   [DATA] Transfer pairs found: {transfer_analysis['summary']['transfer_pairs_found']}")
-            print(f"    Potential transfers: {transfer_analysis['summary']['potential_transfers']}")
+            print(f"   [DATA] Transfer pairs found: {transfer_analysis.get('summary', {}).get('transfer_pairs_found', 0)}")
+            print(f"    Potential transfers: {transfer_analysis.get('summary', {}).get('potential_transfers', 0)}")
             
-            # Frontend expects 'transformed_data' and 'transfer_analysis' format
-            response_data = {
-                "success": True,
-                "transformed_data": enhanced_result,
-                "transformation_summary": {
-                    "total_transactions": len(enhanced_result),
-                    "bank_name": bank_name,
-                    "data_source": "multi-csv"
-                },
-                "transfer_analysis": transfer_analysis,
-                # Legacy fields for compatibility
-                "data": enhanced_result,
-                "row_count": len(enhanced_result),
-                "bank_name": bank_name
+            # Create proper file_results for each CSV processed
+            file_results = []
+            csv_data_list = raw_data.get('csv_data_list', [])
+            
+            for csv_data in csv_data_list:
+                file_id = csv_data.get('file_id', 'unknown')
+                original_name = csv_data.get('filename', csv_data.get('original_name', 'unknown.csv'))
+                bank_info = csv_data.get('bank_info', {})
+                detected_bank = bank_info.get('bank_name', bank_info.get('detected_bank', 'unknown'))
+                csv_rows = len(csv_data.get('data', []))
+                
+                file_result = {
+                    "file_id": file_id,
+                    "original_name": original_name,
+                    "bank_name": detected_bank,
+                    "rows_processed": csv_rows,
+                    "success": True,
+                    "error": None
+                }
+                file_results.append(file_result)
+            
+            # Get list of processed banks
+            banks_processed = list(set(fr["bank_name"] for fr in file_results if fr["bank_name"] != "unknown"))
+            
+            # Create proper TransformationSummary structure
+            transformation_summary = {
+                "total_files": len(csv_data_list),
+                "total_rows": len(cleaned_transformed_data),
+                "successful_transformations": len([fr for fr in file_results if fr["success"]]),
+                "failed_transformations": len([fr for fr in file_results if not fr["success"]]),
+                "banks_processed": banks_processed
             }
             
-            print(f" Sending response with {len(result)} transformed_data rows")
+            # Response matching MultiCSVResponse model exactly
+            response_data = {
+                "success": True,
+                "transformed_data": cleaned_transformed_data,
+                "transfer_analysis": transfer_analysis,
+                "transformation_summary": transformation_summary,
+                "file_results": file_results
+            }
+            
+            print(f" Sending response with {len(cleaned_transformed_data)} cleaned transformed_data rows")
             return response_data
             
         except Exception as e:
@@ -853,6 +887,141 @@ class TransformationService:
         
         print(f"   [SUCCESS] Applied '{transfer_category}' category and updated notes for {matches_applied} transactions.")
         return data
+    
+    def _clean_transformed_data(self, data: list) -> list:
+        """Clean transformed data to match MultiCSVResponse model requirements
+        
+        Removes metadata fields and ensures all values are str, int, or float
+        """
+        cleaned_data = []
+        metadata_fields_removed = []
+        type_conversions = []
+        
+        for row_idx, row in enumerate(data):
+            cleaned_row = {}
+            
+            for key, value in row.items():
+                # Skip metadata fields (starting with _)
+                if key.startswith('_'):
+                    if key not in metadata_fields_removed:
+                        metadata_fields_removed.append(key)
+                    continue
+                
+                # Handle None values
+                if value is None:
+                    cleaned_row[key] = ""
+                    type_conversions.append(f"Row {row_idx}: {key} None -> ''")
+                    continue
+                
+                # Ensure value is one of the allowed types
+                if isinstance(value, (str, int, float)):
+                    cleaned_row[key] = value
+                elif isinstance(value, bool):
+                    # Convert bool to int (0/1)
+                    cleaned_row[key] = int(value)
+                    type_conversions.append(f"Row {row_idx}: {key} bool({value}) -> int({int(value)})")
+                else:
+                    # Convert other types to string
+                    original_type = type(value).__name__
+                    cleaned_row[key] = str(value)
+                    type_conversions.append(f"Row {row_idx}: {key} {original_type}({value}) -> str('{str(value)}')")
+            
+            cleaned_data.append(cleaned_row)
+        
+        # Log debug information
+        if metadata_fields_removed:
+            print(f"   [DEBUG] Removed metadata fields: {metadata_fields_removed}")
+        if type_conversions:
+            print(f"   [DEBUG] Type conversions made: {len(type_conversions)}")
+            # Show first few conversions as examples
+            for conversion in type_conversions[:5]:
+                print(f"      {conversion}")
+            if len(type_conversions) > 5:
+                print(f"      ... and {len(type_conversions) - 5} more")
+        
+        return cleaned_data
+    
+    def _clean_single_transaction(self, transaction: dict) -> dict:
+        """Clean a single transaction object to match model requirements
+        
+        Removes metadata fields and ensures all values are str, int, or float
+        """
+        cleaned_transaction = {}
+        
+        for key, value in transaction.items():
+            # Skip metadata fields (starting with _)
+            if key.startswith('_'):
+                continue
+            
+            # Handle None values
+            if value is None:
+                cleaned_transaction[key] = ""
+                continue
+            
+            # Ensure value is one of the allowed types
+            if isinstance(value, (str, int, float)):
+                cleaned_transaction[key] = value
+            elif isinstance(value, bool):
+                # Convert bool to int (0/1)
+                cleaned_transaction[key] = int(value)
+            else:
+                # Convert other types to string
+                cleaned_transaction[key] = str(value)
+        
+        return cleaned_transaction
+    
+    def _format_transfer_analysis(self, transfer_analysis_raw: dict) -> dict:
+        """Format transfer analysis data to match TransferAnalysis model"""
+        transfers = transfer_analysis_raw.get('transfers', [])
+        
+        # Count matches by confidence level
+        high_confidence_matches = 0
+        medium_confidence_matches = 0
+        low_confidence_matches = 0
+        
+        # Convert transfers to matches format
+        formatted_matches = []
+        for transfer in transfers:
+            outgoing = transfer.get('outgoing', {})
+            incoming = transfer.get('incoming', {})
+            confidence = transfer.get('confidence', 0.0)
+            match_type = transfer.get('match_strategy', 'unknown')
+            
+            # Count by confidence level
+            if confidence >= 0.8:
+                high_confidence_matches += 1
+            elif confidence >= 0.6:
+                medium_confidence_matches += 1
+            else:
+                low_confidence_matches += 1
+            
+            # Clean transactions to match model requirements
+            clean_outgoing = self._clean_single_transaction(outgoing)
+            clean_incoming = self._clean_single_transaction(incoming)
+            
+            # Format as TransferMatch
+            match = {
+                "outgoing_transaction": clean_outgoing,
+                "incoming_transaction": clean_incoming,
+                "confidence": confidence,
+                "match_type": match_type
+            }
+            formatted_matches.append(match)
+        
+        # Return formatted structure matching TransferAnalysis model
+        return {
+            "total_matches": len(transfers),
+            "high_confidence_matches": high_confidence_matches,
+            "medium_confidence_matches": medium_confidence_matches,
+            "low_confidence_matches": low_confidence_matches,
+            "matches": formatted_matches,
+            # Keep additional fields for backward compatibility
+            "summary": transfer_analysis_raw.get('summary', {}),
+            "potential_transfers": transfer_analysis_raw.get('potential_transfers', []),
+            "potential_pairs": transfer_analysis_raw.get('potential_pairs', []),
+            "conflicts": transfer_analysis_raw.get('conflicts', []),
+            "flagged_transactions": transfer_analysis_raw.get('flagged_transactions', [])
+        }
     
     def apply_transfer_categorization_only(self, request_data: dict):
         """
