@@ -6,7 +6,7 @@ import json
 
 from backend.core.data_transformation.cashew_transformation_service import CashewTransformationService
 from backend.core.transfer_detection.transfer_processing_service import TransferProcessingService
-from backend.core.data_cleaning.data_cleaning_service import DataCleaningService
+from backend.core.business_cleaning.data_cleaning_service import DataCleaningService
 from backend.services.export_formatting_service import ExportFormattingService
 from backend.bank_detection import BankDetector
 from backend.shared.config.unified_config_service import get_unified_config_service

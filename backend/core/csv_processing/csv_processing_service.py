@@ -10,7 +10,7 @@ from typing import Dict, List, Any, Optional, Tuple
 
 from .interfaces import CSVParserPort, CSVPreprocessorPort, EncodingDetectorPort
 from .exceptions import CSVProcessingError, CSVParsingError, BankDetectionError
-from backend.data_cleaning.data_cleaner import DataCleaner
+from backend.infrastructure.csv_cleaning.data_cleaner import DataCleaner
 from backend.bank_detection import BankDetector
 from backend.shared.config.unified_config_service import get_unified_config_service
 from backend.models.csv_models import BankDetectionResult
