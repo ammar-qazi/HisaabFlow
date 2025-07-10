@@ -2,7 +2,7 @@
 Confidence calculation for transfer matches
 """
 from typing import Dict
-from .date_parser import DateParser
+from backend.core.transfer_detection.date_parser import DateParser
 
 
 class ConfidenceCalculator:

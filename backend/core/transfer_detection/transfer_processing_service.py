@@ -4,7 +4,7 @@ Transfer processing service for orchestrating transfer detection and categorizat
 from typing import Dict, List, Any, Optional
 from pathlib import Path
 
-from backend.transfer_detection.main_detector import TransferDetector
+from backend.core.transfer_detection.main_detector import TransferDetector
 from backend.shared.config.unified_config_service import get_unified_config_service
 
 

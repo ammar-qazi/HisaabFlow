@@ -3,8 +3,8 @@ Currency conversion detection and matching
 """
 import re
 from typing import Dict, List, Optional, Set
-from .amount_parser import AmountParser
-from .date_parser import DateParser
+from backend.core.transfer_detection.amount_parser import AmountParser
+from backend.core.transfer_detection.date_parser import DateParser
 
 
 class CurrencyConverter:

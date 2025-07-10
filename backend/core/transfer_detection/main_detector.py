@@ -2,12 +2,12 @@
 Main transfer detector orchestrating all components
 """
 from typing import Dict, List, Any, Optional
-from .amount_parser import AmountParser
-from .date_parser import DateParser
-from .cross_bank_matcher import CrossBankMatcher
-from .currency_converter import CurrencyConverter
-from .confidence_calculator import ConfidenceCalculator
-from ..shared.config.unified_config_service import get_unified_config_service
+from backend.core.transfer_detection.amount_parser import AmountParser
+from backend.core.transfer_detection.date_parser import DateParser
+from backend.core.transfer_detection.cross_bank_matcher import CrossBankMatcher
+from backend.core.transfer_detection.currency_converter import CurrencyConverter
+from backend.core.transfer_detection.confidence_calculator import ConfidenceCalculator
+from backend.shared.config.unified_config_service import get_unified_config_service
 
 
 class TransferDetector:
