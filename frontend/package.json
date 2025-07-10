@@ -20,7 +20,8 @@
     "react-dom": "^18.2.0",
     "react-hot-toast": "^2.5.2",
     "react-scripts": "5.0.1",
-    "wait-on": "^7.0.0"
+    "wait-on": "^7.0.0",
+    "zustand": "^5.0.6"
   },
   "scripts": {
     "start": "react-scripts start",
