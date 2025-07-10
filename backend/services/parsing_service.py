@@ -3,8 +3,8 @@ Parsing service for single CSV file operations
 """
 from backend.infrastructure.csv_parsing import UnifiedCSVParser
 from backend.infrastructure.csv_cleaning.data_cleaner import DataCleaner
-from backend.bank_detection import BankDetector
-from backend.shared.config.unified_config_service import get_unified_config_service
+from backend.core.bank_detection import BankDetector
+from backend.infrastructure.config.unified_config_service import get_unified_config_service
 from backend.api.models import ParseConfig
 
 

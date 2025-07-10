@@ -3,11 +3,11 @@ Multi-CSV parsing service for coordinating CSV processing operations
 """
 import os
 from typing import Any, Dict, List
-from backend.models.csv_models import CSVRow, BankDetectionResult
+from backend.shared.models.csv_models import CSVRow, BankDetectionResult
 from decimal import Decimal
-from backend.shared.config.dependency_injection import get_csv_processing_service
+from backend.infrastructure.config.dependency_injection import get_csv_processing_service
 from backend.services.export_formatting_service import ExportFormattingService
-from backend.shared.config.unified_config_service import get_unified_config_service
+from backend.infrastructure.config.unified_config_service import get_unified_config_service
 
 class MultiCSVService:
     """Service for coordinating multi-CSV parsing operations using focused services"""

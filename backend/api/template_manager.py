@@ -8,7 +8,7 @@ from typing import Dict, List, Optional
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from backend.shared.config.unified_config_service import get_unified_config_service
+from backend.infrastructure.config.unified_config_service import get_unified_config_service
 
 try:
     from api.models import SaveTemplateRequest

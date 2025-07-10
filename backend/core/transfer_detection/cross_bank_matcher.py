@@ -5,7 +5,7 @@ from typing import Dict, List, Set, Optional
 from backend.core.transfer_detection.amount_parser import AmountParser
 from backend.core.transfer_detection.date_parser import DateParser
 from backend.core.transfer_detection.confidence_calculator import ConfidenceCalculator
-from backend.shared.config.unified_config_service import get_unified_config_service
+from backend.infrastructure.config.unified_config_service import get_unified_config_service
 
 
 class CrossBankMatcher:

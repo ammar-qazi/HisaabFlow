@@ -3,8 +3,8 @@ Bank detector for identifying bank type from CSV files
 """
 import re
 from typing import Any, Dict, List, Tuple
-from backend.shared.config.unified_config_service import get_unified_config_service, BankDetectionInfo
-from backend.models.csv_models import BankDetectionResult
+from backend.infrastructure.config.unified_config_service import get_unified_config_service, BankDetectionInfo
+from backend.shared.models.csv_models import BankDetectionResult
 
 class BankDetector:
     """Detects bank type from CSV files using content signatures and header analysis"""

@@ -3,8 +3,8 @@ Preview service for CSV files with bank-aware header detection
 """
 from typing import Optional
 from backend.infrastructure.csv_parsing import UnifiedCSVParser
-from backend.bank_detection import BankDetector
-from backend.shared.config.unified_config_service import get_unified_config_service
+from backend.core.bank_detection import BankDetector
+from backend.infrastructure.config.unified_config_service import get_unified_config_service
 
 
 class PreviewService:

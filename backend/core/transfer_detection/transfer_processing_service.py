@@ -5,7 +5,7 @@ from typing import Dict, List, Any, Optional
 from pathlib import Path
 
 from backend.core.transfer_detection.main_detector import TransferDetector
-from backend.shared.config.unified_config_service import get_unified_config_service
+from backend.infrastructure.config.unified_config_service import get_unified_config_service
 
 
 class TransferProcessingService:

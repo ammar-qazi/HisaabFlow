@@ -3,7 +3,7 @@ Bank detection module for dynamic bank identification
 """
 
 from .bank_detector import BankDetector
-from ..shared.config.unified_config_service import get_unified_config_service
+from backend.infrastructure.config.unified_config_service import get_unified_config_service
 
 # For backward compatibility, provide UnifiedConfigService as the default
 def get_bank_config_manager():

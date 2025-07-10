@@ -5,8 +5,8 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional
 
 from backend.services.cashew_transformer import CashewTransformer
-from backend.bank_detection import BankDetector
-from backend.shared.config.unified_config_service import get_unified_config_service
+from backend.core.bank_detection import BankDetector
+from backend.infrastructure.config.unified_config_service import get_unified_config_service
 
 
 class CashewTransformationService:

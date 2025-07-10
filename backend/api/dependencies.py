@@ -7,7 +7,7 @@ from backend.services.parsing_service import ParsingService
 from backend.services.multi_csv_service import MultiCSVService
 from backend.services.transformation_service import TransformationService
 from backend.services.export_service import ExportService
-from backend.shared.config.api_facade import APIConfigFacade
+from backend.infrastructure.config.api_facade import APIConfigFacade
 
 
 @lru_cache()
