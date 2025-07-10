@@ -43,7 +43,7 @@ def get_export_service() -> ExportService:
 @lru_cache()
 def get_config_manager() -> APIConfigFacade:
     """Get singleton APIConfigFacade instance with proper path detection"""
-    from backend.csv_parser.utils import get_config_dir_for_manager
+    from backend.infrastructure.csv_parsing.utils import get_config_dir_for_manager
     import os
     
     user_config_dir = get_config_dir_for_manager()

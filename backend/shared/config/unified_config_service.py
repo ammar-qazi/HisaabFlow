@@ -114,7 +114,7 @@ class UnifiedConfigService:
             
         # Try to get config directory through utility function first
         try:
-            from backend.csv_parser.utils import get_config_dir_for_manager
+            from backend.infrastructure.csv_parsing.utils import get_config_dir_for_manager
             user_config_dir = get_config_dir_for_manager()
             if user_config_dir:
                 return user_config_dir

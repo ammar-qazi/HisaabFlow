@@ -5,7 +5,7 @@ import os
 from typing import Any, Dict, List
 from backend.models.csv_models import CSVRow, BankDetectionResult
 from decimal import Decimal
-from backend.core.csv_processing.csv_processing_service import CSVProcessingService
+from backend.shared.config.dependency_injection import get_csv_processing_service
 from backend.services.export_formatting_service import ExportFormattingService
 from backend.shared.config.unified_config_service import get_unified_config_service
 
@@ -16,7 +16,7 @@ class MultiCSVService:
         self.config_service = get_unified_config_service()
         
         # Initialize focused services
-        self.csv_processing_service = CSVProcessingService()
+        self.csv_processing_service = get_csv_processing_service()
         self.export_formatting_service = ExportFormattingService()
         
         print(f"ℹ [MultiCSVService] Initialized with focused services")

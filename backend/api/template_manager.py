@@ -28,7 +28,7 @@ class TemplateManager:
         
         # Use Nuitka-aware config detection if no config_dir provided
         if config_dir is None:
-            from backend.csv_parser.utils import get_config_dir_for_manager
+            from backend.infrastructure.csv_parsing.utils import get_config_dir_for_manager
             import os
             
             user_config_dir = get_config_dir_for_manager()

@@ -2,7 +2,7 @@
 Preview service for CSV files with bank-aware header detection
 """
 from typing import Optional
-from backend.csv_parser import UnifiedCSVParser
+from backend.infrastructure.csv_parsing import UnifiedCSVParser
 from backend.bank_detection import BankDetector
 from backend.shared.config.unified_config_service import get_unified_config_service
 
@@ -83,7 +83,7 @@ class PreviewService:
             if bank_detection.bank_name != 'unknown' and bank_detection.confidence >= 0.5:
                 print(f" Step 2: Using bank-specific header detection for {bank_detection.bank_name}")
                 try:
-                    from backend.csv_parser.header_validator import find_and_validate_header, HeaderValidationError
+                    from backend.infrastructure.csv_parsing.header_validator import find_and_validate_header, HeaderValidationError
                     
                     # Get bank config and read header_row from config file
                     bank_config = self.config_service.get_bank_config(bank_detection.bank_name)

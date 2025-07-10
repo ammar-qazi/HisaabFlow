@@ -1,30 +1,46 @@
 """
 CSV processing service for handling CSV parsing and preprocessing coordination
+
+This service implements the domain logic for CSV processing operations using
+dependency injection and clean architecture principles.
 """
 import os
 import configparser
 from typing import Dict, List, Any, Optional, Tuple
 
-from backend.csv_parser import UnifiedCSVParser, EncodingDetector
+from .interfaces import CSVParserPort, CSVPreprocessorPort, EncodingDetectorPort
+from .exceptions import CSVProcessingError, CSVParsingError, BankDetectionError
 from backend.data_cleaning.data_cleaner import DataCleaner
 from backend.bank_detection import BankDetector
-from backend.csv_preprocessing.csv_preprocessor import CSVPreprocessor
 from backend.shared.config.unified_config_service import get_unified_config_service
 from backend.models.csv_models import BankDetectionResult
 
 
 class CSVProcessingService:
-    """Service focused on CSV processing coordination"""
+    """Service focused on CSV processing coordination using dependency injection"""
     
-    def __init__(self):
-        self.unified_parser = UnifiedCSVParser()
+    def __init__(self, 
+                 csv_parser: CSVParserPort,
+                 csv_preprocessor: CSVPreprocessorPort,
+                 encoding_detector: EncodingDetectorPort):
+        """
+        Initialize service with injected dependencies
+        
+        Args:
+            csv_parser: CSV parsing implementation
+            csv_preprocessor: CSV preprocessing implementation  
+            encoding_detector: Encoding detection implementation
+        """
+        self.csv_parser = csv_parser
+        self.csv_preprocessor = csv_preprocessor
+        self.encoding_detector = encoding_detector
+        
+        # Domain services - these stay as direct dependencies
         self.data_cleaner = DataCleaner()
         self.config_service = get_unified_config_service()
         self.bank_detector = BankDetector(self.config_service)
-        self.csv_preprocessor = CSVPreprocessor()
-        self.encoding_detector = EncodingDetector()
         
-        print(f"ℹ [CSVProcessingService] Initialized with unified components")
+        print(f"ℹ [CSVProcessingService] Initialized with injected components")
     
     def process_single_file(self, file_info: Dict[str, Any], parse_config: Any, 
                            enable_cleaning: bool = True) -> Dict[str, Any]:
@@ -225,7 +241,7 @@ class CSVProcessingService:
     def _detect_bank_and_headers(self, file_path: str, filename: str, current_file_config: Any, 
                                 file_encoding: str, preprocessing_applied: bool) -> Tuple[Any, Dict[str, Any]]:
         """Detect bank and validate header using robust header validation"""
-        from backend.csv_parser.header_validator import find_and_validate_header, HeaderValidationError
+        from backend.infrastructure.csv_parsing.header_validator import find_and_validate_header, HeaderValidationError
         
         print(f"      Detecting bank and headers for {filename} with encoding {file_encoding}")
         
@@ -315,8 +331,8 @@ class CSVProcessingService:
         
         print(f"         UnifiedParser params: encoding='{encoding}', header_row={header_row_for_unified}, start_row={data_start_row_for_unified}, max_rows={max_rows_for_unified}")
         
-        # Parse with UnifiedCSVParser
-        parse_result = self.unified_parser.parse_csv(
+        # Parse with injected CSV parser
+        parse_result = self.csv_parser.parse_csv(
             file_path,
             encoding=encoding,
             header_row=header_row_for_unified,
