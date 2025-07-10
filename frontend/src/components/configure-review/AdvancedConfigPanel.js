@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
-import { useTheme } from '../../../theme/ThemeProvider'; // Ensure useMemo is imported
-import { Card, Button, Badge } from '../../ui';
-import { Settings, FileText, AlertCircle, CheckCircle } from '../../ui/Icons';
+import { useTheme } from '../../theme/ThemeProvider'; // Ensure useMemo is imported
+import { Card, Button, Badge } from '../ui';
+import { Settings, FileText, AlertCircle, CheckCircle } from '../ui/Icons';
 function AdvancedConfigPanel({
   uploadedFiles,
   autoParseResults,

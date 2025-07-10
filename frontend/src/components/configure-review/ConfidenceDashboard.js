@@ -1,9 +1,9 @@
 import React, { useMemo } from 'react';
-import { useTheme } from '../../../theme/ThemeProvider';
-import { Card, Button, Badge } from '../../ui';
+import { useTheme } from '../../theme/ThemeProvider';
+import { Card, Button, Badge } from '../ui';
 import { 
   CheckCircle, AlertCircle, BarChart, Building, Calendar // Removed Calendar from imports
-} from '../../ui/Icons';
+} from '../ui/Icons';
 
 function ConfidenceDashboard({ 
   autoParseResults,

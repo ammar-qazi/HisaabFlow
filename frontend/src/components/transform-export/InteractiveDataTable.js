@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { useTheme } from '../../../theme/ThemeProvider';
-import { Card, Button } from '../../ui';
-import { Search, Filter, ChevronUp, ChevronDown, Download } from '../../ui/Icons';
+import { useTheme } from '../../theme/ThemeProvider';
+import { Card, Button } from '../ui';
+import { Search, Filter, ChevronUp, ChevronDown, Download } from '../ui/Icons';
 
 function InteractiveDataTable({ 
   data: rawData = [], 

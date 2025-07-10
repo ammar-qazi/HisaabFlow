@@ -3,7 +3,7 @@ import { useTheme } from '../../theme/ThemeProvider';
 import { Card, Button, Badge } from '../ui';
 import { CloudUpload, FileText, Trash2, X, ChevronRight } from '../ui/Icons';
 
-function ModernFileUploadStep({ 
+function FileUploadStep({ 
   fileInputRef, 
   handleFileSelect, 
   uploadedFiles, 
@@ -315,4 +315,4 @@ function ModernFileUploadStep({
   );
 }
 
-export default ModernFileUploadStep;
+export default FileUploadStep;

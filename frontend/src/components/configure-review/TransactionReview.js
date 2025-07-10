@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { useTheme } from '../../../theme/ThemeProvider';
-import { Card, Badge, Button } from '../../ui'; // Added Button for consistency, though not strictly needed for the core structure
-import { CheckCircle, ChevronDown, ChevronUp, FileText, AlertCircle } from '../../ui/Icons';
+import { useTheme } from '../../theme/ThemeProvider';
+import { Card, Badge, Button } from '../ui'; // Added Button for consistency, though not strictly needed for the core structure
+import { CheckCircle, ChevronDown, ChevronUp, FileText, AlertCircle } from '../ui/Icons';
 import InteractiveDataTable from '../transform-export/InteractiveDataTable';
 
 function TransactionReview({ autoParseResults, uploadedFiles }) {

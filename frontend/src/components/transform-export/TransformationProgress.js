@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useTheme } from '../../../theme/ThemeProvider';
-import { Card } from '../../ui';
-import { RefreshCw, CheckCircle } from '../../ui/Icons'; // Assuming these icons exist
+import { useTheme } from '../../theme/ThemeProvider';
+import { Card } from '../ui';
+import { RefreshCw, CheckCircle } from '../ui/Icons'; // Assuming these icons exist
 
 function TransformationProgress({ loading, currentStage = 'idle' }) {
   const theme = useTheme();

@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
-import { useTheme } from '../../../theme/ThemeProvider';
-import { Card } from '../../ui';
+import { useTheme } from '../../theme/ThemeProvider';
+import { Card } from '../ui';
 
 function AutoParseHandler({ 
   uploadedFiles,

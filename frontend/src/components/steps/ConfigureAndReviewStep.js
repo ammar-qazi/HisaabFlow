@@ -5,12 +5,12 @@ import { ChevronLeft, ChevronRight } from '../ui/Icons';
 import toast from 'react-hot-toast';
 
 // Import modular components
-import AutoParseHandler from './configure-review/AutoParseHandler';
-import ConfidenceDashboard from './configure-review/ConfidenceDashboard';
-import AdvancedConfigPanel from './configure-review/AdvancedConfigPanel';
-import TransactionReview from './configure-review/TransactionReview';
+import AutoParseHandler from '../configure-review/AutoParseHandler';
+import ConfidenceDashboard from '../configure-review/ConfidenceDashboard';
+import AdvancedConfigPanel from '../configure-review/AdvancedConfigPanel';
+import TransactionReview from '../configure-review/TransactionReview';
 
-function ModernConfigureAndReviewStep({ 
+function ConfigureAndReviewStep({ 
   currentStep,
   uploadedFiles,
   activeTab,
@@ -108,10 +108,10 @@ function ModernConfigureAndReviewStep({
   ) : [];
   
   // Debug logging
-  console.log('[DEBUG] ModernConfigureAndReviewStep - All parsedResults:', parsedResults?.length || 0);
-  console.log('[DEBUG] ModernConfigureAndReviewStep - Current uploadedFiles:', uploadedFiles.length);
-  console.log('[DEBUG] ModernConfigureAndReviewStep - Filtered autoParseResults:', autoParseResults?.length || 0);
-  console.log('[DEBUG] ModernConfigureAndReviewStep - File IDs match:', 
+  console.log('[DEBUG] ConfigureAndReviewStep - All parsedResults:', parsedResults?.length || 0);
+  console.log('[DEBUG] ConfigureAndReviewStep - Current uploadedFiles:', uploadedFiles.length);
+  console.log('[DEBUG] ConfigureAndReviewStep - Filtered autoParseResults:', autoParseResults?.length || 0);
+  console.log('[DEBUG] ConfigureAndReviewStep - File IDs match:', 
     autoParseResults?.map(r => r.file_id) || []);
 
   return (
@@ -189,4 +189,4 @@ function ModernConfigureAndReviewStep({
   );
 }
 
-export default ModernConfigureAndReviewStep;
+export default ConfigureAndReviewStep;

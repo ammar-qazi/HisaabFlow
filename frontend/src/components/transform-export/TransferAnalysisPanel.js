@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { useTheme } from '../../../theme/ThemeProvider';
-import { Card, Button, Badge } from '../../ui';
-import { ChevronDown, ChevronUp, AlertCircle, TrendingUp } from '../../ui/Icons'; // Assuming icons exist
-import { TransformationService } from '../../../services/transformationService';
+import { useTheme } from '../../theme/ThemeProvider';
+import { Card, Button, Badge } from '../ui';
+import { ChevronDown, ChevronUp, AlertCircle, TrendingUp } from '../ui/Icons'; // Assuming icons exist
+import { TransformationService } from '../../services/transformationService';
 import toast from 'react-hot-toast';
 
 function TransferAnalysisPanel({ 

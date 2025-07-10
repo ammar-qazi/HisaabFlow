@@ -4,13 +4,13 @@ import { Button } from '../ui';
 import { ChevronLeft, RefreshCw } from '../ui/Icons'; // Assuming icons exist
 
 // Import modular sub-components
-import TransformationProgress from './transform-export/TransformationProgress';
-import TransformationResults from './transform-export/TransformationResults';
-import TransferAnalysisPanel from './transform-export/TransferAnalysisPanel';
-import InteractiveDataTable from './transform-export/InteractiveDataTable';
-import ExportOptions from './transform-export/ExportOptions';
+import TransformationProgress from '../transform-export/TransformationProgress';
+import TransformationResults from '../transform-export/TransformationResults';
+import TransferAnalysisPanel from '../transform-export/TransferAnalysisPanel';
+import InteractiveDataTable from '../transform-export/InteractiveDataTable';
+import ExportOptions from '../transform-export/ExportOptions';
 
-function ModernTransformAndExportStep({
+function TransformAndExportStep({
   currentStep,
   transformedData,
   setTransformedData,
@@ -38,7 +38,7 @@ function ModernTransformAndExportStep({
   );
 
   // Debug logging
-  console.log(' ModernTransformAndExportStep Debug:', {
+  console.log(' TransformAndExportStep Debug:', {
     currentStep,
     hasTransformedData: !!transformedData,
     transformedDataType: Array.isArray(transformedData) ? 'array' : typeof transformedData,
@@ -63,7 +63,7 @@ function ModernTransformAndExportStep({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing.lg }}>
-      {/* Step Header implicitly handled by ContentArea in ModernAppLogic */}
+      {/* Step Header implicitly handled by ContentArea in AppLogic */}
 
       {loading ? (
         // Show progress while transforming
@@ -180,4 +180,4 @@ function ModernTransformAndExportStep({
   );
 }
 
-export default ModernTransformAndExportStep;
+export default TransformAndExportStep;

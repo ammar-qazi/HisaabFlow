@@ -1,7 +1,7 @@
 import React from 'react';
-import { useTheme } from '../../../theme/ThemeProvider';
-import { Card } from '../../ui'; // Assuming Card is available from '../ui'
-import { CheckCircle, BarChart, TrendingUp, Tag } from '../../ui/Icons';
+import { useTheme } from '../../theme/ThemeProvider';
+import { Card } from '../ui'; // Assuming Card is available from '../ui'
+import { CheckCircle, BarChart, TrendingUp, Tag } from '../ui/Icons';
 
 function TransformationResults({ transformedData, transferAnalysis, manuallyConfirmedTransfers }) {
   const theme = useTheme();

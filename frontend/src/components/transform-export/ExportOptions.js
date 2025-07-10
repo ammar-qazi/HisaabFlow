@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { useTheme } from '../../../theme/ThemeProvider';
-import { Card, Button } from '../../ui';
-import { Download, CheckCircle, FileText } from '../../ui/Icons'; // Assuming icons exist
+import { useTheme } from '../../theme/ThemeProvider';
+import { Card, Button } from '../ui';
+import { Download, CheckCircle, FileText } from '../ui/Icons'; // Assuming icons exist
 
 function ExportOptions({ transformedData, exportData }) {
   const theme = useTheme();

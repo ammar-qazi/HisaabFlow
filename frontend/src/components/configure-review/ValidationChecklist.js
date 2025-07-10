@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
-import { useTheme } from '../../../theme/ThemeProvider';
-import { Card, Badge, Progress } from '../../ui';
-import { CheckCircle } from '../../ui/Icons';
+import { useTheme } from '../../theme/ThemeProvider';
+import { Card, Badge, Progress } from '../ui';
+import { CheckCircle } from '../ui/Icons';
 
 function ValidationChecklist({
   validationChecklist,

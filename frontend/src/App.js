@@ -1,13 +1,13 @@
 import React from 'react';
 import { ThemeProvider } from './theme/ThemeProvider';
 import { Toaster } from 'react-hot-toast'; // <-- 1. Import Toaster
-import ModernMultiCSVApp from './components/modern/ModernMultiCSVApp';
+import AppLogic from './core/AppLogic';
 import './index.css';
 
 function App() {
   return (
     <ThemeProvider>
-      <ModernMultiCSVApp />
+      <AppLogic />
       <Toaster position="bottom-right" /> {/* <-- 2. Add the component here */}
     </ThemeProvider>
   );
