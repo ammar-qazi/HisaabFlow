@@ -6,10 +6,10 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 
 // Import utilities and handlers
-import { detectBankFromFilename } from '../../utils/bankDetection';
-import { triggerAutoDetection } from '../../handlers/autoConfigHandlers';
-import { createConfigHandlers } from '../../handlers/configurationHandlers';
-import { exportData } from '../../utils/exportUtils';
+import { detectBankFromFilename } from '../utils/bankDetection';
+import { triggerAutoDetection } from './autoConfigHandlers';
+import { createConfigHandlers } from './configurationHandlers';
+import { exportData } from '../utils/exportUtils';
 
 const API_BASE = window.BACKEND_URL || 'http://127.0.0.1:8000';
 const API_V1_BASE = `${API_BASE}/api/v1`;
