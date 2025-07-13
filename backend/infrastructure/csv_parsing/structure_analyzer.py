@@ -5,6 +5,35 @@ Analyzes CSV structure, detects header rows, and estimates data types
 from typing import Dict, List, Optional, Tuple
 from .utils import validate_csv_structure, estimate_data_types
 from .exceptions import StructureDetectionError
+import re
+from dataclasses import dataclass
+from backend.shared.amount_formats.amount_format_detector import AmountFormatDetector, AmountFormatAnalysis
+
+
+@dataclass
+class FieldMappingSuggestion:
+    """Suggestion for mapping a CSV column to a standard field"""
+    field_name: str
+    suggested_columns: List[str]
+    confidence_scores: Dict[str, float]
+    best_match: Optional[str] = None
+
+
+@dataclass 
+class UnknownBankAnalysis:
+    """Complete analysis results for unknown bank CSV"""
+    filename: str
+    encoding: str
+    delimiter: str
+    headers: List[str]
+    header_row: int
+    data_start_row: int
+    amount_format_analysis: AmountFormatAnalysis
+    field_mapping_suggestions: Dict[str, FieldMappingSuggestion]
+    filename_patterns: List[str]
+    sample_data: List[Dict[str, str]]
+    structure_confidence: float
+
 
 class StructureAnalyzer:
     """Analyze CSV structure and detect patterns"""
@@ -15,6 +44,41 @@ class StructureAnalyzer:
             'type', 'category', 'account', 'reference', 'id', 'transaction',
             'currency', 'memo', 'payee', 'value', 'debit', 'credit', 'status'
         ]
+        
+        # Enhanced field mapping patterns for unknown bank support
+        self.standard_field_patterns = {
+            'date': {
+                'keywords': ['date', 'timestamp', 'time', 'datetime', 'transaction_date', 'posting_date', 'value_date', 'process_date'],
+                'patterns': [r'date', r'time', r'dt', r'.*date.*', r'.*time.*']
+            },
+            'amount': {
+                'keywords': ['amount', 'value', 'sum', 'total', 'balance', 'transaction_amount', 'debit', 'credit'],
+                'patterns': [r'amount', r'value', r'sum', r'total', r'balance', r'.*amount.*', r'debit', r'credit']
+            },
+            'title': {
+                'keywords': ['description', 'title', 'memo', 'reference', 'payee', 'merchant', 'details', 'narrative', 'transaction_description'],
+                'patterns': [r'desc.*', r'title', r'memo', r'ref.*', r'payee', r'merchant', r'details', r'narrative', r'.*description.*']
+            },
+            'note': {
+                'keywords': ['note', 'type', 'category', 'code', 'class', 'transaction_type', 'payment_type'],
+                'patterns': [r'note', r'type', r'category', r'code', r'class', r'.*type.*']
+            },
+            'currency': {
+                'keywords': ['currency', 'curr', 'ccy', 'symbol', 'currency_code'],
+                'patterns': [r'curr.*', r'ccy', r'symbol', r'.*currency.*']
+            },
+            'exchange_to': {
+                'keywords': ['exchange_to', 'converted_amount', 'local_amount', 'home_amount', 'target_amount'],
+                'patterns': [r'exchange.*', r'convert.*', r'local.*', r'home.*', r'target.*']
+            },
+            'exchange_to_currency': {
+                'keywords': ['exchange_currency', 'target_currency', 'local_currency', 'home_currency'],
+                'patterns': [r'exchange.*curr.*', r'target.*curr.*', r'local.*curr.*', r'home.*curr.*']
+            }
+        }
+        
+        # Initialize amount format detector
+        self.amount_format_detector = AmountFormatDetector()
         
         self.date_patterns = [
             r'\d{4}[-/.]\d{1,2}[-/.]\d{1,2}',   # YYYY-MM-DD, YYYY.MM.DD
@@ -146,3 +210,276 @@ class StructureAnalyzer:
     def validate_structure(self, headers: List[str], data_rows: List[List[str]]) -> Dict:
         """Validate CSV structure using utility functions"""
         return validate_csv_structure(headers, data_rows)
+    
+    def analyze_unknown_csv(self, csv_data: str, filename: str, encoding: str = 'utf-8', delimiter: str = ',') -> UnknownBankAnalysis:
+        """
+        Comprehensive analysis for unknown bank CSV files.
+        
+        Args:
+            csv_data: Raw CSV content as string
+            filename: Original filename for pattern generation
+            encoding: Detected/specified encoding
+            delimiter: Detected/specified delimiter
+            
+        Returns:
+            UnknownBankAnalysis with complete analysis results
+        """
+        print(f" Analyzing unknown bank CSV: {filename}")
+        
+        try:
+            # Parse CSV to rows
+            import csv
+            import io
+            csv_reader = csv.reader(io.StringIO(csv_data), delimiter=delimiter)
+            rows = [row for row in csv_reader]
+            
+            if not rows:
+                raise StructureDetectionError("No data found in CSV")
+            
+            # Detect header row and structure
+            header_detection = self.detect_header_row(rows)
+            header_row = header_detection.get('suggested_row', 0)
+            data_start_row = header_row + 1
+            
+            # Extract headers and data
+            headers = rows[header_row] if header_row < len(rows) else []
+            data_rows = rows[data_start_row:data_start_row + 50]  # Sample first 50 data rows
+            
+            # Analyze amount format from data
+            amount_samples = self._extract_amount_samples(data_rows, headers)
+            amount_format_analysis = self.amount_format_detector.analyze_amount_column(amount_samples)
+            
+            # Generate field mapping suggestions
+            field_mapping_suggestions = self.suggest_field_mappings(headers, data_rows)
+            
+            # Generate filename patterns
+            filename_patterns = self._generate_filename_patterns(filename)
+            
+            # Extract sample data for preview
+            sample_data = self._extract_sample_data(headers, data_rows[:10])
+            
+            # Calculate overall structure confidence
+            structure_confidence = self._calculate_structure_confidence(
+                header_detection, amount_format_analysis, field_mapping_suggestions
+            )
+            
+            return UnknownBankAnalysis(
+                filename=filename,
+                encoding=encoding,
+                delimiter=delimiter,
+                headers=headers,
+                header_row=header_row,
+                data_start_row=data_start_row,
+                amount_format_analysis=amount_format_analysis,
+                field_mapping_suggestions=field_mapping_suggestions,
+                filename_patterns=filename_patterns,
+                sample_data=sample_data,
+                structure_confidence=structure_confidence
+            )
+            
+        except Exception as e:
+            print(f"[ERROR]  Unknown CSV analysis failed: {str(e)}")
+            raise StructureDetectionError(f"Unknown CSV analysis failed: {str(e)}")
+    
+    def suggest_field_mappings(self, headers: List[str], data_rows: List[List[str]]) -> Dict[str, FieldMappingSuggestion]:
+        """
+        Suggest mappings for standard fields based on header analysis and data content.
+        
+        Args:
+            headers: List of column headers
+            data_rows: Sample data rows for content analysis
+            
+        Returns:
+            Dictionary mapping standard field names to suggestions
+        """
+        print(f"  Suggesting field mappings for {len(headers)} headers")
+        
+        suggestions = {}
+        
+        for field_name, patterns in self.standard_field_patterns.items():
+            # Score each header for this field
+            header_scores = {}
+            
+            for i, header in enumerate(headers):
+                score = self._score_header_for_field(header, patterns, data_rows, i)
+                if score > 0:
+                    header_scores[header] = score
+            
+            # Sort by score and create suggestion
+            sorted_headers = sorted(header_scores.keys(), key=lambda h: header_scores[h], reverse=True)
+            best_match = sorted_headers[0] if sorted_headers and header_scores[sorted_headers[0]] > 0.3 else None
+            
+            suggestions[field_name] = FieldMappingSuggestion(
+                field_name=field_name,
+                suggested_columns=sorted_headers[:3],  # Top 3 suggestions
+                confidence_scores=header_scores,
+                best_match=best_match
+            )
+        
+        return suggestions
+    
+    def _score_header_for_field(self, header: str, patterns: Dict[str, List[str]], data_rows: List[List[str]], col_index: int) -> float:
+        """Score how well a header matches a field type."""
+        if not header:
+            return 0.0
+        
+        header_lower = header.lower().strip()
+        score = 0.0
+        
+        # Check exact keyword matches
+        for keyword in patterns['keywords']:
+            if keyword.lower() == header_lower:
+                score += 1.0
+                break
+            elif keyword.lower() in header_lower:
+                score += 0.7
+        
+        # Check pattern matches
+        for pattern in patterns['patterns']:
+            try:
+                if re.search(pattern.lower(), header_lower):
+                    score += 0.5
+                    break
+            except re.error:
+                continue
+        
+        # Content-based scoring for specific field types
+        if col_index < len(data_rows[0]) if data_rows else False:
+            content_score = self._score_content_for_field(data_rows, col_index, patterns)
+            score += content_score * 0.3
+        
+        return min(score, 1.0)
+    
+    def _score_content_for_field(self, data_rows: List[List[str]], col_index: int, patterns: Dict[str, List[str]]) -> float:
+        """Score column content to determine field type."""
+        if not data_rows or col_index >= len(data_rows[0]):
+            return 0.0
+        
+        # Extract sample values
+        values = [row[col_index].strip() for row in data_rows[:20] if col_index < len(row) and row[col_index].strip()]
+        if not values:
+            return 0.0
+        
+        field_name = patterns.get('field_name', '')
+        
+        # Date field scoring
+        if any('date' in keyword or 'time' in keyword for keyword in patterns['keywords']):
+            date_matches = sum(1 for v in values if re.match(r'\d{4}[-/.]\d{1,2}[-/.]\d{1,2}', v) or 
+                             re.match(r'\d{1,2}[-/.]\d{1,2}[-/.]\d{4}', v))
+            return date_matches / len(values)
+        
+        # Amount field scoring  
+        elif any('amount' in keyword or 'value' in keyword for keyword in patterns['keywords']):
+            amount_matches = sum(1 for v in values if re.match(r'-?\d+[,.]?\d*', v.replace(' ', '')))
+            return amount_matches / len(values)
+        
+        # Currency field scoring
+        elif any('currency' in keyword for keyword in patterns['keywords']):
+            currency_matches = sum(1 for v in values if re.match(r'^[A-Z]{3}$', v.strip()))
+            return currency_matches / len(values)
+        
+        return 0.0
+    
+    def _extract_amount_samples(self, data_rows: List[List[str]], headers: List[str]) -> List[str]:
+        """Extract potential amount values for format detection."""
+        amount_samples = []
+        
+        # Find columns that might contain amounts
+        potential_amount_cols = []
+        for i, header in enumerate(headers):
+            header_lower = header.lower()
+            if any(keyword in header_lower for keyword in ['amount', 'value', 'sum', 'total', 'balance', 'debit', 'credit']):
+                potential_amount_cols.append(i)
+        
+        # If no obvious amount columns, check content
+        if not potential_amount_cols:
+            for col_idx in range(len(headers)):
+                if col_idx < len(data_rows[0]) if data_rows else False:
+                    sample_values = [row[col_idx] for row in data_rows[:10] if col_idx < len(row)]
+                    if self._looks_like_amounts(sample_values):
+                        potential_amount_cols.append(col_idx)
+        
+        # Extract samples from potential amount columns
+        for col_idx in potential_amount_cols:
+            for row in data_rows[:50]:  # Sample first 50 rows
+                if col_idx < len(row) and row[col_idx].strip():
+                    amount_samples.append(row[col_idx].strip())
+        
+        return amount_samples
+    
+    def _looks_like_amounts(self, values: List[str]) -> bool:
+        """Check if values look like monetary amounts."""
+        if not values:
+            return False
+        
+        numeric_count = 0
+        for value in values[:10]:  # Check first 10 values
+            if value and re.match(r'-?\d+[,.]?\d*', value.strip().replace(' ', '')):
+                numeric_count += 1
+        
+        return numeric_count / len(values[:10]) > 0.6
+    
+    def _generate_filename_patterns(self, filename: str) -> List[str]:
+        """Generate filename patterns for bank detection."""
+        import os
+        
+        base_name = os.path.splitext(filename)[0].lower()
+        patterns = []
+        
+        # Add exact filename pattern
+        patterns.append(f"*{base_name}*")
+        
+        # Add patterns based on common bank naming conventions
+        if 'statement' in base_name:
+            patterns.append("*statement*")
+        if 'export' in base_name:
+            patterns.append("*export*")
+        if 'transaction' in base_name:
+            patterns.append("*transaction*")
+        
+        # Add pattern for just the bank name part (remove dates, numbers)
+        clean_name = re.sub(r'\d+', '', base_name)
+        clean_name = re.sub(r'[_-]+', '_', clean_name).strip('_-')
+        if clean_name and clean_name != base_name:
+            patterns.append(f"*{clean_name}*")
+        
+        return patterns
+    
+    def _extract_sample_data(self, headers: List[str], data_rows: List[List[str]]) -> List[Dict[str, str]]:
+        """Extract sample data for preview."""
+        sample_data = []
+        
+        for row in data_rows[:5]:  # First 5 data rows
+            row_dict = {}
+            for i, header in enumerate(headers):
+                value = row[i] if i < len(row) else ""
+                row_dict[header] = value
+            sample_data.append(row_dict)
+        
+        return sample_data
+    
+    def _calculate_structure_confidence(self, header_detection: Dict, amount_format_analysis: AmountFormatAnalysis, 
+                                      field_suggestions: Dict[str, FieldMappingSuggestion]) -> float:
+        """Calculate overall confidence in structure detection."""
+        # Header detection confidence
+        header_conf = header_detection.get('confidence', 0.0)
+        
+        # Amount format confidence
+        amount_conf = amount_format_analysis.confidence
+        
+        # Field mapping confidence (average of required fields)
+        required_fields = ['date', 'amount', 'title']
+        mapping_scores = []
+        for field in required_fields:
+            if field in field_suggestions and field_suggestions[field].best_match:
+                best_score = max(field_suggestions[field].confidence_scores.values()) if field_suggestions[field].confidence_scores else 0.0
+                mapping_scores.append(best_score)
+            else:
+                mapping_scores.append(0.0)
+        
+        mapping_conf = sum(mapping_scores) / len(mapping_scores) if mapping_scores else 0.0
+        
+        # Weighted average
+        overall_conf = (header_conf * 0.3 + amount_conf * 0.3 + mapping_conf * 0.4)
+        
+        return overall_conf

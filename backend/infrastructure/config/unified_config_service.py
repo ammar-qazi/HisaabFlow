@@ -6,7 +6,7 @@ Replaces 4 separate ConfigManager implementations with one unified interface
 import os
 import configparser
 from typing import Dict, List, Optional, Any
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 import csv
 import re
@@ -16,6 +16,9 @@ import sys
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
+
+# Import AmountFormat after path setup
+from backend.shared.amount_formats import AmountFormat, RegionalFormatRegistry
 
 
 @dataclass
@@ -30,12 +33,19 @@ class CSVConfig:
 
 @dataclass
 class DataCleaningConfig:
-    """Data cleaning configuration"""
+    """Data cleaning configuration with enhanced AmountFormat support"""
     currency_symbols: List[str]
     date_formats: List[str]
     description_cleaning_rules: Dict[str, str]
+    
+    # Legacy amount format fields (maintained for backward compatibility)
     amount_decimal_separator: str = "."
     amount_thousand_separator: str = ","
+    
+    # Enhanced amount format fields
+    amount_format: AmountFormat = field(default_factory=lambda: RegionalFormatRegistry.AMERICAN)
+    auto_detect_format: bool = True
+    amount_format_confidence: float = 0.0
     
     # Additional fields for API compatibility
     enable_currency_addition: bool = True
@@ -313,13 +323,18 @@ class UnifiedConfigService:
             return CSVConfig()
     
     def _build_data_cleaning_config(self, config: configparser.ConfigParser) -> DataCleaningConfig:
-        """Build data cleaning configuration"""
+        """Build data cleaning configuration with AmountFormat support"""
         # Default values
         currency_symbols = ['$', '€', '£', '₹', 'PKR', 'USD', 'EUR', 'GBP']
         date_formats = ['%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y', '%d.%m.%Y']
         amount_decimal_separator = '.'
         amount_thousand_separator = ','
         description_cleaning_rules = {}
+        
+        # Enhanced amount format defaults
+        amount_format = RegionalFormatRegistry.AMERICAN
+        auto_detect_format = True
+        amount_format_confidence = 0.0
         
         # Extract from data_cleaning section if exists
         if 'data_cleaning' in config:
@@ -331,8 +346,16 @@ class UnifiedConfigService:
             if 'date_formats' in cleaning_section:
                 date_formats = [fmt.strip() for fmt in cleaning_section['date_formats'].split(',')]
             
+            # Legacy amount format fields
             amount_decimal_separator = cleaning_section.get('amount_decimal_separator', '.')
             amount_thousand_separator = cleaning_section.get('amount_thousand_separator', ',')
+            
+            # Enhanced amount format fields
+            auto_detect_format = cleaning_section.getboolean('auto_detect_format', fallback=True)
+            amount_format_confidence = cleaning_section.getfloat('amount_format_confidence', fallback=0.0)
+            
+            # Parse amount format specification
+            amount_format = self._parse_amount_format_from_config(cleaning_section, amount_decimal_separator, amount_thousand_separator)
         
         # Extract description cleaning rules from separate section
         if 'description_cleaning' in config:
@@ -361,6 +384,9 @@ class UnifiedConfigService:
             description_cleaning_rules=description_cleaning_rules,
             amount_decimal_separator=amount_decimal_separator,
             amount_thousand_separator=amount_thousand_separator,
+            amount_format=amount_format,
+            auto_detect_format=auto_detect_format,
+            amount_format_confidence=amount_format_confidence,
             enable_currency_addition=enable_currency_addition,
             multi_currency=multi_currency,
             numeric_amount_conversion=numeric_amount_conversion,
@@ -368,6 +394,49 @@ class UnifiedConfigService:
             remove_invalid_rows=remove_invalid_rows,
             default_currency=default_currency
         )
+    
+    def _parse_amount_format_from_config(self, cleaning_section: configparser.SectionProxy, 
+                                       legacy_decimal: str, legacy_thousand: str) -> AmountFormat:
+        """Parse AmountFormat from config section"""
+        # Check if explicit amount format is specified
+        format_name = cleaning_section.get('amount_format_name', '').lower()
+        if format_name and RegionalFormatRegistry.is_valid_format_name(format_name):
+            print(f"      [FORMAT] Using predefined format: {format_name}")
+            return RegionalFormatRegistry.get_format_by_name(format_name)
+        
+        # Build custom format from config values
+        decimal_sep = cleaning_section.get('amount_format_decimal_separator', legacy_decimal)
+        thousand_sep = cleaning_section.get('amount_format_thousand_separator', legacy_thousand)
+        negative_style = cleaning_section.get('amount_format_negative_style', 'minus')
+        currency_position = cleaning_section.get('amount_format_currency_position', 'prefix')
+        
+        # Parse grouping pattern
+        grouping_str = cleaning_section.get('amount_format_grouping_pattern', '3')
+        try:
+            if ',' in grouping_str:
+                grouping_pattern = [int(x.strip()) for x in grouping_str.split(',')]
+            else:
+                grouping_pattern = [int(grouping_str)]
+        except ValueError:
+            print(f"      [WARNING] Invalid grouping pattern '{grouping_str}', using default [3]")
+            grouping_pattern = [3]
+        
+        # Create custom format
+        try:
+            custom_format = AmountFormat(
+                decimal_separator=decimal_sep,
+                thousand_separator=thousand_sep,
+                negative_style=negative_style,
+                currency_position=currency_position,
+                grouping_pattern=grouping_pattern,
+                name="Custom",
+                example=f"{thousand_sep}1{thousand_sep}234{decimal_sep}56"
+            )
+            print(f"      [FORMAT] Created custom format: decimal='{decimal_sep}', thousand='{thousand_sep}'")
+            return custom_format
+        except ValueError as e:
+            print(f"      [ERROR] Invalid custom format config: {e}, using default American format")
+            return RegionalFormatRegistry.AMERICAN
     
     def _extract_transfer_patterns(self, config: configparser.ConfigParser, section_name: str) -> List[str]:
         """Extract transfer patterns from config section"""
@@ -537,6 +606,29 @@ class UnifiedConfigService:
         """Get data cleaning configuration for bank"""
         bank_config = self._bank_configs.get(bank_name)
         return bank_config.data_cleaning if bank_config else None
+    
+    def has_bank_config(self, bank_name: str) -> bool:
+        """Check if a bank configuration exists"""
+        return bank_name in self._bank_configs
+    
+    def reload_all_configs(self) -> bool:
+        """Hot-reload all bank configurations"""
+        try:
+            print("[INFO] [UnifiedConfigService] Reloading all configurations...")
+            
+            # Clear existing configs
+            self._bank_configs.clear()
+            self._detection_patterns.clear()
+            
+            # Reload all configurations
+            self._load_all_bank_configs()
+            
+            print(f"[SUCCESS] [UnifiedConfigService] Reloaded {len(self._bank_configs)} bank configurations")
+            return True
+            
+        except Exception as e:
+            print(f"[ERROR] [UnifiedConfigService] Failed to reload configs: {e}")
+            return False
     
     # ========== Configuration Save/Load API ==========
     

@@ -23,6 +23,7 @@ try:
     from backend.api.file_endpoints import file_router
     from backend.api.parse_endpoints import parse_router
     from backend.api.transform_endpoints import transform_router
+    from backend.api.unknown_bank_endpoints import unknown_bank_router
     from backend.api.middleware import setup_logging_middleware
     ROUTERS_AVAILABLE = True
 except ImportError as e:
@@ -32,6 +33,7 @@ except ImportError as e:
     file_router = None
     parse_router = None
     transform_router = None
+    unknown_bank_router = None
     setup_logging_middleware = None
 
 # Initialize FastAPI app
@@ -69,6 +71,7 @@ if ROUTERS_AVAILABLE:
     v1_router.include_router(parse_router, tags=["parsing"])
     v1_router.include_router(transform_router, tags=["transformation"])
     v1_router.include_router(config_router, tags=["configs"])
+    v1_router.include_router(unknown_bank_router, tags=["unknown-bank"])
     
     app.include_router(v1_router, prefix="/api/v1")
 else:

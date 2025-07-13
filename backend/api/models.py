@@ -231,3 +231,122 @@ class ExportResponse(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     version: str
+
+
+# Unknown Bank Support Models
+from backend.shared.amount_formats.regional_formats import AmountFormat
+
+
+class FieldMappingSuggestionModel(BaseModel):
+    """API model for field mapping suggestions"""
+    field_name: str
+    suggested_columns: List[str]
+    confidence_scores: Dict[str, float]
+    best_match: Optional[str] = None
+
+
+class AmountFormatModel(BaseModel):
+    """API model for amount format information"""
+    decimal_separator: str
+    thousand_separator: str
+    negative_style: str
+    currency_position: str
+    grouping_pattern: List[int] = [3]
+
+
+class AmountFormatAnalysisModel(BaseModel):
+    """API model for amount format analysis results"""
+    detected_format: AmountFormatModel
+    confidence: float
+    sample_count: int
+    detected_patterns: Dict[str, int]
+    problematic_samples: List[str]
+    currency_symbols: List[str]
+
+
+class UnknownBankAnalysisResponse(BaseModel):
+    """Response model for unknown bank CSV analysis"""
+    success: bool
+    filename: str
+    encoding: str
+    delimiter: str
+    headers: List[str]
+    header_row: int
+    data_start_row: int
+    amount_format_analysis: AmountFormatAnalysisModel
+    field_mapping_suggestions: Dict[str, FieldMappingSuggestionModel]
+    filename_patterns: List[str]
+    sample_data: List[Dict[str, str]]
+    structure_confidence: float
+    error: Optional[str] = None
+
+
+class BankConfigInputModel(BaseModel):
+    """Request model for bank configuration input"""
+    bank_name: str
+    display_name: str
+    filename_patterns: List[str]
+    column_mappings: Dict[str, str]  # standard_field -> csv_column
+    amount_format: AmountFormatModel
+    currency_primary: str
+    cashew_account: str
+    description_cleaning_rules: Optional[Dict[str, str]] = None
+
+
+class GenerateBankConfigRequest(BaseModel):
+    """Request model for generating bank configuration"""
+    analysis_id: str  # Reference to stored analysis
+    config_input: BankConfigInputModel
+
+
+class GenerateBankConfigResponse(BaseModel):
+    """Response model for bank configuration generation"""
+    success: bool
+    config: Dict[str, Any]
+    config_preview: str  # INI format preview
+    error: Optional[str] = None
+
+
+class ValidateBankConfigRequest(BaseModel):
+    """Request model for validating bank configuration"""
+    config: Dict[str, Any]
+    analysis_id: str  # Reference to original analysis
+
+
+class ConfigValidationResultModel(BaseModel):
+    """API model for configuration validation results"""
+    is_valid: bool
+    errors: List[str]
+    warnings: List[str]
+    sample_parse_success: bool
+    parsed_sample_count: int
+
+
+class ValidateBankConfigResponse(BaseModel):
+    """Response model for configuration validation"""
+    success: bool
+    validation_result: ConfigValidationResultModel
+    error: Optional[str] = None
+
+
+class SaveBankConfigRequest(BaseModel):
+    """Request model for saving bank configuration"""
+    config: Dict[str, Any]
+    force_overwrite: bool = False
+
+
+class SaveBankConfigResponse(BaseModel):
+    """Response model for saving bank configuration"""
+    success: bool
+    config_file: str
+    bank_name: str
+    reload_success: bool
+    message: str
+    error: Optional[str] = None
+
+
+class UnknownBankAnalysisRequest(BaseModel):
+    """Request model for analyzing unknown bank CSV"""
+    file_id: str  # Reference to uploaded file
+    encoding: Optional[str] = None
+    delimiter: Optional[str] = None
