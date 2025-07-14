@@ -112,4 +112,131 @@ export class ConfigurationService {
       accountMapping: config.account_mapping || {}
     };
   }
+
+  /**
+   * Unknown Bank Configuration API Functions
+   * These functions support the unknown bank workflow
+   */
+
+  /**
+   * Analyzes an unknown CSV file for automatic configuration generation
+   */
+  static async analyzeUnknownCSV(file) {
+    try {
+      console.log(' Analyzing unknown CSV file:', file.name);
+      
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await axios.post(`${API_V1_BASE}/unknown-bank/analyze-csv`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      console.log('[SUCCESS] CSV analysis completed:', response.data);
+      return {
+        success: true,
+        analysis: response.data
+      };
+    } catch (err) {
+      console.error('[ERROR] CSV analysis failed:', err);
+      return {
+        success: false,
+        error: `Failed to analyze CSV: ${err.response?.data?.detail || err.message}`
+      };
+    }
+  }
+
+  /**
+   * Generates bank configuration from analysis and user input
+   */
+  static async generateBankConfig(configRequest) {
+    try {
+      console.log(' Generating bank configuration:', configRequest);
+      
+      const response = await axios.post(`${API_V1_BASE}/unknown-bank/generate-config`, configRequest);
+      
+      console.log('[SUCCESS] Bank configuration generated:', response.data);
+      return {
+        success: true,
+        config: response.data.config
+      };
+    } catch (err) {
+      console.error('[ERROR] Configuration generation failed:', err);
+      return {
+        success: false,
+        error: `Failed to generate configuration: ${err.response?.data?.detail || err.message}`
+      };
+    }
+  }
+
+  /**
+   * Validates a generated bank configuration
+   */
+  static async validateBankConfig(validationRequest) {
+    try {
+      console.log(' Validating bank configuration:', validationRequest);
+      
+      const response = await axios.post(`${API_V1_BASE}/unknown-bank/validate-config`, validationRequest);
+      
+      console.log('[SUCCESS] Configuration validation completed:', response.data);
+      return {
+        success: true,
+        validation: response.data
+      };
+    } catch (err) {
+      console.error('[ERROR] Configuration validation failed:', err);
+      return {
+        success: false,
+        error: `Failed to validate configuration: ${err.response?.data?.detail || err.message}`
+      };
+    }
+  }
+
+  /**
+   * Saves a new bank configuration and reloads configs
+   */
+  static async saveBankConfig(saveRequest) {
+    try {
+      console.log(' Saving bank configuration:', saveRequest.bankName);
+      
+      const response = await axios.post(`${API_V1_BASE}/unknown-bank/save-config`, saveRequest);
+      
+      console.log('[SUCCESS] Configuration saved successfully:', response.data);
+      return {
+        success: true,
+        message: response.data.message
+      };
+    } catch (err) {
+      console.error('[ERROR] Configuration save failed:', err);
+      return {
+        success: false,
+        error: `Failed to save configuration: ${err.response?.data?.detail || err.message}`
+      };
+    }
+  }
+
+  /**
+   * Reloads all bank configurations (useful after creating new config)
+   */
+  static async reloadConfigurations() {
+    try {
+      console.log(' Reloading all bank configurations');
+      
+      const response = await axios.post(`${API_V1_BASE}/configs/reload`);
+      
+      console.log('[SUCCESS] Configurations reloaded:', response.data);
+      return {
+        success: true,
+        message: 'Bank configurations reloaded successfully'
+      };
+    } catch (err) {
+      console.error('[ERROR] Configuration reload failed:', err);
+      return {
+        success: false,
+        error: `Failed to reload configurations: ${err.response?.data?.detail || err.message}`
+      };
+    }
+  }
 }

@@ -3,12 +3,14 @@ import { useTheme } from '../../theme/ThemeProvider';
 import { Card, Button } from '../ui';
 import { ChevronLeft, ChevronRight } from '../ui/Icons';
 import toast from 'react-hot-toast';
+import { shouldTriggerUnknownBankWorkflow, getUnknownBankFiles } from '../../utils/bankDetection';
 
 // Import modular components
 import AutoParseHandler from '../configure-review/AutoParseHandler';
 import ConfidenceDashboard from '../configure-review/ConfidenceDashboard';
 import AdvancedConfigPanel from '../configure-review/AdvancedConfigPanel';
 import TransactionReview from '../configure-review/TransactionReview';
+import UnknownBankPanel from '../configure-review/UnknownBankPanel';
 
 function ConfigureAndReviewStep({ 
   currentStep,
@@ -114,8 +116,28 @@ function ConfigureAndReviewStep({
   console.log('[DEBUG] ConfigureAndReviewStep - File IDs match:', 
     autoParseResults?.map(r => r.file_id) || []);
 
+  // Check for unknown banks that need configuration
+  const hasUnknownFiles = shouldTriggerUnknownBankWorkflow(uploadedFiles);
+  const unknownFiles = getUnknownBankFiles(uploadedFiles);
+
+  const handleConfigCreated = (newConfig) => {
+    console.log('[DEBUG] New bank configuration created:', newConfig);
+    toast.success(`Created configuration for ${newConfig.displayName}`);
+    // In a real implementation, this would trigger a reload of bank configs
+    // and re-run bank detection on the files
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing.lg }}>
+      {/* Unknown Bank Panel - Shows when files need manual configuration */}
+      {hasUnknownFiles && (
+        <UnknownBankPanel 
+          unknownFiles={unknownFiles}
+          onConfigCreated={handleConfigCreated}
+          loading={loading}
+        />
+      )}
+
       {/* Auto-parse Handler - Manages the parsing logic */}
       <AutoParseHandler
         uploadedFiles={uploadedFiles}
