@@ -152,11 +152,7 @@ class DataProcessor:
                         print(f"   [WARNING]  Could not parse date '{value}' in column '{key}'. Keeping as string.")
                         pass
                 elif 'amount' in key_lower or 'balance' in key_lower or 'debit' in key_lower or 'credit' in key_lower:
-                    try:
-                        new_row[key] = self.parse_amount(value)
-                    except (ValueError, InvalidOperation):
-                        # If parsing fails, keep the original string and log a warning
-                        print(f"   [WARNING]  Could not parse amount '{value}' in column '{key}'. Keeping as string.")
-                        pass
+                    # We will not parse the amount here. It will be handled by the bank-specific cleaner.
+                    pass
             converted_data.append(new_row)
         return converted_data
