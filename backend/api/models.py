@@ -191,6 +191,13 @@ class SaveConfigResponse(BaseModel):
     suggestion: str
 
 
+class ReloadConfigsResponse(BaseModel):
+    """Response model for configuration reload operation"""
+    success: bool
+    message: str
+    configurations_reloaded: int
+
+
 class BankDetection(BaseModel):
     detected_bank: str
     confidence: float

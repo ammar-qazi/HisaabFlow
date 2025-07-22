@@ -93,18 +93,19 @@ class UnknownBankService:
             # Build configuration structure
             config = {
                 'bank_info': {
-                    'bank_name': user_input.bank_name,
+                    'name': user_input.bank_name,
                     'display_name': user_input.display_name,
                     'file_patterns': user_input.filename_patterns,
                     'detection_content_signatures': self._generate_content_signatures(analysis),
+                    'expected_headers': analysis.headers,
                     'currency_primary': user_input.currency_primary,
                     'cashew_account': user_input.cashew_account
                 },
                 'csv_config': {
                     'encoding': analysis.encoding,
                     'delimiter': analysis.delimiter,
-                    'header_row': analysis.header_row,
-                    'data_start_row': analysis.data_start_row
+                    'has_header': True,
+                    'skip_rows': 0
                 },
                 'column_mapping': user_input.column_mappings,
                 'data_cleaning': {
@@ -112,7 +113,10 @@ class UnknownBankService:
                     'auto_detect_format': False,  # User has specified format
                     'currency_handling': 'standard'
                 },
-                'categorization': self._generate_categorization_rules(user_input)
+                'categorization': self._generate_categorization_rules(user_input),
+                'default_category_rules': self._generate_default_category_rules(),
+                'outgoing_patterns': {},
+                'incoming_patterns': {}
             }
             
             # Add description cleaning rules if provided
@@ -154,7 +158,7 @@ class UnknownBankService:
                     errors.append(f"Field '{field}' is mapped to '{column_mapping[field]}' which doesn't exist in CSV headers")
             
             # Check bank name is valid
-            bank_name = config.get('bank_info', {}).get('bank_name', '')
+            bank_name = config.get('bank_info', {}).get('name', '')
             if not bank_name or not bank_name.replace('_', '').isalnum():
                 errors.append("Bank name must be alphanumeric (underscores allowed)")
             
@@ -223,7 +227,9 @@ class UnknownBankService:
         Returns:
             True if successful, False otherwise
         """
-        bank_name = config.get('bank_info', {}).get('bank_name', '')
+        # Handle both old (bank_name) and new (name) field formats
+        bank_info = config.get('bank_info', {})
+        bank_name = bank_info.get('name') or bank_info.get('bank_name', '')
         print(f"ℹ [UnknownBankService] Saving config for bank: {bank_name}")
         
         try:
@@ -243,6 +249,15 @@ class UnknownBankService:
             
             if 'categorization' in config:
                 self._add_categorization_section(config_parser, config['categorization'])
+            
+            if 'default_category_rules' in config:
+                self._add_default_category_rules_section(config_parser, config['default_category_rules'])
+            
+            if 'outgoing_patterns' in config:
+                self._add_outgoing_patterns_section(config_parser, config['outgoing_patterns'])
+            
+            if 'incoming_patterns' in config:
+                self._add_incoming_patterns_section(config_parser, config['incoming_patterns'])
             
             if 'description_cleaning' in config:
                 self._add_description_cleaning_section(config_parser, config['description_cleaning'])
@@ -297,23 +312,50 @@ class UnknownBankService:
         # Could be enhanced to suggest rules based on common patterns
         return {}
     
+    def _generate_default_category_rules(self) -> Dict[str, str]:
+        """Generate basic default category rules for transaction classification."""
+        return {
+            'positive': 'Income',
+            'negative': 'Expense', 
+            'zero': 'Transfer'
+        }
+    
     def _add_bank_info_section(self, config_parser: configparser.ConfigParser, bank_info: Dict[str, Any]):
         """Add bank_info section to config."""
         config_parser.add_section('bank_info')
-        config_parser.set('bank_info', 'bank_name', bank_info['bank_name'])
+        # Handle both old (bank_name) and new (name) field formats
+        name = bank_info.get('name') or bank_info.get('bank_name', '')
+        config_parser.set('bank_info', 'name', name)
         config_parser.set('bank_info', 'display_name', bank_info['display_name'])
         config_parser.set('bank_info', 'file_patterns', ', '.join(bank_info['file_patterns']))
         config_parser.set('bank_info', 'detection_content_signatures', ', '.join(bank_info.get('detection_content_signatures', [])))
+        if 'expected_headers' in bank_info:
+            config_parser.set('bank_info', 'expected_headers', ', '.join(bank_info['expected_headers']))
         config_parser.set('bank_info', 'currency_primary', bank_info['currency_primary'])
         config_parser.set('bank_info', 'cashew_account', bank_info['cashew_account'])
     
     def _add_csv_config_section(self, config_parser: configparser.ConfigParser, csv_config: Dict[str, Any]):
         """Add csv_config section to config."""
         config_parser.add_section('csv_config')
-        config_parser.set('csv_config', 'encoding', csv_config['encoding'])
-        config_parser.set('csv_config', 'delimiter', csv_config['delimiter'])
-        config_parser.set('csv_config', 'header_row', str(csv_config['header_row']))
-        config_parser.set('csv_config', 'data_start_row', str(csv_config['data_start_row']))
+        config_parser.set('csv_config', 'encoding', csv_config.get('encoding', 'utf-8'))
+        config_parser.set('csv_config', 'delimiter', csv_config.get('delimiter', ','))
+        
+        # Add header_row field (critical for proper parsing)
+        if 'header_row' in csv_config:
+            config_parser.set('csv_config', 'header_row', str(csv_config['header_row']))
+        else:
+            config_parser.set('csv_config', 'header_row', '0')  # Default to first row
+        
+        # Handle both new and old field formats
+        if 'has_header' in csv_config:
+            config_parser.set('csv_config', 'has_header', str(csv_config['has_header']).lower())
+        else:
+            config_parser.set('csv_config', 'has_header', 'true')
+            
+        if 'skip_rows' in csv_config:
+            config_parser.set('csv_config', 'skip_rows', str(csv_config['skip_rows']))
+        else:
+            config_parser.set('csv_config', 'skip_rows', '0')
     
     def _add_column_mapping_section(self, config_parser: configparser.ConfigParser, column_mapping: Dict[str, str]):
         """Add column_mapping section to config."""
@@ -328,10 +370,16 @@ class UnknownBankService:
         
         amount_format = data_cleaning.get('amount_format', {})
         if amount_format:
-            config_parser.set('data_cleaning', 'decimal_separator', amount_format.get('decimal_separator', '.'))
-            config_parser.set('data_cleaning', 'thousand_separator', amount_format.get('thousand_separator', ','))
-            config_parser.set('data_cleaning', 'negative_style', amount_format.get('negative_style', 'minus'))
-            config_parser.set('data_cleaning', 'currency_position', amount_format.get('currency_position', 'prefix'))
+            # Use the new field names that UnifiedConfigService expects
+            config_parser.set('data_cleaning', 'amount_format_decimal_separator', amount_format.get('decimal_separator', '.'))
+            config_parser.set('data_cleaning', 'amount_format_thousand_separator', amount_format.get('thousand_separator', ','))
+            config_parser.set('data_cleaning', 'amount_format_negative_style', amount_format.get('negative_style', 'minus'))
+            config_parser.set('data_cleaning', 'amount_format_currency_position', amount_format.get('currency_position', 'prefix'))
+            
+            # Also save the format name if it's a standard format
+            format_name = amount_format.get('name', '')
+            if format_name:
+                config_parser.set('data_cleaning', 'amount_format_name', format_name.lower())
         
         config_parser.set('data_cleaning', 'auto_detect_format', str(data_cleaning.get('auto_detect_format', False)))
         config_parser.set('data_cleaning', 'currency_handling', data_cleaning.get('currency_handling', 'standard'))
@@ -349,3 +397,19 @@ class UnknownBankService:
             config_parser.add_section('description_cleaning')
             for pattern, replacement in description_cleaning.items():
                 config_parser.set('description_cleaning', pattern, replacement)
+    
+    def _add_default_category_rules_section(self, config_parser: configparser.ConfigParser, rules: Dict[str, str]):
+        """Add default_category_rules section to config."""
+        config_parser.add_section('default_category_rules')
+        for rule_type, category in rules.items():
+            config_parser.set('default_category_rules', rule_type, category)
+    
+    def _add_outgoing_patterns_section(self, config_parser: configparser.ConfigParser, patterns: Dict[str, str]):
+        """Add outgoing_patterns section to config."""
+        config_parser.add_section('outgoing_patterns')
+        # Empty for now - can be enhanced later
+    
+    def _add_incoming_patterns_section(self, config_parser: configparser.ConfigParser, patterns: Dict[str, str]):
+        """Add incoming_patterns section to config."""
+        config_parser.add_section('incoming_patterns')
+        # Empty for now - can be enhanced later

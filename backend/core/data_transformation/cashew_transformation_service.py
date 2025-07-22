@@ -15,7 +15,6 @@ class CashewTransformationService:
     def __init__(self):
         self.transformer = CashewTransformer()
         self.config_service = get_unified_config_service()
-        self.bank_detector = BankDetector(self.config_service)
         
         print(f"ℹ [CashewTransformationService] Initialized with CashewTransformer")
     
@@ -178,8 +177,9 @@ class CashewTransformationService:
             print(f"      Filename: {filename}")
             
             # Log pre-detected bank info
-            detected_bank = self._get_detected_bank(bank_info)
-            print(f"      PRE-DETECTED bank: {detected_bank}")
+            detected_bank_name = self._get_detected_bank(bank_info)
+            confidence = bank_info.get('confidence', 0.0)
+            print(f"      PRE-DETECTED bank: {detected_bank_name} (confidence={confidence:.2f})")
             
             # Data is already cleaned and standardized
             print(f"      [SUCCESS] Using pre-cleaned data as-is")
@@ -202,15 +202,34 @@ class CashewTransformationService:
         
         print(f"\n   Combined data from all CSVs: {len(all_transformed_data)} total rows")
         
-        # Create identity mapping for all existing fields
-        if all_transformed_data:
-            sample_row = all_transformed_data[0]
-            combined_column_mapping = {field: field for field in sample_row.keys()}
-            print(f"      [DEBUG] Combined column mapping: {combined_column_mapping}")
-        else:
-            combined_column_mapping = {}
-        
+        # Get bank-specific column mapping from the first CSV's detected bank
+        combined_column_mapping = {}
         combined_bank_name = 'multi_bank_combined'
+        
+        if csv_data_list and all_transformed_data:
+            # Use the first CSV's bank info to get proper column mapping
+            first_csv = csv_data_list[0]
+            bank_info = first_csv.get('bank_info', {})
+            # Directly use the clean bank name, not the formatted string for logging
+            detected_bank_name = self._get_detected_bank(bank_info)
+            
+            if detected_bank_name and detected_bank_name != 'unknown':
+                # Get bank-specific column mapping from config
+                bank_column_mapping = self.config_service.get_column_mapping(detected_bank_name)
+                if bank_column_mapping:
+                    combined_column_mapping = bank_column_mapping
+                    combined_bank_name = detected_bank_name
+                    print(f"      [SUCCESS] Using bank-specific column mapping for {detected_bank_name}: {combined_column_mapping}")
+                else:
+                    print(f"      [WARNING] No column mapping found for bank {detected_bank_name}, falling back to identity mapping")
+            
+            # Fallback to identity mapping if no bank-specific mapping found
+            if not combined_column_mapping:
+                sample_row = all_transformed_data[0]
+                combined_column_mapping = {field: field for field in sample_row.keys()}
+                print(f"      [FALLBACK] Using identity column mapping: {combined_column_mapping}")
+        else:
+            print(f"      [WARNING] No data available for column mapping")
         
         return all_transformed_data, combined_column_mapping, combined_bank_name
     
@@ -224,11 +243,9 @@ class CashewTransformationService:
         return None
     
     def _get_detected_bank(self, bank_info: Dict[str, Any]) -> str:
-        """Extract detected bank from bank info"""
+        """Extract detected bank name from bank info"""
         if bank_info:
-            detected_bank = bank_info.get('bank_name', bank_info.get('detected_bank', 'unknown'))
-            confidence = bank_info.get('confidence', 0.0)
-            return f"{detected_bank} (confidence={confidence:.2f})"
+            return bank_info.get('bank_name', bank_info.get('detected_bank', 'unknown'))
         return 'unknown'
     
     def _get_account_name(self, bank_info: Dict[str, Any], filename: str) -> str:

@@ -16,7 +16,6 @@ class TransformationService:
     
     def __init__(self):
         self.config_service = get_unified_config_service()
-        self.bank_detector = BankDetector(self.config_service)
         
         # Initialize focused services
         self.cashew_transformation_service = CashewTransformationService()

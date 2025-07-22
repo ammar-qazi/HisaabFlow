@@ -282,8 +282,7 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
     try {
       const validationRequest = {
         config: config,
-        analysis: analysis,
-        sample_data: analysis?.sample_data || []
+        analysis_id: analysis?.analysis_id || ''
       };
 
       const result = await ConfigurationService.validateBankConfig(validationRequest);

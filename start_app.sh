@@ -259,7 +259,8 @@ main() {
     cleanup_ports
     
     # Start services
-    start_backend
+    # start_backend # The Electron app now manages the backend process
+    echo " Backend will be started by the Electron application."
     start_frontend
     handle_desktop_launch
     wait_for_stop

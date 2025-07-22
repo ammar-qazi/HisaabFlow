@@ -224,7 +224,7 @@ export class ConfigurationService {
     try {
       console.log(' Reloading all bank configurations');
       
-      const response = await axios.post(`${API_V1_BASE}/configs/reload`);
+      const response = await axios.post(`${API_V1_BASE}/reload`);
       
       console.log('[SUCCESS] Configurations reloaded:', response.data);
       return {

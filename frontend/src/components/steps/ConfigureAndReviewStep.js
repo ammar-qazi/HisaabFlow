@@ -120,11 +120,40 @@ function ConfigureAndReviewStep({
   const hasUnknownFiles = shouldTriggerUnknownBankWorkflow(uploadedFiles);
   const unknownFiles = getUnknownBankFiles(uploadedFiles);
 
-  const handleConfigCreated = (newConfig) => {
+  const handleConfigCreated = async (newConfig) => {
     console.log('[DEBUG] New bank configuration created:', newConfig);
     toast.success(`Created configuration for ${newConfig.displayName}`);
-    // In a real implementation, this would trigger a reload of bank configs
-    // and re-run bank detection on the files
+
+    // Re-run bank detection on the files that were unknown
+    const unknownFiles = getUnknownBankFiles(uploadedFiles);
+    if (unknownFiles.length > 0) {
+      toast.loading('Applying new configuration...', { id: 're-detect' });
+      const previewPromises = unknownFiles.map(file => {
+        const fileIndex = uploadedFiles.findIndex(f => f.fileId === file.fileId);
+        if (fileIndex !== -1) {
+          return previewFile(fileIndex);
+        }
+        return Promise.resolve(null);
+      });
+
+      try {
+        await Promise.all(previewPromises);
+        toast.success('Successfully applied new configuration!', { id: 're-detect' });
+        
+        // Re-parse all files with the new configuration to refresh data completely
+        toast.loading('Re-processing data with new configuration...', { id: 'reparse' });
+        try {
+          await parseAllFiles();
+          toast.success('Data refreshed with new configuration!', { id: 'reparse' });
+        } catch (error) {
+          toast.error('Failed to re-process data with new configuration.', { id: 'reparse' });
+          console.error('Error re-parsing files:', error);
+        }
+      } catch (error) {
+        toast.error('Failed to apply new configuration.', { id: 're-detect' });
+        console.error('Error re-running previews:', error);
+      }
+    }
   };
 
   return (

@@ -92,8 +92,16 @@ class BankDetector:
             pattern_lower = pattern.lower()
             score = 0.0
             
-            # Check if pattern looks like regex (contains regex metacharacters)
-            if any(char in pattern for char in ['^', '$', '\\d', '\\w', '+', '*', '?', '[', ']', '(', ')']):
+            # Check if pattern is a glob pattern (starts/ends with * but not regex)
+            if pattern.startswith('*') and pattern.endswith('*') and pattern.count('*') == 2:
+                # Handle glob patterns like *statement*
+                inner_pattern = pattern[1:-1].lower()  # Remove surrounding *
+                if inner_pattern in filename_lower:
+                    score = 0.9  # High confidence for glob patterns
+                    print(f"[SUCCESS] Glob pattern '{pattern}' matched filename '{filename}' (contains '{inner_pattern}')")
+                else:
+                    print(f"[ERROR]  Glob pattern '{pattern}' did not match filename '{filename}'")
+            elif any(char in pattern for char in ['^', '$', '\\d', '\\w', '+', '?', '[', ']', '(', ')']) or (pattern.count('*') > 0 and not (pattern.startswith('*') and pattern.endswith('*'))):
                 try:
                     # Treat as regex pattern
                     if re.match(pattern, filename, re.IGNORECASE):

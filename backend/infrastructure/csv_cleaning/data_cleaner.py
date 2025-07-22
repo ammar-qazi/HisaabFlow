@@ -5,6 +5,7 @@ Coordinates all cleaning modules for comprehensive data processing
 """
 
 from typing import Dict, List, Optional
+from backend.shared.amount_formats import AmountFormat
 try:
     # Package imports (when used as module)
     from .bom_cleaner import BOMCleaner
@@ -30,11 +31,11 @@ class DataCleaner:
     Coordinates modular cleaning pipeline for uniform, clean data structure
     """
     
-    def __init__(self):
+    def __init__(self, amount_format: Optional[AmountFormat] = None):
         # Initialize all cleaning modules
         self.bom_cleaner = BOMCleaner()
         self.column_standardizer = ColumnStandardizer()
-        self.numeric_cleaner = NumericCleaner()
+        self.numeric_cleaner = NumericCleaner(amount_format=amount_format)
         self.date_cleaner = DateCleaner()
         self.currency_handler = CurrencyHandler()
         self.data_validator = DataValidator()

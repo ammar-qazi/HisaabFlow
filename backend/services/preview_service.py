@@ -10,10 +10,9 @@ from backend.infrastructure.config.unified_config_service import get_unified_con
 class PreviewService:
     """Service for handling CSV file previews with bank detection"""
     
-    def __init__(self):
+    def __init__(self, config_service):
         self.unified_parser = UnifiedCSVParser()
-        self.config_service = get_unified_config_service()
-        self.bank_detector = BankDetector(self.config_service)
+        self.config_service = config_service
     
     def preview_csv_file(self, file_path: str, filename: str, encoding: Optional[str] = None, header_row: Optional[int] = None):
         """
@@ -73,7 +72,9 @@ class PreviewService:
 
             content_for_detection = '\n'.join(content_lines)
             # Detect bank using filename, content, and the headers extracted by the parser at the initial header_row (0)
-            bank_detection = self.bank_detector.detect_bank(filename, content_for_detection, headers_for_detection)
+            # Create fresh BankDetector with latest patterns
+            bank_detector = BankDetector(self.config_service)
+            bank_detection = bank_detector.detect_bank(filename, content_for_detection, headers_for_detection)
             print(f" Detected bank: {bank_detection.bank_name} (confidence: {bank_detection.confidence:.2f})")
             
             # Step 2: Use bank-specific header detection if available

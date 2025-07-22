@@ -10,7 +10,8 @@ from backend.api.models import (
     SaveTemplateRequest, 
     ConfigListResponse, 
     ConfigResponse, 
-    SaveConfigResponse
+    SaveConfigResponse,
+    ReloadConfigsResponse
 )
 
 config_router = APIRouter()
@@ -156,3 +157,37 @@ def _find_matching_bank_name(config_name: str, config_manager) -> Optional[str]:
     
     print(f"[ERROR]  No match found for: '{config_name}'")
     return None
+
+
+@config_router.post("/reload", response_model=ReloadConfigsResponse)
+async def reload_configurations(config_manager = Depends(get_config_manager)):
+    """Reload all bank configurations from disk"""
+    print("ℹ [API] Reloading all bank configurations...")
+    try:
+        # Call the reload method on the underlying unified service
+        success = config_manager.unified_service.reload_all_configs()
+        
+        if not success:
+            raise HTTPException(
+                status_code=500,
+                detail="Configuration reload failed"
+            )
+        
+        # Get count of loaded configurations  
+        available_configs = config_manager.list_configured_banks()
+        count = len(available_configs)
+        
+        print(f"[SUCCESS] Reloaded {count} bank configurations")
+        
+        return {
+            "success": True,
+            "message": f"Successfully reloaded {count} bank configurations",
+            "configurations_reloaded": count
+        }
+        
+    except Exception as e:
+        print(f"[ERROR] Configuration reload failed: {str(e)}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Failed to reload configurations: {str(e)}"
+        )

@@ -36,9 +36,7 @@ class CSVProcessingService:
         self.encoding_detector = encoding_detector
         
         # Domain services - these stay as direct dependencies
-        self.data_cleaner = DataCleaner()
         self.config_service = get_unified_config_service()
-        self.bank_detector = BankDetector(self.config_service)
         
         print(f"ℹ [CSVProcessingService] Initialized with injected components")
     
@@ -167,7 +165,9 @@ class CSVProcessingService:
     
     def _quick_bank_detection(self, filename: str) -> Dict[str, Any]:
         """Quick filename-based bank detection for preprocessing decisions"""
-        bank_result = self.bank_detector.detect_bank(filename, "", [])
+        # Create fresh BankDetector with latest patterns
+        bank_detector = BankDetector(self.config_service)
+        bank_result = bank_detector.detect_bank(filename, "", [])
         
         if bank_result.bank_name != 'unknown' and bank_result.confidence >= 0.1:
             try:
@@ -259,7 +259,9 @@ class CSVProcessingService:
         except Exception as e:
             print(f"         [WARNING] Could not read initial lines from {file_path} for bank detection: {e}")
         
-        bank_detection_result = self.bank_detector.detect_bank(filename, content_for_detection, sample_headers_for_detection)
+        # Create fresh BankDetector with latest patterns
+        bank_detector = BankDetector(self.config_service)
+        bank_detection_result = bank_detector.detect_bank(filename, content_for_detection, sample_headers_for_detection)
         
         if bank_detection_result.bank_name != 'unknown' and bank_detection_result.confidence > 0.1:
             detected_bank_name = bank_detection_result.bank_name
@@ -355,7 +357,9 @@ class CSVProcessingService:
         """Finalize bank detection on parsed data"""
         print(f"      Final bank detection on parsed data for {filename}")
         
-        detection_result = self.bank_detector.detect_bank_from_data(
+        # Create fresh BankDetector with latest patterns
+        bank_detector = BankDetector(self.config_service)
+        detection_result = bank_detector.detect_bank_from_data(
             filename, 
             parse_result['data']
         )
@@ -383,8 +387,14 @@ class CSVProcessingService:
             
             # Create bank-specific cleaning config
             bank_cleaning_config = None
+            amount_format = None
             if bank_info['detected_bank'] != 'unknown':
                 bank_column_mapping = self.config_service.get_column_mapping(bank_info['detected_bank'])
+                bank_config = self.config_service.get_bank_config(bank_info['detected_bank'])
+                if bank_config and bank_config.data_cleaning:
+                    amount_format = bank_config.data_cleaning.amount_format
+                    print(f"         Using bank-specific amount format: {amount_format.name if amount_format else 'None'}")
+                
                 detection_patterns = self.config_service.get_detection_patterns()
                 expected_headers = []
                 if bank_info['detected_bank'] in detection_patterns:
@@ -397,7 +407,10 @@ class CSVProcessingService:
                 }
                 print(f"         Using bank-specific cleaning config for {bank_info['detected_bank']}")
             
-            cleaning_result = self.data_cleaner.clean_parsed_data(parse_result, bank_cleaning_config)
+            # Create DataCleaner with bank-specific amount format
+            data_cleaner = DataCleaner(amount_format=amount_format)
+            
+            cleaning_result = data_cleaner.clean_parsed_data(parse_result, bank_cleaning_config)
             
             if cleaning_result['success']:
                 final_result = {

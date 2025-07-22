@@ -13,9 +13,7 @@ class ParsingService:
     
     def __init__(self):
         self.unified_parser = UnifiedCSVParser() # New parser instance
-        self.data_cleaner = DataCleaner()
         self.config_service = get_unified_config_service()
-        self.bank_detector = BankDetector(self.config_service)
         print(f"ℹ [MIGRATION][ParsingService] Initialized with UnifiedCSVParser.")
     
     def parse_single_file(self, file_path: str, filename: str, config: ParseConfig):
@@ -65,7 +63,9 @@ class ParsingService:
             
             # Bank detection on raw data (before cleaning)
             print(f" Detecting bank for single file using RAW CSV data...")
-            detection_result = self.bank_detector.detect_bank_from_data(
+            # Create fresh BankDetector with latest patterns
+            bank_detector = BankDetector(self.config_service)
+            detection_result = bank_detector.detect_bank_from_data(
                 filename, 
                 parse_result['data']
             )
@@ -86,15 +86,24 @@ class ParsingService:
                 
                 # Create bank-specific cleaning config
                 bank_cleaning_config = None
+                amount_format = None
                 if bank_info['detected_bank'] != 'unknown':
                     bank_column_mapping = self.config_service.get_column_mapping(bank_info['detected_bank'])
+                    bank_config = self.config_service.get_bank_config(bank_info['detected_bank'])
+                    if bank_config and bank_config.data_cleaning:
+                        amount_format = bank_config.data_cleaning.amount_format
+                        print(f" Using bank-specific amount format: {amount_format.name if amount_format else 'None'}")
+                    
                     bank_cleaning_config = {
                         'column_mapping': bank_column_mapping,
                         'bank_name': bank_info['detected_bank']
                     }
                     print(f" Using bank-specific cleaning config: {bank_cleaning_config}")
                 
-                cleaning_result = self.data_cleaner.clean_parsed_data(parse_result, bank_cleaning_config)
+                # Create DataCleaner with bank-specific amount format
+                data_cleaner = DataCleaner(amount_format=amount_format)
+                
+                cleaning_result = data_cleaner.clean_parsed_data(parse_result, bank_cleaning_config)
                 
                 if cleaning_result['success']:
                     final_result = {
