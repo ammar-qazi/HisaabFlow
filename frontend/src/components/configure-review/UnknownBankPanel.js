@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Button, Badge } from '../ui';
-import { Settings, FileText, AlertCircle, CheckCircle } from '../ui/Icons';
-import { useTheme } from '../../theme/ThemeProvider';
+import { ChevronLeft, ChevronRight } from '../ui/CoreIcons';
 import { ConfigurationService } from '../../services/configurationService';
+import { useTheme } from '../../theme/ThemeProvider';
 
 const STANDARD_FIELDS = [
   { value: 'date', label: 'Date', required: true },
@@ -23,115 +22,9 @@ const AMOUNT_FORMATS = [
   { value: 'no_separator', label: 'No Separator (1234.56)', example: '1234.56' },
 ];
 
-// Simple Alert component since it's not in the UI library
-const Alert = ({ variant = 'info', children, className = '', style = {} }) => {
-  const theme = useTheme();
-  
-  const variants = {
-    info: { backgroundColor: theme.colors.primary + '15', borderColor: theme.colors.primary, color: theme.colors.primary },
-    warning: { backgroundColor: theme.colors.warning + '15', borderColor: theme.colors.warning, color: theme.colors.warning },
-    error: { backgroundColor: theme.colors.error + '15', borderColor: theme.colors.error, color: theme.colors.error },
-    success: { backgroundColor: theme.colors.success + '15', borderColor: theme.colors.success, color: theme.colors.success },
-  };
-  
-  const alertStyle = {
-    padding: theme.spacing.sm,
-    borderRadius: theme.borderRadius.sm,
-    border: `1px solid ${variants[variant].borderColor}`,
-    backgroundColor: variants[variant].backgroundColor,
-    color: variants[variant].color,
-    fontSize: '14px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: theme.spacing.xs,
-    ...style,
-  };
-  
-  return (
-    <div style={alertStyle} className={className}>
-      <AlertCircle size={16} />
-      {children}
-    </div>
-  );
-};
-
-// Input component for form fields
-const Input = ({ label, value, onChange, placeholder, required, className = '', style = {} }) => {
-  const theme = useTheme();
-  
-  const inputStyle = {
-    width: '100%',
-    padding: theme.spacing.sm,
-    border: `1px solid ${theme.colors.border}`,
-    borderRadius: theme.borderRadius.sm,
-    fontSize: '14px',
-    backgroundColor: theme.colors.background.paper,
-    color: theme.colors.text.primary,
-    ...style,
-  };
-  
-  const labelStyle = {
-    display: 'block',
-    marginBottom: theme.spacing.xs,
-    fontSize: '14px',
-    fontWeight: '500',
-    color: theme.colors.text.primary,
-  };
-  
-  return (
-    <div className={className}>
-      {label && (
-        <label style={labelStyle}>
-          {label} {required && <span style={{ color: theme.colors.error }}>*</span>}
-        </label>
-      )}
-      <input
-        type="text"
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        style={inputStyle}
-        required={required}
-      />
-    </div>
-  );
-};
-
-// Select component for dropdowns
-const Select = ({ label, value, onChange, children, className = '', style = {} }) => {
-  const theme = useTheme();
-  
-  const selectStyle = {
-    width: '100%',
-    padding: theme.spacing.sm,
-    border: `1px solid ${theme.colors.border}`,
-    borderRadius: theme.borderRadius.sm,
-    fontSize: '14px',
-    backgroundColor: theme.colors.background.paper,
-    color: theme.colors.text.primary,
-    ...style,
-  };
-  
-  const labelStyle = {
-    display: 'block',
-    marginBottom: theme.spacing.xs,
-    fontSize: '14px',
-    fontWeight: '500',
-    color: theme.colors.text.primary,
-  };
-  
-  return (
-    <div className={className}>
-      {label && <label style={labelStyle}>{label}</label>}
-      <select value={value} onChange={onChange} style={selectStyle}>
-        {children}
-      </select>
-    </div>
-  );
-};
-
 function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
   const theme = useTheme();
+  const [currentPage, setCurrentPage] = useState(1);
   const [selectedFile, setSelectedFile] = useState(null);
   const [analysis, setAnalysis] = useState(null);
   const [analysisLoading, setAnalysisLoading] = useState(false);
@@ -165,14 +58,11 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
   const analyzeUnknownCSV = async (file) => {
     setAnalysisLoading(true);
     try {
-      // Pass the actual File object for API upload
       const actualFile = file.file || file;
       const result = await ConfigurationService.analyzeUnknownCSV(actualFile);
-      
+
       if (result.success) {
         setAnalysis(result.analysis);
-        
-        // Auto-populate bank config with detected values
         setBankConfig(prev => ({
           ...prev,
           bankName: generateBankName(file.fileName || file.name),
@@ -183,7 +73,6 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
           currencyPrimary: detectCurrency(result.analysis.sample_data)
         }));
       } else {
-        // Fallback to mock analysis if API is not available
         console.warn('API not available, using mock analysis:', result.error);
         const mockAnalysis = {
           filename: file.fileName || file.name,
@@ -210,8 +99,6 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
         };
 
         setAnalysis(mockAnalysis);
-        
-        // Auto-populate bank config with detected values
         setBankConfig(prev => ({
           ...prev,
           bankName: generateBankName(file.fileName || file.name),
@@ -230,40 +117,33 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
   };
 
   const generateBankName = (filename) => {
-    // Extract bank name from filename
     const cleanName = filename.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z]/g, '').toLowerCase();
     return cleanName.substring(0, 20) || 'unknown_bank';
   };
 
   const generateDisplayName = (filename) => {
-    // Create display name from filename
     const cleanName = filename.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z\s]/g, '');
     return cleanName.charAt(0).toUpperCase() + cleanName.slice(1) || 'Unknown Bank';
   };
 
   const generateFilenamePattern = (filename) => {
-    // Generate filename pattern
     return filename.replace(/\d+/g, '*').replace(/[0-9]/g, '*');
   };
 
   const mapDetectedFormat = (detectedFormat) => {
-    // Map detected format to our format types
-    if (detectedFormat.decimal_separator === ',' && detectedFormat.thousand_separator === '.') {
+    if (detectedFormat?.decimal_separator === ',' && detectedFormat?.thousand_separator === '.') {
       return 'european';
-    } else if (detectedFormat.thousand_separator === ' ') {
+    } else if (detectedFormat?.thousand_separator === ' ') {
       return 'space_separated';
     }
-    return 'american'; // default
+    return 'american';
   };
 
   const detectCurrency = (sampleData) => {
-    // Try to detect currency from sample data
-    // This is a simplified version
     return 'USD';
   };
 
   const startManualConfiguration = (file) => {
-    // Clear all previous data and start fresh manual configuration
     setAnalysis(null);
     setValidationResult(null);
     setBankConfig({
@@ -278,8 +158,6 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
       cashewAccount: generateBankName(file.fileName || file.name),
       manualMode: true
     });
-    
-    // Analyze the file to get headers and sample data, but don't auto-populate mappings
     analyzeForManualConfig(file);
   };
 
@@ -288,18 +166,16 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
     try {
       const actualFile = file.file || file;
       const result = await ConfigurationService.analyzeUnknownCSV(actualFile);
-      
+
       if (result.success) {
-        // Only set the analysis data, don't auto-populate config
         setAnalysis(result.analysis);
       } else {
-        // Fallback to basic file analysis
         console.warn('API not available, using basic analysis for manual config');
         const mockAnalysis = {
           filename: file.fileName || file.name,
           encoding: 'utf-8',
           delimiter: ',',
-          headers: ['Date', 'Amount', 'Account', 'Counterparty', 'Name', 'Description'], // Generic headers
+          headers: ['Date', 'Amount', 'Account', 'Counterparty', 'Name', 'Description'],
           header_row: 0,
           data_start_row: 1,
           sample_data: []
@@ -326,11 +202,11 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
   };
 
   const isConfigValid = (config) => {
-    return config.bankName && 
-           config.displayName && 
-           config.columnMappings.date && 
-           config.columnMappings.amount && 
-           config.columnMappings.title;
+    return config.bankName &&
+      config.displayName &&
+      config.columnMappings.date &&
+      config.columnMappings.amount &&
+      config.columnMappings.title;
   };
 
   const validateConfig = async (config, analysis) => {
@@ -341,11 +217,10 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
       };
 
       const result = await ConfigurationService.validateBankConfig(validationRequest);
-      
+
       if (result.success) {
         setValidationResult(result.validation);
       } else {
-        // Fallback to local validation if API is not available
         console.warn('API validation not available, using local validation:', result.error);
         const validation = {
           valid: isConfigValid(config),
@@ -367,7 +242,6 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
 
   const saveConfiguration = async (config) => {
     try {
-      // Build the proper config structure expected by the backend
       const bankConfig = {
         bank_info: {
           bank_name: config.bankName,
@@ -375,8 +249,8 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
           file_patterns: config.filenamePatterns,
           expected_headers: config.expected_headers,
           detection_content_signatures: config.detection_content_signatures
-                                          ? config.detection_content_signatures.split(',').map(s => s.trim())
-                                          : [],
+            ? config.detection_content_signatures.split(',').map(s => s.trim())
+            : [],
           currency_primary: config.currencyPrimary,
           cashew_account: config.cashewAccount || config.bankName
         },
@@ -401,22 +275,15 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
       };
 
       const result = await ConfigurationService.saveBankConfig(saveRequest);
-      
+
       if (result.success) {
         console.log('Bank configuration saved successfully');
-        
-        // Try to reload configurations
         await ConfigurationService.reloadConfigurations();
-        
-        // Notify parent component
         if (onConfigCreated) {
           onConfigCreated(config);
         }
       } else {
         console.error('Failed to save configuration:', result.error);
-        // Could show an error toast here
-        
-        // Fallback: still notify parent component for now
         if (onConfigCreated) {
           onConfigCreated(config);
         }
@@ -426,478 +293,396 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
     }
   };
 
+  // Get sample data for preview with pagination
+  const sampleData = analysis?.sample_data || [];
+  const totalPages = Math.ceil(sampleData.length / 5);
+  const startIndex = (currentPage - 1) * 5;
+  const currentData = sampleData.slice(startIndex, startIndex + 5);
+
+  // Header options for mapping dropdowns
+  const headerOptions = ['Select column...', ...(analysis?.headers || [])];
+
+  // Mapping fields for the form
+  const mappingFields = STANDARD_FIELDS;
+
+  // Common input style
+  const inputStyle = {
+    width: '100%',
+    backgroundColor: theme.colors.background.elevated,
+    border: `1px solid ${theme.colors.border}`,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.sm,
+    color: theme.colors.text.primary,
+    fontSize: '14px'
+  };
+
+  const labelStyle = {
+    display: 'block',
+    fontSize: '14px',
+    fontWeight: '500',
+    color: theme.colors.text.primary,
+    marginBottom: theme.spacing.sm
+  };
+
   return (
-    <Card padding="lg" elevated>
+    <div style={{
+      backgroundColor: theme.colors.background.paper,
+      color: theme.colors.text.primary,
+      borderRadius: theme.borderRadius.md,
+      overflow: 'hidden',
+      border: `1px solid ${theme.colors.border}`
+    }}>
       {/* Header */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        gap: theme.spacing.md,
-        marginBottom: theme.spacing.lg,
+        justifyContent: 'space-between',
+        padding: theme.spacing.lg,
+        borderBottom: `1px solid ${theme.colors.border}`
       }}>
-        <AlertCircle size={20} color={theme.colors.warning} />
-        <h3 style={{
-          margin: 0,
-          fontSize: '18px',
-          fontWeight: '600',
-          color: theme.colors.text.primary,
-        }}>
-          Unknown Bank Configuration
-        </h3>
-        <Badge variant="warning">
-          {unknownFiles.length} file{unknownFiles.length !== 1 ? 's' : ''} need setup
-        </Badge>
+        <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing.md }}>
+          <button style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: theme.spacing.sm,
+            color: theme.colors.text.secondary,
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            transition: 'color 0.2s'
+          }}>
+            <ChevronLeft size={20} />
+            Go Back
+          </button>
+          <div style={{ height: '24px', width: '1px', backgroundColor: theme.colors.border }}></div>
+          <h1 style={{ fontSize: '20px', fontWeight: '600', margin: 0, color: theme.colors.text.primary }}>Configure Unknown Bank</h1>
+        </div>
+        <div style={{ fontSize: '14px', color: theme.colors.text.secondary }}>
+          Bank 1 of {unknownFiles.length} • Processing: {selectedFile?.fileName || selectedFile?.name || 'No file selected'}
+        </div>
       </div>
 
-      {/* File Selection and Manual Config Option */}
-      <div style={{ marginBottom: theme.spacing.lg }}>
-        {unknownFiles.length > 1 && (
-          <div style={{ marginBottom: theme.spacing.md }}>
-            <Select
-              label="Select File to Configure:"
-              value={selectedFile?.fileName || selectedFile?.name || ''}
-              onChange={(e) => setSelectedFile(unknownFiles.find(f => (f.fileName || f.name) === e.target.value))}
-            >
-              {unknownFiles.map(file => (
-                <option key={file.fileName || file.name} value={file.fileName || file.name}>
-                  {file.fileName || file.name} ({Math.round((file.confidence || 0) * 100)}% confidence)
-                </option>
-              ))}
-            </Select>
+      {/* Content */}
+      <div style={{ padding: theme.spacing.lg }}>
+        {/* File Selection */}
+        <div style={{ marginBottom: theme.spacing.xl }}>
+          <label style={labelStyle}>
+            Select File to Configure
+          </label>
+          <select
+            value={selectedFile?.fileName || selectedFile?.name || ''}
+            onChange={(e) => setSelectedFile(unknownFiles.find(f => (f.fileName || f.name) === e.target.value))}
+            style={inputStyle}
+          >
+            {unknownFiles.map(file => (
+              <option key={file.fileName || file.name} value={file.fileName || file.name}>
+                {file.fileName || file.name} ({Math.round((file.confidence || 0) * 100)}% confidence)
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Bank Information */}
+        <div style={{ marginBottom: theme.spacing.xl }}>
+          <h2 style={{
+            fontSize: '18px',
+            fontWeight: '600',
+            color: theme.colors.primary,
+            marginBottom: theme.spacing.md
+          }}>
+            Bank Information
+          </h2>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: theme.spacing.md,
+            marginBottom: theme.spacing.md
+          }}>
+            <div>
+              <label style={labelStyle}>
+                Bank Name <span style={{ color: theme.colors.error }}>*</span>
+              </label>
+              <input
+                type="text"
+                value={bankConfig.bankName}
+                onChange={(e) => setBankConfig(prev => ({ ...prev, bankName: e.target.value }))}
+                style={inputStyle}
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>
+                Display Name <span style={{ color: theme.colors.error }}>*</span>
+              </label>
+              <input
+                type="text"
+                value={bankConfig.displayName}
+                onChange={(e) => setBankConfig(prev => ({ ...prev, displayName: e.target.value }))}
+                style={inputStyle}
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>
+                Primary Currency <span style={{ color: theme.colors.error }}>*</span>
+              </label>
+              <input
+                type="text"
+                value={bankConfig.currencyPrimary}
+                onChange={(e) => setBankConfig(prev => ({ ...prev, currencyPrimary: e.target.value }))}
+                style={inputStyle}
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>
+                Cashew Account Name <span style={{ color: theme.colors.error }}>*</span>
+              </label>
+              <input
+                type="text"
+                value={bankConfig.cashewAccount}
+                onChange={(e) => setBankConfig(prev => ({ ...prev, cashewAccount: e.target.value }))}
+                style={inputStyle}
+              />
+            </div>
+          </div>
+          <div>
+            <label style={labelStyle}>
+              Content Signatures (comma-separated)
+            </label>
+            <input
+              type="text"
+              value={bankConfig.detection_content_signatures}
+              onChange={(e) => setBankConfig(prev => ({ ...prev, detection_content_signatures: e.target.value }))}
+              placeholder="e.g. Partner IBAN,Booking Date"
+              style={inputStyle}
+            />
+          </div>
+        </div>
+
+        {/* Sample Data Preview */}
+        {analysis && (
+          <div style={{ marginBottom: theme.spacing.xl }}>
+            <h2 style={{
+              fontSize: '18px',
+              fontWeight: '600',
+              color: theme.colors.primary,
+              marginBottom: theme.spacing.md
+            }}>
+              Sample Data Preview
+            </h2>
+            <div style={{
+              backgroundColor: theme.colors.background.elevated,
+              borderRadius: theme.borderRadius.md,
+              border: `1px solid ${theme.colors.border}`,
+              overflow: 'hidden'
+            }}>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ borderBottom: `1px solid ${theme.colors.border}` }}>
+                      {analysis.headers?.map(header => (
+                        <th key={header} style={{
+                          textAlign: 'left',
+                          padding: theme.spacing.sm,
+                          fontSize: '14px',
+                          fontWeight: '500',
+                          color: theme.colors.text.primary
+                        }}>
+                          {header}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {currentData.map((row, index) => (
+                      <tr key={index} style={{
+                        backgroundColor: index % 2 === 0 ? theme.colors.background.elevated : theme.colors.background.paper
+                      }}>
+                        {analysis.headers?.map(header => (
+                          <td key={header} style={{
+                            padding: theme.spacing.sm,
+                            fontSize: '14px',
+                            color: theme.colors.text.secondary
+                          }}>
+                            {String(row[header] || '')}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: theme.spacing.sm,
+                  borderTop: `1px solid ${theme.colors.border}`
+                }}>
+                  <div style={{ fontSize: '14px', color: theme.colors.text.secondary }}>
+                    Showing {startIndex + 1} to {Math.min(startIndex + 5, sampleData.length)} of {sampleData.length} rows
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing.sm }}>
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                      style={{
+                        padding: '4px',
+                        borderRadius: theme.borderRadius.sm,
+                        border: `1px solid ${theme.colors.border}`,
+                        backgroundColor: 'transparent',
+                        color: theme.colors.text.primary,
+                        cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                        opacity: currentPage === 1 ? 0.5 : 1
+                      }}
+                    >
+                      <ChevronLeft size={16} />
+                    </button>
+                    <span style={{ fontSize: '14px', color: theme.colors.text.primary }}>
+                      {currentPage} of {totalPages}
+                    </span>
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage === totalPages}
+                      style={{
+                        padding: '4px',
+                        borderRadius: theme.borderRadius.sm,
+                        border: `1px solid ${theme.colors.border}`,
+                        backgroundColor: 'transparent',
+                        color: theme.colors.text.primary,
+                        cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                        opacity: currentPage === totalPages ? 0.5 : 1
+                      }}
+                    >
+                      <ChevronRight size={16} />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
-        
-        {/* Manual Configuration Button */}
-        <div style={{ display: 'flex', gap: theme.spacing.md, alignItems: 'center' }}>
-          <Button
-            variant="secondary"
+
+        {/* Header Mapping */}
+        <div style={{ marginBottom: theme.spacing.xl }}>
+          <h2 style={{
+            fontSize: '18px',
+            fontWeight: '600',
+            color: theme.colors.primary,
+            marginBottom: theme.spacing.md
+          }}>
+            Header Mapping
+          </h2>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: theme.spacing.md
+          }}>
+            {mappingFields.map((field, index) => (
+              <div key={index}>
+                <label style={labelStyle}>
+                  {field.label} {field.required && <span style={{ color: theme.colors.error }}>*</span>}
+                </label>
+                <select
+                  value={bankConfig.columnMappings[field.value] || ''}
+                  onChange={(e) => setBankConfig(prev => ({
+                    ...prev,
+                    columnMappings: { ...prev.columnMappings, [field.value]: e.target.value }
+                  }))}
+                  style={inputStyle}
+                >
+                  {headerOptions.map((option, optIndex) => (
+                    <option key={optIndex} value={option === 'Select column...' ? '' : option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Configuration Preview */}
+        <div style={{ marginBottom: theme.spacing.xl }}>
+          <h2 style={{
+            fontSize: '18px',
+            fontWeight: '600',
+            color: theme.colors.primary,
+            marginBottom: theme.spacing.md
+          }}>
+            Configuration Preview
+          </h2>
+          <div style={{
+            backgroundColor: theme.colors.background.elevated,
+            borderRadius: theme.borderRadius.md,
+            border: `1px solid ${theme.colors.border}`,
+            padding: theme.spacing.md
+          }}>
+            <pre style={{
+              fontSize: '14px',
+              color: theme.colors.text.primary,
+              fontFamily: 'monospace',
+              lineHeight: '1.5',
+              margin: 0
+            }}>
+              <div style={{ color: theme.colors.primary, marginBottom: theme.spacing.sm }}>[bank_info]</div>
+              <div>bank_name = {bankConfig.bankName || 'unknown_bank'}</div>
+              <div>display_name = {bankConfig.displayName || 'Unknown Bank'}</div>
+              <div>currency_primary = {bankConfig.currencyPrimary || 'USD'}</div>
+
+              <div style={{ color: theme.colors.primary, marginTop: theme.spacing.md, marginBottom: theme.spacing.sm }}>[column_mapping]</div>
+              {Object.entries(bankConfig.columnMappings).map(([key, value]) => (
+                <div key={key}>{key} = {value}</div>
+              ))}
+
+              <div style={{ color: theme.colors.primary, marginTop: theme.spacing.md, marginBottom: theme.spacing.sm }}>[amount_format]</div>
+              <div>format = {bankConfig.amountFormat || 'american'}</div>
+            </pre>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          paddingTop: theme.spacing.lg,
+          borderTop: `1px solid ${theme.colors.border}`
+        }}>
+          <button
             onClick={() => startManualConfiguration(selectedFile)}
             disabled={!selectedFile || analysisLoading}
+            style={{
+              padding: `${theme.spacing.sm} ${theme.spacing.md}`,
+              color: theme.colors.text.secondary,
+              backgroundColor: 'transparent',
+              border: 'none',
+              cursor: (!selectedFile || analysisLoading) ? 'not-allowed' : 'pointer',
+              opacity: (!selectedFile || analysisLoading) ? 0.5 : 1,
+              transition: 'color 0.2s'
+            }}
           >
             Start Fresh Manual Configuration
-          </Button>
-          <div style={{
-            fontSize: '14px',
-            color: theme.colors.text.secondary,
-          }}>
-            Clear all auto-detected data and configure manually
-          </div>
-        </div>
-      </div>
-
-      {selectedFile && (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: theme.spacing.lg,
-          '@media (max-width: 1024px)': {
-            gridTemplateColumns: '1fr',
-          }
-        }}>
-          {/* Configuration Panel */}
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: theme.spacing.lg,
-          }}>
-            <BankInfoSection 
-              config={bankConfig}
-              onChange={setBankConfig}
-              analysis={analysis}
-            />
-            
-            <HeaderMappingSection
-              config={bankConfig}
-              onChange={setBankConfig}
-              analysis={analysis}
-            />
-            
-            <AmountFormatSection
-              config={bankConfig}
-              onChange={setBankConfig}
-              analysis={analysis}
-            />
-            
-            <div style={{ display: 'flex', gap: theme.spacing.md }}>
-              <Button
-                variant="secondary"
-                onClick={() => validateConfig(bankConfig, analysis)}
-                disabled={loading || analysisLoading}
-              >
-                Validate Config
-              </Button>
-              <Button
-                variant="primary"
-                onClick={() => saveConfiguration(bankConfig)}
-                disabled={loading || analysisLoading || !isConfigValid(bankConfig)}
-              >
-                Save & Apply
-              </Button>
-            </div>
-          </div>
-
-          {/* Preview Panel */}
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: theme.spacing.lg,
-          }}>
-            <ConfigPreviewSection
-              config={bankConfig}
-              analysis={analysis}
-              validationResult={validationResult}
-            />
-            
-            <SampleDataPreview
-              analysis={analysis}
-              mappings={bankConfig.columnMappings}
-              loading={analysisLoading}
-            />
-          </div>
-        </div>
-      )}
-    </Card>
-  );
-}
-
-// Bank Information Section
-function BankInfoSection({ config, onChange, analysis }) {
-  const theme = useTheme();
-  
-  return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      gap: theme.spacing.md,
-    }}>
-      <h4 style={{
-        margin: 0,
-        fontSize: '16px',
-        fontWeight: '500',
-        color: theme.colors.text.primary,
-      }}>
-        Bank Information
-      </h4>
-      
-      <Input
-        label="Bank Name"
-        value={config.bankName}
-        onChange={(e) => onChange(prev => ({ ...prev, bankName: e.target.value }))}
-        placeholder="e.g. mybank"
-        required
-      />
-      
-      <Input
-        label="Display Name" 
-        value={config.displayName}
-        onChange={(e) => onChange(prev => ({ ...prev, displayName: e.target.value }))}
-        placeholder="e.g. MyBank"
-        required
-      />
-      
-      <Input
-        label="Primary Currency"
-        value={config.currencyPrimary}
-        onChange={(e) => onChange(prev => ({ ...prev, currencyPrimary: e.target.value }))}
-        placeholder="USD"
-        required
-      />
-      
-      <Input
-        label="Cashew Account Name"
-        value={config.cashewAccount}
-        onChange={(e) => onChange(prev => ({ ...prev, cashewAccount: e.target.value }))}
-        placeholder={config.bankName || "account_name"}
-        required
-      />
-      
-      <Input
-        label="Content Signatures (comma-separated)"
-        value={config.detection_content_signatures}
-        onChange={(e) => onChange(prev => ({ ...prev, detection_content_signatures: e.target.value }))}
-        placeholder="e.g. Partner IBAN,Booking Date"
-      />
-    </div>
-  );
-}
-
-// Header Mapping Section
-function HeaderMappingSection({ config, onChange, analysis }) {
-  const theme = useTheme();
-  const availableHeaders = analysis?.headers || [];
-  
-  return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      gap: theme.spacing.md,
-    }}>
-      <h4 style={{
-        margin: 0,
-        fontSize: '16px',
-        fontWeight: '500',
-        color: theme.colors.text.primary,
-      }}>
-        Header Mapping
-      </h4>
-      
-      {STANDARD_FIELDS.map(field => (
-        <div key={field.value}>
-          <Select
-            label={`${field.label} ${field.required ? '*' : ''}`}
-            value={config.columnMappings[field.value] || ''}
-            onChange={(e) => onChange(prev => ({
-              ...prev,
-              columnMappings: { ...prev.columnMappings, [field.value]: e.target.value }
-            }))}
+          </button>
+          <button
+            onClick={() => saveConfiguration(bankConfig)}
+            disabled={loading || analysisLoading || !isConfigValid(bankConfig)}
+            style={{
+              padding: `${theme.spacing.sm} ${theme.spacing.lg}`,
+              backgroundColor: theme.colors.primary,
+              color: 'white',
+              border: 'none',
+              borderRadius: theme.borderRadius.md,
+              fontWeight: '500',
+              cursor: (loading || analysisLoading || !isConfigValid(bankConfig)) ? 'not-allowed' : 'pointer',
+              opacity: (loading || analysisLoading || !isConfigValid(bankConfig)) ? 0.5 : 1,
+              transition: 'background-color 0.2s'
+            }}
           >
-            <option value="">Select column...</option>
-            {availableHeaders.map(header => (
-              <option key={header} value={header}>{header}</option>
-            ))}
-          </Select>
-          
-          {(analysis?.suggested_mappings?.[field.value] || analysis?.field_mapping_suggestions?.[field.value]) && (
-            <div style={{
-              fontSize: '12px',
-              color: theme.colors.text.secondary,
-              marginTop: theme.spacing.xs,
-            }}>
-              Suggested: {(
-                analysis?.suggested_mappings?.[field.value] || 
-                analysis?.field_mapping_suggestions?.[field.value]?.suggested_columns
-              )?.join?.(', ') || 'No suggestions available'}
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// Amount Format Section
-function AmountFormatSection({ config, onChange, analysis }) {
-  const theme = useTheme();
-  const detectedFormat = analysis?.detected_amount_format || analysis?.amount_format_analysis?.detected_format;
-  const confidence = analysis?.format_confidence || analysis?.amount_format_analysis?.confidence || 0;
-  
-  const getFormatLabel = (format) => {
-    if (format?.decimal_separator === ',' && format?.thousand_separator === '.') {
-      return 'European (1.234,56)';
-    } else if (format?.thousand_separator === ' ') {
-      return 'Space Separated (1 234,56)';
-    }
-    return 'American (1,234.56)';
-  };
-  
-  return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      gap: theme.spacing.md,
-    }}>
-      <h4 style={{
-        margin: 0,
-        fontSize: '16px',
-        fontWeight: '500',
-        color: theme.colors.text.primary,
-      }}>
-        Amount Format
-      </h4>
-      
-      {detectedFormat && (
-        <Alert variant="info" style={{ marginBottom: theme.spacing.sm }}>
-          Auto-detected: {getFormatLabel(detectedFormat)} 
-          ({Math.round(confidence * 100)}% confidence)
-        </Alert>
-      )}
-      
-      <Select
-        label="Number Format"
-        value={config.amountFormat}
-        onChange={(e) => onChange(prev => ({ ...prev, amountFormat: e.target.value }))}
-      >
-        {AMOUNT_FORMATS.map(format => (
-          <option key={format.value} value={format.value}>
-            {format.label}
-          </option>
-        ))}
-      </Select>
-      
-      <div style={{
-        fontSize: '14px',
-        color: theme.colors.text.secondary,
-      }}>
-        Example: {AMOUNT_FORMATS.find(f => f.value === config.amountFormat)?.example}
-      </div>
-    </div>
-  );
-}
-
-// Configuration Preview Section
-function ConfigPreviewSection({ config, analysis, validationResult }) {
-  const theme = useTheme();
-  
-  return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      gap: theme.spacing.md,
-    }}>
-      <h4 style={{
-        margin: 0,
-        fontSize: '16px',
-        fontWeight: '500',
-        color: theme.colors.text.primary,
-      }}>
-        Configuration Preview
-      </h4>
-      
-      <Card padding="md" style={{
-        backgroundColor: theme.colors.background.elevated,
-        border: `1px solid ${theme.colors.border}`,
-      }}>
-        <div style={{
-          fontSize: '12px',
-          fontFamily: 'monospace',
-          whiteSpace: 'pre-wrap',
-          color: theme.colors.text.primary,
-        }}>
-          {`[bank_info]
-bank_name = ${config.bankName || 'unknown_bank'}
-display_name = ${config.displayName || 'Unknown Bank'}
-currency_primary = ${config.currencyPrimary || 'USD'}
-
-[column_mapping]
-${Object.entries(config.columnMappings).map(([key, value]) => `${key} = ${value}`).join('\n')}
-
-[amount_format]
-format = ${config.amountFormat || 'american'}`}
-        </div>
-      </Card>
-      
-      {validationResult && (
-        <div>
-          {validationResult.errors.length > 0 && (
-            <Alert variant="error" style={{ marginBottom: theme.spacing.sm }}>
-              Errors: {validationResult.errors.join(', ')}
-            </Alert>
-          )}
-          {validationResult.warnings.length > 0 && (
-            <Alert variant="warning" style={{ marginBottom: theme.spacing.sm }}>
-              Warnings: {validationResult.warnings.join(', ')}
-            </Alert>
-          )}
-          {validationResult.valid && validationResult.errors.length === 0 && (
-            <Alert variant="success">
-              Configuration is valid!
-            </Alert>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Sample Data Preview Section
-function SampleDataPreview({ analysis, mappings, loading }) {
-  const theme = useTheme();
-  
-  if (loading) {
-    return (
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: theme.spacing.md,
-      }}>
-        <h4 style={{
-          margin: 0,
-          fontSize: '16px',
-          fontWeight: '500',
-          color: theme.colors.text.primary,
-        }}>
-          Sample Data
-        </h4>
-        <div style={{
-          padding: theme.spacing.lg,
-          textAlign: 'center',
-          color: theme.colors.text.secondary,
-        }}>
-          Analyzing CSV structure...
+            Save Configuration
+          </button>
         </div>
       </div>
-    );
-  }
-  
-  const sampleData = analysis?.sample_data || [];
-  
-  return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      gap: theme.spacing.md,
-    }}>
-      <h4 style={{
-        margin: 0,
-        fontSize: '16px',
-        fontWeight: '500',
-        color: theme.colors.text.primary,
-      }}>
-        Sample Data Preview
-      </h4>
-      
-      <Card padding="md" style={{
-        backgroundColor: theme.colors.background.elevated,
-        border: `1px solid ${theme.colors.border}`,
-        overflow: 'auto',
-      }}>
-        {sampleData.length > 0 ? (
-          <table style={{
-            width: '100%',
-            fontSize: '12px',
-            borderCollapse: 'collapse',
-          }}>
-            <thead>
-              <tr>
-                {analysis.headers.map(header => (
-                  <th key={header} style={{
-                    padding: theme.spacing.xs,
-                    textAlign: 'left',
-                    borderBottom: `1px solid ${theme.colors.border}`,
-                    color: theme.colors.text.primary,
-                    fontWeight: '500',
-                  }}>
-                    {header}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {sampleData.slice(0, 3).map((row, index) => (
-                <tr key={index}>
-                  {analysis.headers.map(header => (
-                    <td key={header} style={{
-                      padding: theme.spacing.xs,
-                      borderBottom: `1px solid ${theme.colors.border}`,
-                      color: theme.colors.text.secondary,
-                    }}>
-                      {row[header]}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <div style={{
-            padding: theme.spacing.lg,
-            textAlign: 'center',
-            color: theme.colors.text.secondary,
-          }}>
-            No sample data available
-          </div>
-        )}
-      </Card>
     </div>
   );
 }
