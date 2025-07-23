@@ -51,9 +51,9 @@ class UnifiedCSVParser:
             
             # Step 2: Detect dialect
             dialect_result = self.dialect_detector.detect_dialect(file_path, encoding)
-            print(f"   Detected dialect: delimiter='{dialect_result['delimiter']}', quoting={dialect_result['quoting']}")
+            print(f"   Detected dialect: delimiter='{dialect_result['delimiter']}', quoting={dialect_result['quoting']}, lineterminator={repr(dialect_result.get('line_terminator', 'N/A'))}")
             
-            # Step 3: Parse with strategies
+            # Step 3: Parse with strategies (including line terminator)
             parsing_result = self.parsing_strategies.parse_with_fallbacks(
                 file_path, encoding, dialect_result, header_row, max_rows, start_row
             )
@@ -133,7 +133,7 @@ class UnifiedCSVParser:
             # Step 2: Detect dialect
             dialect_result = self.dialect_detector.detect_dialect(file_path, encoding)
             
-            # Step 3: Parse with strategies
+            # Step 3: Parse with strategies (including line terminator)
             parsing_result = self.parsing_strategies.parse_with_fallbacks(
                 file_path, encoding, dialect_result, header_row, max_rows, start_row
             )
@@ -156,6 +156,7 @@ class UnifiedCSVParser:
                 'data': processing_result['data'],
                 'headers': processing_result['headers'],
                 'row_count': processing_result['row_count'],
+                'raw_rows': parsing_result['raw_rows'],  # Include raw_rows for unknown bank analysis
                 'metadata': {
                     'encoding_detection': encoding_result,
                     'dialect_detection': dialect_result,
@@ -192,7 +193,7 @@ class UnifiedCSVParser:
             # Detect dialect
             dialect_result = self.dialect_detector.detect_dialect(file_path, encoding)
             
-            # Parse small sample for structure analysis
+            # Parse small sample for structure analysis (including line terminator)
             parsing_result = self.parsing_strategies.parse_with_fallbacks(
                 file_path, encoding, dialect_result, max_rows=10
             )
@@ -292,7 +293,7 @@ class UnifiedCSVParser:
             structure_analysis = structure_result['structure_analysis']
             suggested_header_row = structure_analysis.get('suggested_header_row', 0)
             
-            # Parse small sample to get total row estimate
+            # Parse small sample to get total row estimate (including line terminator)
             parsing_result = self.parsing_strategies.parse_with_fallbacks(
                 file_path, 
                 structure_result['encoding'], 

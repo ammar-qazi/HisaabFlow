@@ -65,8 +65,15 @@ class DataValidator:
         Returns:
             bool: True if valid amount found
         """
+        # Enhanced multilingual amount column patterns
+        amount_patterns = [
+            'amount', 'value', 'sum', 'total', 'debit', 'credit',
+            'bedrag', 'betrag', 'montant', 'importo', 'valor'  # Dutch, German, French, Italian, Spanish
+        ]
+        
         for col in row.keys():
-            if 'amount' in col.lower():
+            col_lower = col.lower()
+            if any(pattern in col_lower for pattern in amount_patterns):
                 value = row[col]
                 if (value is not None and 
                     str(value).strip() and 
@@ -85,8 +92,15 @@ class DataValidator:
         Returns:
             bool: True if valid date found
         """
+        # Enhanced multilingual date column patterns
+        date_patterns = [
+            'date', 'timestamp', 'created', 'processed', 'time',
+            'datum', 'fecha', 'data', 'rentedatum'  # Dutch, Spanish, Italian, Dutch (interest date)
+        ]
+        
         for col in row.keys():
-            if 'date' in col.lower():
+            col_lower = col.lower()
+            if any(pattern in col_lower for pattern in date_patterns):
                 value = row[col]
                 if value is not None and str(value).strip():
                     return True

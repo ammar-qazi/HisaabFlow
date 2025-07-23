@@ -140,7 +140,18 @@ class ColumnStandardizer:
             elif original_source_col:
                 updated_mapping[cashew_col] = original_source_col
         
-        # Ensure we have the essential mappings
+        # For unknown banks or when no mapping exists, intelligently find columns
+        is_unknown_bank = template_config and template_config.get('bank_name') == 'unknown'
+        available_columns = list(column_name_mapping.values()) if column_name_mapping else []
+        
+        if is_unknown_bank or not original_mapping:
+            # Smart mapping for unknown banks based on actual column names
+            smart_mappings = self._create_smart_mapping(available_columns)
+            for cashew_col, found_col in smart_mappings.items():
+                if cashew_col not in updated_mapping and found_col:
+                    updated_mapping[cashew_col] = found_col
+        
+        # Ensure we have the essential mappings with fallbacks
         essential_mappings = {
             'Date': 'Date',
             'Amount': 'Amount', 
@@ -156,3 +167,40 @@ class ColumnStandardizer:
         
         print(f"      [SUCCESS] Cashew mapping created: {updated_mapping}")
         return updated_mapping
+    
+    def _create_smart_mapping(self, available_columns: List[str]) -> Dict[str, str]:
+        """
+        Create smart mapping for unknown banks by analyzing available column names
+        
+        Args:
+            available_columns: List of available column names after standardization
+            
+        Returns:
+            Dict[str, str]: Smart mapping from Cashew columns to actual columns
+        """
+        smart_mapping = {}
+        
+        # Define patterns for each Cashew target column
+        patterns = {
+            'Date': ['datum', 'date', 'timestamp', 'created', 'processed', 'rentedatum'],
+            'Amount': ['bedrag', 'amount', 'value', 'sum', 'total'],
+            'Title': ['omschrijving', 'description', 'memo', 'note', 'details', 'narrative', 'naam'],
+            'Note': ['type', 'category', 'kind', 'code', 'reference']
+        }
+        
+        # Find best match for each Cashew column
+        for cashew_col, pattern_list in patterns.items():
+            best_match = None
+            for col in available_columns:
+                col_lower = col.lower()
+                for pattern in pattern_list:
+                    if pattern in col_lower:
+                        best_match = col
+                        break
+                if best_match:
+                    break
+            
+            if best_match:
+                smart_mapping[cashew_col] = best_match
+        
+        return smart_mapping

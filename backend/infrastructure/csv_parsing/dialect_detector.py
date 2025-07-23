@@ -232,21 +232,69 @@ class DialectDetector:
             return csv.QUOTE_MINIMAL
     
     def _detect_line_terminator(self, file_path: str, encoding: str) -> str:
-        """Detect line terminator style"""
+        """Detect line terminator style including non-standard patterns"""
         try:
+            # Read a larger sample to better detect line endings
             with open(file_path, 'rb') as f:
-                sample = f.read(1024)
+                sample = f.read(8192)  # Increased sample size
             
-            # Count different line ending types
-            crlf_count = sample.count(b'\r\n')
-            lf_count = sample.count(b'\n') - crlf_count  # Subtract CRLF matches
-            cr_count = sample.count(b'\r') - crlf_count   # Subtract CRLF matches
+            if not sample:
+                return '\n'  # Safe default for empty files
             
-            if crlf_count > lf_count and crlf_count > cr_count:
-                return '\r\n'  # Windows
-            elif cr_count > lf_count:
-                return '\r'    # Old Mac
-            else:
-                return '\n'    # Unix/Linux (default)
-        except Exception:
+            # Count different line ending patterns, including non-standard ones
+            line_ending_counts = {
+                b'\r\r': sample.count(b'\r\r'),      # Non-standard double CR
+                b'\r\n': sample.count(b'\r\n'),      # Windows CRLF
+                b'\n\r': sample.count(b'\n\r'),      # Reverse CRLF (rare)
+                b'\n': 0,                            # Unix LF (calculated below)
+                b'\r': 0                             # Mac CR (calculated below)
+            }
+            
+            # Calculate standalone LF and CR counts (excluding compound patterns)
+            lf_total = sample.count(b'\n')
+            cr_total = sample.count(b'\r')
+            
+            # Subtract compound patterns to get standalone counts
+            line_ending_counts[b'\n'] = (lf_total - 
+                                       line_ending_counts[b'\r\n'] - 
+                                       line_ending_counts[b'\n\r'])
+            
+            line_ending_counts[b'\r'] = (cr_total - 
+                                       line_ending_counts[b'\r\n'] - 
+                                       line_ending_counts[b'\n\r'] - 
+                                       (line_ending_counts[b'\r\r'] * 2))  # Double CR uses 2 CR chars
+            
+            # Find the most common line ending pattern
+            max_count = 0
+            detected_pattern = b'\n'  # Default fallback
+            
+            for pattern, count in line_ending_counts.items():
+                if count > max_count:
+                    max_count = count
+                    detected_pattern = pattern
+            
+            # Convert bytes pattern to string
+            line_terminator_map = {
+                b'\r\r': '\r\r',    # Non-standard double CR
+                b'\r\n': '\r\n',    # Windows CRLF
+                b'\n\r': '\n\r',    # Reverse CRLF
+                b'\n': '\n',        # Unix LF
+                b'\r': '\r'         # Mac CR
+            }
+            
+            result = line_terminator_map.get(detected_pattern, '\n')
+            
+            # Log the detection results for debugging
+            print(f"       Line ending analysis:")
+            for pattern, count in line_ending_counts.items():
+                if count > 0:
+                    pattern_name = line_terminator_map.get(pattern, str(pattern))
+                    print(f"         {repr(pattern_name)}: {count} occurrences")
+            
+            print(f"       Selected line terminator: {repr(result)} ({max_count} occurrences)")
+            
+            return result
+            
+        except Exception as e:
+            print(f"       [WARNING] Line terminator detection failed: {e}, using default")
             return '\n'  # Safe default

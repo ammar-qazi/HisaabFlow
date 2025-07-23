@@ -142,6 +142,9 @@ class DataCleaner:
         if template_config and 'column_mapping' in template_config:
             column_mapping = template_config['column_mapping']
         
+        # Check if this is an unknown bank
+        is_unknown_bank = template_config and template_config.get('bank_name') == 'unknown'
+        
         # Identify target columns (mapped columns + common transaction columns)
         target_columns = set()
         
@@ -150,16 +153,53 @@ class DataCleaner:
             if source_col:  # Skip empty mappings
                 target_columns.add(source_col)
         
-        # Add common transaction columns (case-insensitive)
-        common_columns = ['timestamp', 'date', 'type', 'description', 'amount', 'balance', 
-                         'currency', 'exchange_amount', 'exchange_currency', 'fee', 'id', 'reference']
+        # Enhanced multilingual pattern matching for transaction columns
+        transaction_patterns = {
+            # English patterns
+            'date': ['timestamp', 'date', 'created', 'processed', 'transaction_date', 'booking_date'],
+            'amount': ['amount', 'value', 'sum', 'total', 'debit', 'credit'],
+            'balance': ['balance', 'saldo', 'remaining', 'available'],
+            'description': ['description', 'memo', 'note', 'reference', 'details', 'narrative'],
+            'currency': ['currency', 'curr', 'ccy'],
+            'type': ['type', 'category', 'kind'],
+            'account': ['account', 'iban', 'bban'],
+            'counterparty': ['counterparty', 'partner', 'recipient', 'sender', 'naam'],
+            
+            # Multilingual patterns (Dutch, German, French, etc.)
+            'date_intl': ['datum', 'date', 'fecha', 'data', 'rentedatum'],
+            'amount_intl': ['bedrag', 'betrag', 'montant', 'importo', 'valor'],
+            'balance_intl': ['saldo', 'solde', 'bilanz', 'balance'],
+            'description_intl': ['omschrijving', 'beschreibung', 'description', 'descrizione'],
+            'currency_intl': ['munt', 'währung', 'monnaie', 'valuta'],
+            'reference_intl': ['referentie', 'referenz', 'référence', 'riferimento', 'transactiereferentie'],
+        }
         
+        # Flatten all patterns for matching
+        all_patterns = []
+        for pattern_list in transaction_patterns.values():
+            all_patterns.extend(pattern_list)
+        
+        # Find columns that match transaction patterns
         for col in headers:
-            col_lower = col.lower()
-            if any(common in col_lower for common in common_columns):
-                target_columns.add(col)
+            col_lower = col.lower().replace(' ', '').replace('-', '').replace('_', '')
+            col_original_lower = col.lower()
+            
+            # Check for exact matches or partial matches
+            for pattern in all_patterns:
+                pattern_clean = pattern.replace(' ', '').replace('-', '').replace('_', '')
+                if (pattern_clean in col_lower or 
+                    pattern in col_original_lower or
+                    col_lower.startswith(pattern_clean) or
+                    col_lower.endswith(pattern_clean)):
+                    target_columns.add(col)
+                    break
         
-        # If no specific targets found, keep all columns
+        # For unknown banks, be more inclusive - if we found very few columns, keep all
+        if is_unknown_bank and len(target_columns) < 3:
+            print(f"       Unknown bank with few matching columns ({len(target_columns)}), keeping all columns")
+            target_columns = set(headers)
+        
+        # If no specific targets found at all, keep all columns
         if not target_columns:
             target_columns = set(headers)
         

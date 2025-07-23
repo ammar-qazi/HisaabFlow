@@ -2,17 +2,18 @@
 FastAPI route handlers
 Centralized endpoint definitions using the modular components
 """
-from fastapi import FastAPI, UploadFile, File, HTTPException, Request
+from fastapi import FastAPI, UploadFile, File, HTTPException, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 import pandas as pd
 import tempfile
 from .models import *
 from .file_manager import FileManager
-from .csv_processor import CSVProcessor
 from .multi_csv_processor import MultiCSVProcessor
 from .config_manager import ConfigManager
+from .dependencies import get_preview_service
+from backend.services.preview_service import PreviewService
 from services.cashew_transformer import CashewTransformer # Import new transformer
 
 # from ..csv_parser import CSVParser  # Removed - archived file
@@ -41,7 +42,6 @@ def create_app() -> FastAPI:
     
     # Initialize components
     file_manager = FileManager()
-    csv_processor = CSVProcessor()
     multi_csv_processor = MultiCSVProcessor(file_manager)
     config_manager = ConfigManager()
     cashew_transformer = CashewTransformer() # Instantiate new transformer
@@ -66,24 +66,26 @@ def create_app() -> FastAPI:
     
     # CSV processing endpoints
     @app.get("/preview/{file_id}")
-    async def preview_csv(file_id: str, encoding: str = "utf-8"):
-        """Preview uploaded CSV file"""
-        print(f"‍ Preview request for file_id: {file_id}")
+    async def preview_csv(file_id: str, encoding: Optional[str] = None, service: PreviewService = Depends(get_preview_service)):
+        """Preview uploaded CSV file with automatic encoding detection"""
+        print(f"‍ Preview request for file_id: {file_id} (encoding: {encoding if encoding else 'auto-detect'})")
         file_path = file_manager.get_file_path(file_id)
-        return csv_processor.preview_csv(file_path, encoding)
+        original_filename = file_manager.get_original_filename(file_id)
+        return service.preview_csv_file(file_path, original_filename, encoding)
     
     @app.get("/detect-range/{file_id}")
-    async def detect_data_range(file_id: str, encoding: str = "utf-8"):
-        """Auto-detect data range in CSV"""
+    async def detect_data_range(file_id: str, encoding: Optional[str] = None, service: PreviewService = Depends(get_preview_service)):
+        """Auto-detect data range in CSV with automatic encoding detection"""
+        print(f"‍ Detect range request for file_id: {file_id} (encoding: {encoding if encoding else 'auto-detect'})")
         file_path = file_manager.get_file_path(file_id)
-        return csv_processor.detect_data_range(file_path, encoding)
+        return service.detect_data_range(file_path, encoding)
     
     @app.post("/parse-range/{file_id}")
-    async def parse_range(file_id: str, request: ParseRangeRequest):
+    async def parse_range(file_id: str, request: ParseRangeRequest, service: PreviewService = Depends(get_preview_service)):
         """Parse CSV with specified range and optional data cleaning"""
         print(f"‍ Parse range request for file_id: {file_id}")
         file_path = file_manager.get_file_path(file_id)
-        return csv_processor.parse_range(file_path, request)
+        return service.parse_range(file_path, request.dict())
     
     # Multi-CSV endpoints
     @app.post("/multi-csv/parse")

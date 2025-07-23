@@ -5,6 +5,7 @@ Handles unknown bank CSV analysis, configuration generation, and validation
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from typing import Dict, Any
 import io
+import os
 import uuid
 from backend.services.unknown_bank_service import UnknownBankService
 from backend.services.unknown_bank_service import BankConfigInput, ConfigValidationResult
@@ -37,8 +38,6 @@ def get_unknown_bank_service() -> UnknownBankService:
 @unknown_bank_router.post("/analyze-csv")
 async def analyze_unknown_csv(
     file: UploadFile = File(...),
-    encoding: str = "utf-8",
-    delimiter: str = ",",
     service: UnknownBankService = Depends(get_unknown_bank_service)
 ) -> UnknownBankAnalysisResponse:
     """
@@ -46,8 +45,6 @@ async def analyze_unknown_csv(
     
     Args:
         file: Uploaded CSV file
-        encoding: File encoding (optional, defaults to utf-8)
-        delimiter: CSV delimiter (optional, defaults to comma)
         service: Injected UnknownBankService
         
     Returns:
@@ -55,17 +52,19 @@ async def analyze_unknown_csv(
     """
     print(f"ℹ [API] Analyzing unknown bank CSV: {file.filename}")
     
+    temp_file_path = None
     try:
-        # Read file content
-        content = await file.read()
-        csv_data = content.decode(encoding)
-        
-        # Perform analysis
+        # Save the uploaded file to a temporary path
+        import tempfile
+        import os
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as temp_file:
+            temp_file.write(await file.read())
+            temp_file_path = temp_file.name
+
+        # Call the refactored service with the file path
         analysis = service.analyze_unknown_bank_csv(
-            csv_data=csv_data,
-            filename=file.filename or "unknown.csv",
-            encoding=encoding,
-            delimiter=delimiter
+            file_path=temp_file_path,
+            filename=file.filename or "unknown.csv"
         )
         
         # Store analysis for later use
@@ -128,8 +127,8 @@ async def analyze_unknown_csv(
         return UnknownBankAnalysisResponse(
             success=False,
             filename=file.filename or "unknown.csv",
-            encoding=encoding,
-            delimiter=delimiter,
+            encoding="utf-8",
+            delimiter=",",
             headers=[],
             header_row=0,
             data_start_row=0,
@@ -152,6 +151,10 @@ async def analyze_unknown_csv(
             structure_confidence=0.0,
             error=str(e)
         )
+    finally:
+        # Clean up the temporary file
+        if temp_file_path and os.path.exists(temp_file_path):
+            os.unlink(temp_file_path)
 
 
 @unknown_bank_router.post("/generate-config")

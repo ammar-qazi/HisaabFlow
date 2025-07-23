@@ -87,6 +87,7 @@ class ParsingStrategies:
                 'encoding': encoding,
                 'sep': dialect_result.get('delimiter', ','),
                 'quotechar': dialect_result.get('quotechar', '"'),
+                'lineterminator': dialect_result.get('line_terminator', '\n'),  # Use detected line terminator
                 'header': None,  # Always read as raw data first
                 'dtype': str,    # Keep everything as strings initially
                 'keep_default_na': False,  # Don't convert to NaN
@@ -108,7 +109,8 @@ class ParsingStrategies:
             if dialect_result.get('skipinitialspace', False):
                 pandas_params['skipinitialspace'] = True
             
-            # Read CSV
+            # Read CSV with detected line terminator
+            print(f"         Using pandas with lineterminator: {repr(pandas_params['lineterminator'])}")
             df = pd.read_csv(**pandas_params)
             
             # Convert to list of lists
@@ -140,13 +142,16 @@ class ParsingStrategies:
         try:
             raw_rows = []
             
-            # Create custom dialect
+            # Create custom dialect with detected line terminator
             class CustomDialect(csv.excel):
                 delimiter = dialect_result.get('delimiter', ',')
                 quotechar = dialect_result.get('quotechar', '"')
                 quoting = dialect_result.get('quoting', csv.QUOTE_MINIMAL)
                 skipinitialspace = dialect_result.get('skipinitialspace', True)
-                lineterminator = dialect_result.get('line_terminator', '\n')
+                lineterminator = dialect_result.get('line_terminator', '\n')  # Use detected line terminator
+            
+            # Log the line terminator being used
+            print(f"         Using CSV module with lineterminator: {repr(CustomDialect.lineterminator)}")
             
             # Special handling for quote-all format (Forint Bank style)
             if dialect_result.get('quoting') == csv.QUOTE_ALL:
@@ -230,26 +235,35 @@ class ParsingStrategies:
             delimiter = dialect_result.get('delimiter', ',')
             quotechar = dialect_result.get('quotechar', '"')
             quoting = dialect_result.get('quoting', csv.QUOTE_MINIMAL)
+            detected_line_terminator = dialect_result.get('line_terminator', '\n')
             
+            # For manual parsing, we need to handle line terminators properly
+            print(f"         Using manual parsing with lineterminator: {repr(detected_line_terminator)}")
+            
+            # Read the entire file and split by the detected line terminator
             with open(file_path, 'r', encoding=encoding) as f:
-                for line_num, line in enumerate(f):
-                    if max_rows is not None and line_num >= max_rows:
-                        break
-                    
-                    # Remove line endings
-                    line = line.rstrip('\r\n')
-                    if not line.strip():
-                        continue
-                    
-                    # Manual field parsing
-                    if quoting == csv.QUOTE_ALL:
-                        # Special handling for quote-all format
-                        fields = self._parse_quote_all_line(line, delimiter, quotechar)
-                    else:
-                        # Standard field splitting
-                        fields = self._parse_standard_line(line, delimiter, quotechar)
-                    
-                    raw_rows.append(fields)
+                content = f.read()
+            
+            # Split by detected line terminator
+            lines = content.split(detected_line_terminator)
+            
+            for line_num, line in enumerate(lines):
+                if max_rows is not None and line_num >= max_rows:
+                    break
+                
+                # Skip empty lines
+                if not line.strip():
+                    continue
+                
+                # Manual field parsing
+                if quoting == csv.QUOTE_ALL:
+                    # Special handling for quote-all format
+                    fields = self._parse_quote_all_line(line, delimiter, quotechar)
+                else:
+                    # Standard field splitting
+                    fields = self._parse_standard_line(line, delimiter, quotechar)
+                
+                raw_rows.append(fields)
             
             print(f"       Manual parsing read {len(raw_rows)} rows with {len(raw_rows[0]) if raw_rows else 0} columns")
             

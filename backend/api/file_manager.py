@@ -52,6 +52,12 @@ class FileManager:
             raise HTTPException(status_code=404, detail="File not found")
         return self.uploaded_files[file_id]
     
+    def get_original_filename(self, file_id: str) -> str:
+        """Get original filename for given file ID"""
+        if file_id not in self.uploaded_files:
+            raise HTTPException(status_code=404, detail="File not found")
+        return self.uploaded_files[file_id]["original_name"]
+    
     def cleanup_file(self, file_id: str) -> bool:
         """Remove uploaded file from temp storage"""
         if file_id in self.uploaded_files:

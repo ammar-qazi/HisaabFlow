@@ -262,6 +262,57 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
     return 'USD';
   };
 
+  const startManualConfiguration = (file) => {
+    // Clear all previous data and start fresh manual configuration
+    setAnalysis(null);
+    setValidationResult(null);
+    setBankConfig({
+      bankName: generateBankName(file.fileName || file.name),
+      displayName: generateDisplayName(file.fileName || file.name),
+      filenamePatterns: [generateFilenamePattern(file.fileName || file.name)],
+      expected_headers: [],
+      detection_content_signatures: '',
+      columnMappings: {},
+      amountFormat: 'american',
+      currencyPrimary: 'USD',
+      cashewAccount: generateBankName(file.fileName || file.name),
+      manualMode: true
+    });
+    
+    // Analyze the file to get headers and sample data, but don't auto-populate mappings
+    analyzeForManualConfig(file);
+  };
+
+  const analyzeForManualConfig = async (file) => {
+    setAnalysisLoading(true);
+    try {
+      const actualFile = file.file || file;
+      const result = await ConfigurationService.analyzeUnknownCSV(actualFile);
+      
+      if (result.success) {
+        // Only set the analysis data, don't auto-populate config
+        setAnalysis(result.analysis);
+      } else {
+        // Fallback to basic file analysis
+        console.warn('API not available, using basic analysis for manual config');
+        const mockAnalysis = {
+          filename: file.fileName || file.name,
+          encoding: 'utf-8',
+          delimiter: ',',
+          headers: ['Date', 'Amount', 'Account', 'Counterparty', 'Name', 'Description'], // Generic headers
+          header_row: 0,
+          data_start_row: 1,
+          sample_data: []
+        };
+        setAnalysis(mockAnalysis);
+      }
+    } catch (error) {
+      console.error('Manual config analysis failed:', error);
+    } finally {
+      setAnalysisLoading(false);
+    }
+  };
+
   const getAmountFormatConfig = (formatType) => {
     const formatMap = {
       'american': { decimal_separator: '.', thousand_separator: ',', negative_style: 'minus', currency_position: 'prefix' },
@@ -398,22 +449,41 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
         </Badge>
       </div>
 
-      {/* File Selection */}
-      {unknownFiles.length > 1 && (
-        <div style={{ marginBottom: theme.spacing.lg }}>
-          <Select
-            label="Select File to Configure:"
-            value={selectedFile?.fileName || selectedFile?.name || ''}
-            onChange={(e) => setSelectedFile(unknownFiles.find(f => (f.fileName || f.name) === e.target.value))}
+      {/* File Selection and Manual Config Option */}
+      <div style={{ marginBottom: theme.spacing.lg }}>
+        {unknownFiles.length > 1 && (
+          <div style={{ marginBottom: theme.spacing.md }}>
+            <Select
+              label="Select File to Configure:"
+              value={selectedFile?.fileName || selectedFile?.name || ''}
+              onChange={(e) => setSelectedFile(unknownFiles.find(f => (f.fileName || f.name) === e.target.value))}
+            >
+              {unknownFiles.map(file => (
+                <option key={file.fileName || file.name} value={file.fileName || file.name}>
+                  {file.fileName || file.name} ({Math.round((file.confidence || 0) * 100)}% confidence)
+                </option>
+              ))}
+            </Select>
+          </div>
+        )}
+        
+        {/* Manual Configuration Button */}
+        <div style={{ display: 'flex', gap: theme.spacing.md, alignItems: 'center' }}>
+          <Button
+            variant="secondary"
+            onClick={() => startManualConfiguration(selectedFile)}
+            disabled={!selectedFile || analysisLoading}
           >
-            {unknownFiles.map(file => (
-              <option key={file.fileName || file.name} value={file.fileName || file.name}>
-                {file.fileName || file.name} ({Math.round((file.confidence || 0) * 100)}% confidence)
-              </option>
-            ))}
-          </Select>
+            Start Fresh Manual Configuration
+          </Button>
+          <div style={{
+            fontSize: '14px',
+            color: theme.colors.text.secondary,
+          }}>
+            Clear all auto-detected data and configure manually
+          </div>
         </div>
-      )}
+      </div>
 
       {selectedFile && (
         <div style={{
