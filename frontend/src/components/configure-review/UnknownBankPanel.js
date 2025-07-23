@@ -341,20 +341,6 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
         borderBottom: `1px solid ${theme.colors.border}`
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing.md }}>
-          <button style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: theme.spacing.sm,
-            color: theme.colors.text.secondary,
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            transition: 'color 0.2s'
-          }}>
-            <ChevronLeft size={20} />
-            Go Back
-          </button>
-          <div style={{ height: '24px', width: '1px', backgroundColor: theme.colors.border }}></div>
           <h1 style={{ fontSize: '20px', fontWeight: '600', margin: 0, color: theme.colors.text.primary }}>Configure Unknown Bank</h1>
         </div>
         <div style={{ fontSize: '14px', color: theme.colors.text.secondary }}>
@@ -656,10 +642,11 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
               padding: `${theme.spacing.sm} ${theme.spacing.md}`,
               color: theme.colors.text.secondary,
               backgroundColor: 'transparent',
-              border: 'none',
+              border: `1px solid ${theme.colors.border}`,
+              borderRadius: theme.borderRadius.md,
               cursor: (!selectedFile || analysisLoading) ? 'not-allowed' : 'pointer',
               opacity: (!selectedFile || analysisLoading) ? 0.5 : 1,
-              transition: 'color 0.2s'
+              transition: 'all 0.2s'
             }}
           >
             Start Fresh Manual Configuration
