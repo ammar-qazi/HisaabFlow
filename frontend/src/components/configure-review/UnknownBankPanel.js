@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from '../ui/CoreIcons';
 import { ConfigurationService } from '../../services/configurationService';
 import { useTheme } from '../../theme/ThemeProvider';
+import InteractiveDataTable from '../transform-export/InteractiveDataTable';
 
 const STANDARD_FIELDS = [
   { value: 'date', label: 'Date', required: true },
@@ -444,7 +445,7 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
         </div>
 
         {/* Sample Data Preview */}
-        {analysis && (
+        {analysis && analysis.sample_data && analysis.sample_data.length > 0 && (
           <div style={{ marginBottom: theme.spacing.xl }}>
             <h2 style={{
               fontSize: '18px',
@@ -454,99 +455,13 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
             }}>
               Sample Data Preview
             </h2>
-            <div style={{
-              backgroundColor: theme.colors.background.elevated,
-              borderRadius: theme.borderRadius.md,
-              border: `1px solid ${theme.colors.border}`,
-              overflow: 'hidden'
-            }}>
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ borderBottom: `1px solid ${theme.colors.border}` }}>
-                      {analysis.headers?.map(header => (
-                        <th key={header} style={{
-                          textAlign: 'left',
-                          padding: theme.spacing.sm,
-                          fontSize: '14px',
-                          fontWeight: '500',
-                          color: theme.colors.text.primary
-                        }}>
-                          {header}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {currentData.map((row, index) => (
-                      <tr key={index} style={{
-                        backgroundColor: index % 2 === 0 ? theme.colors.background.elevated : theme.colors.background.paper
-                      }}>
-                        {analysis.headers?.map(header => (
-                          <td key={header} style={{
-                            padding: theme.spacing.sm,
-                            fontSize: '14px',
-                            color: theme.colors.text.secondary
-                          }}>
-                            {String(row[header] || '')}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: theme.spacing.sm,
-                  borderTop: `1px solid ${theme.colors.border}`
-                }}>
-                  <div style={{ fontSize: '14px', color: theme.colors.text.secondary }}>
-                    Showing {startIndex + 1} to {Math.min(startIndex + 5, sampleData.length)} of {sampleData.length} rows
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing.sm }}>
-                    <button
-                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                      disabled={currentPage === 1}
-                      style={{
-                        padding: '4px',
-                        borderRadius: theme.borderRadius.sm,
-                        border: `1px solid ${theme.colors.border}`,
-                        backgroundColor: 'transparent',
-                        color: theme.colors.text.primary,
-                        cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                        opacity: currentPage === 1 ? 0.5 : 1
-                      }}
-                    >
-                      <ChevronLeft size={16} />
-                    </button>
-                    <span style={{ fontSize: '14px', color: theme.colors.text.primary }}>
-                      {currentPage} of {totalPages}
-                    </span>
-                    <button
-                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                      disabled={currentPage === totalPages}
-                      style={{
-                        padding: '4px',
-                        borderRadius: theme.borderRadius.sm,
-                        border: `1px solid ${theme.colors.border}`,
-                        backgroundColor: 'transparent',
-                        color: theme.colors.text.primary,
-                        cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-                        opacity: currentPage === totalPages ? 0.5 : 1
-                      }}
-                    >
-                      <ChevronRight size={16} />
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+            <InteractiveDataTable
+              data={analysis.sample_data}
+              isReviewMode={true}
+              showToolbar={false}
+              showPagination={true}
+              defaultItemsPerPage={10}
+            />
           </div>
         )}
 
