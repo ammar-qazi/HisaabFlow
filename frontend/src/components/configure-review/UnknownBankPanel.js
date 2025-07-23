@@ -139,6 +139,8 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
     bankName: '',
     displayName: '',
     filenamePatterns: [],
+    expected_headers: [],
+    detection_content_signatures: '',
     columnMappings: {},
     amountFormat: 'american',
     currencyPrimary: 'USD',
@@ -176,6 +178,7 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
           bankName: generateBankName(file.fileName || file.name),
           displayName: generateDisplayName(file.fileName || file.name),
           filenamePatterns: result.analysis.filename_patterns || [generateFilenamePattern(file.fileName || file.name)],
+          expected_headers: result.analysis.headers || [],
           amountFormat: mapDetectedFormat(result.analysis.amount_format_analysis?.detected_format),
           currencyPrimary: detectCurrency(result.analysis.sample_data)
         }));
@@ -214,6 +217,7 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
           bankName: generateBankName(file.fileName || file.name),
           displayName: generateDisplayName(file.fileName || file.name),
           filenamePatterns: mockAnalysis.filename_patterns,
+          expected_headers: mockAnalysis.headers || [],
           amountFormat: mapDetectedFormat(mockAnalysis.detected_amount_format),
           currencyPrimary: detectCurrency(mockAnalysis.sample_data)
         }));
@@ -318,7 +322,10 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
           bank_name: config.bankName,
           display_name: config.displayName,
           file_patterns: config.filenamePatterns,
-          detection_content_signatures: [], // Empty for now
+          expected_headers: config.expected_headers,
+          detection_content_signatures: config.detection_content_signatures
+                                          ? config.detection_content_signatures.split(',').map(s => s.trim())
+                                          : [],
           currency_primary: config.currencyPrimary,
           cashew_account: config.cashewAccount || config.bankName
         },
@@ -532,6 +539,13 @@ function BankInfoSection({ config, onChange, analysis }) {
         onChange={(e) => onChange(prev => ({ ...prev, cashewAccount: e.target.value }))}
         placeholder={config.bankName || "account_name"}
         required
+      />
+      
+      <Input
+        label="Content Signatures (comma-separated)"
+        value={config.detection_content_signatures}
+        onChange={(e) => onChange(prev => ({ ...prev, detection_content_signatures: e.target.value }))}
+        placeholder="e.g. Partner IBAN,Booking Date"
       />
     </div>
   );
