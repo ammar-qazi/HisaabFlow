@@ -39,18 +39,19 @@ function AppLogic() {
 
   const clearMessages = () => { setError(null); };
 
-  React.useEffect(() => {
-    const loadConfigurations = async () => {
-      const result = await ConfigurationService.loadConfigurations();
-      if (result.success) {
-        setTemplates(result.configurations);
-        if (result.configurations && result.raw_bank_names) {
-          autoConfigHook.updateBankConfigMapping(result.configurations, result.raw_bank_names);
-        }
-      } else {
-        setError(result.error);
+  const loadConfigurations = async () => {
+    const result = await ConfigurationService.loadConfigurations();
+    if (result.success) {
+      setTemplates(result.configurations);
+      if (result.configurations && result.raw_bank_names) {
+        autoConfigHook.updateBankConfigMapping(result.configurations, result.raw_bank_names);
       }
-    };
+    } else {
+      setError(result.error);
+    }
+  };
+
+  React.useEffect(() => {
     loadConfigurations();
   }, []);
 
@@ -161,6 +162,7 @@ function AppLogic() {
               parsedResults={parsedResults}
               transformAllFiles={transformAllFiles}
               setCurrentStep={setCurrentStep}
+              loadConfigurations={loadConfigurations}
             />
           )}
 

@@ -400,10 +400,17 @@ class CSVProcessingService:
                 if bank_info['detected_bank'] in detection_patterns:
                     expected_headers = detection_patterns[bank_info['detected_bank']].required_headers
                 
+                # Include currency_primary from bank config for proper currency handling
+                default_currency = 'PKR'  # fallback
+                if bank_config and bank_config.currency_primary:
+                    default_currency = bank_config.currency_primary
+                    print(f"         Using bank-specific currency: {default_currency} from {bank_info['detected_bank']} config")
+                
                 bank_cleaning_config = {
                     'column_mapping': bank_column_mapping,
                     'bank_name': bank_info['detected_bank'],
-                    'expected_headers': expected_headers
+                    'expected_headers': expected_headers,
+                    'default_currency': default_currency
                 }
                 print(f"         Using bank-specific cleaning config for {bank_info['detected_bank']}")
             

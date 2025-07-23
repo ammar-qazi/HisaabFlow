@@ -26,7 +26,8 @@ function ConfigureAndReviewStep({
   parseAllFiles,
   transformAllFiles,
   setCurrentStep,
-  parsedResults  // Add this prop to get the parsed results
+  parsedResults,  // Add this prop to get the parsed results
+  loadConfigurations  // Add this prop for refreshing configuration list
 }) {
   const theme = useTheme();
   const [showAdvancedConfig, setShowAdvancedConfig] = useState(false);
@@ -123,6 +124,11 @@ function ConfigureAndReviewStep({
   const handleConfigCreated = async (newConfig) => {
     console.log('[DEBUG] New bank configuration created:', newConfig);
     toast.success(`Created configuration for ${newConfig.displayName}`);
+
+    // Refresh the configuration list in the parent component
+    if (loadConfigurations) {
+      await loadConfigurations();
+    }
 
     // Re-run bank detection on the files that were unknown
     const unknownFiles = getUnknownBankFiles(uploadedFiles);
