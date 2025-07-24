@@ -8,6 +8,7 @@ function InteractiveDataTable({
   isReviewMode = false,
   showToolbar = true,
   showPagination = true,
+  showTitle = true,
   defaultItemsPerPage = 25
 }) {
   const theme = useTheme();
@@ -170,33 +171,35 @@ function InteractiveDataTable({
 
   return (
     <Card style={{ padding: isReviewMode ? 0 : theme.spacing.xl, marginBottom: theme.spacing.lg, backgroundColor: isReviewMode ? 'transparent' : undefined, boxShadow: isReviewMode ? 'none' : undefined, border: isReviewMode ? 'none' : undefined }}>
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        marginBottom: theme.spacing.lg 
-      }}>
-        <h3 style={{ ...theme.typography.h5, color: theme.colors.text.primary, margin: 0 }}>
-          Transaction Data Table
-        </h3>
-        {showToolbar && <Button 
-          onClick={exportData}
-          style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: theme.spacing.sm,
-            backgroundColor: theme.colors.primary,
-            color: 'white',
-            border: 'none',
-            padding: `${theme.spacing.sm} ${theme.spacing.md}`,
-            borderRadius: theme.borderRadius.md,
-            cursor: 'pointer'
-          }}
-        >
-          <Download size={16} />
-          Export Filtered Data
-        </Button>}
-      </div>
+      {showTitle && (
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginBottom: theme.spacing.lg 
+        }}>
+          <h3 style={{ ...theme.typography.h5, color: theme.colors.text.primary, margin: 0 }}>
+            Transaction Data Table
+          </h3>
+          {showToolbar && <Button 
+            onClick={exportData}
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: theme.spacing.sm,
+              backgroundColor: theme.colors.primary,
+              color: 'white',
+              border: 'none',
+              padding: `${theme.spacing.sm} ${theme.spacing.md}`,
+              borderRadius: theme.borderRadius.md,
+              cursor: 'pointer'
+            }}
+          >
+            <Download size={16} />
+            Export Filtered Data
+          </Button>}
+        </div>
+      )}
 
       {showToolbar && (
       <div style={{ 

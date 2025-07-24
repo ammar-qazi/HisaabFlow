@@ -451,17 +451,20 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
               fontSize: '18px',
               fontWeight: '600',
               color: theme.colors.primary,
-              marginBottom: theme.spacing.md
+              // marginBottom: theme.spacing.md
             }}>
               Sample Data Preview
             </h2>
-            <InteractiveDataTable
-              data={analysis.sample_data}
-              isReviewMode={true}
-              showToolbar={false}
-              showPagination={true}
-              defaultItemsPerPage={10}
-            />
+            <div>
+              <InteractiveDataTable
+                data={analysis.sample_data}
+                isReviewMode={true}
+                showToolbar={false}
+                showPagination={true}
+                showTitle={false}
+                defaultItemsPerPage={10}
+              />
+            </div>
           </div>
         )}
 
