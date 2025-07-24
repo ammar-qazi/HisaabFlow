@@ -38,7 +38,8 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
     columnMappings: {},
     amountFormat: 'american',
     currencyPrimary: 'USD',
-    cashewAccount: ''
+    cashewAccount: '',
+    headerRow: 1  // 1-based indexing for user display
   });
   const [validationResult, setValidationResult] = useState(null);
 
@@ -56,11 +57,11 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
     }
   }, [selectedFile]);
 
-  const analyzeUnknownCSV = async (file) => {
+  const analyzeUnknownCSV = async (file, headerRow = null) => {
     setAnalysisLoading(true);
     try {
       const actualFile = file.file || file;
-      const result = await ConfigurationService.analyzeUnknownCSV(actualFile);
+      const result = await ConfigurationService.analyzeUnknownCSV(actualFile, headerRow);
 
       if (result.success) {
         setAnalysis(result.analysis);
@@ -71,7 +72,8 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
           filenamePatterns: result.analysis.filename_patterns || [generateFilenamePattern(file.fileName || file.name)],
           expected_headers: result.analysis.headers || [],
           amountFormat: mapDetectedFormat(result.analysis.amount_format_analysis?.detected_format),
-          currencyPrimary: detectCurrency(result.analysis.sample_data)
+          currencyPrimary: detectCurrency(result.analysis.sample_data),
+          headerRow: headerRow || prev.headerRow  // Keep user's header row choice or use provided value
         }));
       } else {
         console.warn('API not available, using mock analysis:', result.error);
@@ -258,8 +260,9 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
         csv_config: {
           encoding: 'utf-8',
           delimiter: ',',
-          header_row: 0,
-          data_start_row: 1
+          header_row: config.headerRow,  // Use the configured header row (1-based)
+          has_header: true,
+          skip_rows: 0
         },
         column_mapping: config.columnMappings,
         data_cleaning: {
@@ -443,6 +446,46 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
             />
           </div>
 
+          {/* Header Row Configuration */}
+          <div style={{ marginTop: theme.spacing.md }}>
+            <label style={labelStyle}>
+              Header Row <span style={{ color: theme.colors.error }}>*</span>
+            </label>
+            <div style={{ display: 'flex', gap: theme.spacing.sm, alignItems: 'center' }}>
+              <input
+                type="number"
+                min="1"
+                value={bankConfig.headerRow}
+                onChange={(e) => setBankConfig(prev => ({ ...prev, headerRow: parseInt(e.target.value) || 1 }))}
+                style={{ ...inputStyle, flex: 1 }}
+              />
+              <button
+                onClick={() => analyzeUnknownCSV(selectedFile, bankConfig.headerRow)}
+                disabled={!selectedFile || analysisLoading}
+                style={{
+                  padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
+                  backgroundColor: theme.colors.primary,
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: theme.borderRadius.md,
+                  cursor: (!selectedFile || analysisLoading) ? 'not-allowed' : 'pointer',
+                  opacity: (!selectedFile || analysisLoading) ? 0.5 : 1,
+                  fontSize: '12px',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {analysisLoading ? 'Analyzing...' : 'Re-analyze'}
+              </button>
+            </div>
+            <div style={{
+              fontSize: '12px',
+              color: theme.colors.text.secondary,
+              marginTop: theme.spacing.xs
+            }}>
+              Row number where column headers are located (e.g., for NayaPay use row 13). Click "Re-analyze" to update the preview.
+            </div>
+          </div>
+
           {/* Amount Format Selection */}
           <div style={{ marginTop: theme.spacing.md }}>
             <label style={labelStyle}>
@@ -562,6 +605,12 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
               <div>currency_primary = {bankConfig.currencyPrimary || 'USD'}</div>
               <div>cashew_account = {bankConfig.cashewAccount || bankConfig.bankName || 'unknown_bank'}</div>
               <div>content_signatures = {bankConfig.detection_content_signatures || ''}</div>
+
+              <div style={{ color: theme.colors.primary, marginTop: theme.spacing.md, marginBottom: theme.spacing.sm }}>[csv_config]</div>
+              <div>header_row = {bankConfig.headerRow || 1}</div>
+              <div>encoding = utf-8</div>
+              <div>delimiter = ,</div>
+              <div>has_header = true</div>
 
               <div style={{ color: theme.colors.primary, marginTop: theme.spacing.md, marginBottom: theme.spacing.sm }}>[column_mapping]</div>
               {Object.entries(bankConfig.columnMappings).map(([key, value]) => (

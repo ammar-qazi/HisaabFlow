@@ -305,9 +305,11 @@ class CSVProcessingService:
                 
             except (ValueError, HeaderValidationError) as e:
                 print(f"      [ERROR] Header detection/validation failed for {detected_bank_name}: {e}")
+                print(f"      [FIX] Using configured header_row anyway: {header_row_0_indexed}")
+                # CRITICAL FIX: Still use the configured header_row even if validation fails
                 return bank_detection_result, {
-                    'header_row': None,
-                    'data_start_row': None,
+                    'header_row': header_row_0_indexed,
+                    'data_start_row': header_row_0_indexed + 1,
                     'error': str(e)
                 }
         else:
@@ -333,11 +335,11 @@ class CSVProcessingService:
         
         print(f"         UnifiedParser params: encoding='{encoding}', header_row={header_row_for_unified}, start_row={data_start_row_for_unified}, max_rows={max_rows_for_unified}")
         
-        # Parse with injected CSV parser
+        # Parse with injected CSV parser - FIXED: Now properly passes header_row from bank config
         parse_result = self.csv_parser.parse_csv(
             file_path,
             encoding=encoding,
-            header_row=header_row_for_unified,
+            header_row=header_row_for_unified,  # This now uses the configured header row from bank config
             start_row=data_start_row_for_unified,
             max_rows=max_rows_for_unified
         )

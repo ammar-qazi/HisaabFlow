@@ -211,7 +211,7 @@ class StructureAnalyzer:
         """Validate CSV structure using utility functions"""
         return validate_csv_structure(headers, data_rows)
     
-    def analyze_unknown_csv(self, csv_data: str, filename: str, encoding: str = 'utf-8', delimiter: str = ',') -> UnknownBankAnalysis:
+    def analyze_unknown_csv(self, csv_data: str, filename: str, encoding: str = 'utf-8', delimiter: str = ',', header_row: Optional[int] = None) -> UnknownBankAnalysis:
         """
         Comprehensive analysis for unknown bank CSV files.
         
@@ -220,6 +220,7 @@ class StructureAnalyzer:
             filename: Original filename for pattern generation
             encoding: Detected/specified encoding
             delimiter: Detected/specified delimiter
+            header_row: Optional header row (1-based indexing). If None, auto-detect.
             
         Returns:
             UnknownBankAnalysis with complete analysis results
@@ -236,13 +237,23 @@ class StructureAnalyzer:
             if not rows:
                 raise StructureDetectionError("No data found in CSV")
             
-            # Detect header row and structure
-            header_detection = self.detect_header_row(rows)
-            header_row = header_detection.get('suggested_row', 0)
-            data_start_row = header_row + 1
+            # Use specified header row or auto-detect
+            if header_row is not None:
+                # Convert from 1-based to 0-based indexing
+                header_row_idx = header_row - 1
+                if header_row_idx < 0 or header_row_idx >= len(rows):
+                    raise StructureDetectionError(f"Header row {header_row} is out of range (1-{len(rows)})")
+                print(f"  Using specified header row: {header_row} (1-based)")
+            else:
+                # Auto-detect header row
+                header_detection = self.detect_header_row(rows)
+                header_row_idx = header_detection.get('suggested_row', 0)
+                print(f"  Auto-detected header row: {header_row_idx + 1} (1-based)")
+            
+            data_start_row = header_row_idx + 1
             
             # Extract headers and data
-            headers = rows[header_row] if header_row < len(rows) else []
+            headers = rows[header_row_idx] if header_row_idx < len(rows) else []
             data_rows = rows[data_start_row:data_start_row + 50]  # Sample first 50 data rows
             
             # Analyze amount format from data
@@ -259,6 +270,17 @@ class StructureAnalyzer:
             sample_data = self._extract_sample_data(headers, data_rows[:10])
             
             # Calculate overall structure confidence
+            # For manual header row selection, create a mock header_detection
+            if header_row is not None:
+                header_detection = {
+                    'suggested_row': header_row_idx,
+                    'confidence': 1.0,  # High confidence since user specified
+                    'method': 'manual'
+                }
+            else:
+                # Use the auto-detection result
+                pass
+            
             structure_confidence = self._calculate_structure_confidence(
                 header_detection, amount_format_analysis, field_mapping_suggestions
             )
@@ -268,7 +290,7 @@ class StructureAnalyzer:
                 encoding=encoding,
                 delimiter=delimiter,
                 headers=headers,
-                header_row=header_row,
+                header_row=header_row_idx,  # Store 0-based index internally
                 data_start_row=data_start_row,
                 amount_format_analysis=amount_format_analysis,
                 field_mapping_suggestions=field_mapping_suggestions,
@@ -483,3 +505,153 @@ class StructureAnalyzer:
         overall_conf = (header_conf * 0.3 + amount_conf * 0.3 + mapping_conf * 0.4)
         
         return overall_conf
+    
+    def validate_header_row(self, csv_data: str, header_row: int, delimiter: str = ',') -> Dict[str, any]:
+        """
+        Validate that a specified header row is reasonable for CSV parsing.
+        Handles edge cases like empty rows, inconsistent column counts, etc.
+        
+        Args:
+            csv_data: Raw CSV content as string
+            header_row: Header row number (1-based indexing)
+            delimiter: CSV delimiter
+            
+        Returns:
+            Dictionary with validation results
+        """
+        try:
+            import csv
+            import io
+            
+            csv_reader = csv.reader(io.StringIO(csv_data), delimiter=delimiter)
+            rows = [row for row in csv_reader]
+            
+            if not rows:
+                return {
+                    'valid': False,
+                    'error': 'No data found in CSV',
+                    'total_rows': 0
+                }
+            
+            # Convert to 0-based indexing
+            header_row_idx = header_row - 1
+            
+            # Check if header row is within bounds
+            if header_row_idx < 0 or header_row_idx >= len(rows):
+                return {
+                    'valid': False,
+                    'error': f'Header row {header_row} is out of range (1-{len(rows)})',
+                    'total_rows': len(rows)
+                }
+            
+            # Get the proposed header row
+            headers = rows[header_row_idx]
+            
+            # Enhanced validation for empty rows and edge cases
+            if not headers:
+                return {
+                    'valid': False,
+                    'error': f'Row {header_row} is completely empty (no columns)',
+                    'total_rows': len(rows),
+                    'headers': []
+                }
+            
+            # Check if all cells are empty or whitespace
+            non_empty_headers = [cell.strip() for cell in headers if cell.strip()]
+            if not non_empty_headers:
+                return {
+                    'valid': False,
+                    'error': f'Row {header_row} contains only empty cells or whitespace',
+                    'total_rows': len(rows),
+                    'headers': headers
+                }
+            
+            # Check for minimum number of meaningful headers
+            if len(non_empty_headers) < 2:
+                return {
+                    'valid': False,
+                    'error': f'Row {header_row} has too few meaningful headers ({len(non_empty_headers)}). Need at least 2.',
+                    'total_rows': len(rows),
+                    'headers': headers
+                }
+            
+            # Find the next non-empty data row for validation
+            data_start_row = header_row_idx + 1
+            first_data_row = None
+            data_rows_skipped = 0
+            
+            for i in range(data_start_row, min(data_start_row + 10, len(rows))):  # Check next 10 rows max
+                row = rows[i]
+                if row and any(cell.strip() for cell in row):  # Found non-empty row
+                    first_data_row = row
+                    data_rows_skipped = i - data_start_row
+                    break
+            
+            if first_data_row is None:
+                return {
+                    'valid': False,
+                    'error': f'No data rows found after header row {header_row}',
+                    'total_rows': len(rows),
+                    'headers': headers
+                }
+            
+            # Check column count consistency between header and data
+            header_col_count = len(headers)
+            data_col_count = len(first_data_row)
+            
+            warnings = []
+            if abs(header_col_count - data_col_count) > 1:  # Allow 1 column difference
+                warnings.append(f'Column count mismatch: headers have {header_col_count} columns, first data row has {data_col_count}')
+            
+            # Check if headers look reasonable (not all numbers, not too long)
+            suspicious_headers = []
+            for i, header in enumerate(headers):
+                header_str = str(header).strip()
+                if len(header_str) > 100:  # Very long headers are suspicious
+                    suspicious_headers.append(f'Column {i+1}: Header too long ({len(header_str)} chars)')
+                elif header_str and header_str.replace('.', '').replace('-', '').replace(',', '').replace(' ', '').isdigit():
+                    suspicious_headers.append(f'Column {i+1}: Header appears to be numeric data')
+            
+            warnings.extend(suspicious_headers)
+            
+            # Get sample of data rows for preview (skip empty rows)
+            sample_data = []
+            sample_count = 0
+            for i in range(data_start_row, len(rows)):
+                if sample_count >= 3:  # Get 3 sample rows
+                    break
+                    
+                row = rows[i]
+                if row and any(cell.strip() for cell in row):  # Skip empty rows
+                    row_dict = {}
+                    for j, header in enumerate(headers):
+                        value = row[j] if j < len(row) else ""
+                        row_dict[header] = value
+                    sample_data.append(row_dict)
+                    sample_count += 1
+            
+            # Calculate actual data rows available (excluding empty rows)
+            actual_data_rows = 0
+            for i in range(data_start_row, len(rows)):
+                row = rows[i]
+                if row and any(cell.strip() for cell in row):
+                    actual_data_rows += 1
+            
+            return {
+                'valid': True,
+                'total_rows': len(rows),
+                'headers': headers,
+                'data_rows_available': actual_data_rows,
+                'empty_rows_skipped': data_rows_skipped,
+                'sample_data': sample_data,
+                'warnings': warnings,
+                'column_count': len(headers),
+                'non_empty_headers': len(non_empty_headers)
+            }
+            
+        except Exception as e:
+            return {
+                'valid': False,
+                'error': f'Validation failed: {str(e)}',
+                'total_rows': 0
+            }

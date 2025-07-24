@@ -55,7 +55,7 @@ class UnknownBankService:
         print(f"ℹ [UnknownBankService] Initialized with enhanced structure analyzer")
 
     def analyze_unknown_bank_csv(
-        self, file_path: str, filename: str
+        self, file_path: str, filename: str, header_row: Optional[int] = None
     ) -> UnknownBankAnalysis:
         """
         Perform complete analysis of unknown bank CSV file.
@@ -70,6 +70,7 @@ class UnknownBankService:
         print(
             f"ℹ [UnknownBankService] Starting analysis for unknown bank CSV: {filename}"
         )
+        print(f"ℹ [UnknownBankService] Header row parameter: {header_row}")
 
         try:
             # Use the UnifiedCSVParser to handle all file operations
@@ -80,8 +81,9 @@ class UnknownBankService:
             parser = UnifiedCSVParser()
 
             # This call will handle encoding, dialect, and parsing
-            # Use the same parameters as the successful main pipeline
-            parsing_result = parser.parse_csv(file_path, header_row=0, start_row=1)
+            # Convert 1-based header_row to 0-based for UnifiedCSVParser if specified
+            parser_header_row = None if header_row is None else header_row - 1
+            parsing_result = parser.parse_csv(file_path, header_row=parser_header_row, start_row=1)
 
             if not parsing_result.get("success"):
                 raise Exception(f"Parsing failed: {parsing_result.get('error')}")
@@ -111,6 +113,7 @@ class UnknownBankService:
                 filename=filename,
                 encoding=detected_encoding,
                 delimiter=detected_delimiter,
+                header_row=header_row,
             )
 
             print(
@@ -163,6 +166,7 @@ class UnknownBankService:
                 "csv_config": {
                     "encoding": analysis.encoding,
                     "delimiter": analysis.delimiter,
+                    "header_row": analysis.header_row + 1,  # Convert to 1-based for config file
                     "has_header": True,
                     "skip_rows": 0,
                 },

@@ -29,6 +29,7 @@ class CSVConfig:
     encoding: str = "utf-8"
     has_header: bool = True
     skip_rows: int = 0
+    header_row: int = 0  # 0-based indexing for internal use
 
 
 @dataclass
@@ -311,12 +312,17 @@ class UnifiedConfigService:
         """Build CSV configuration from config file"""
         if 'csv_config' in config:
             csv_section = config['csv_config']
+            # Convert 1-based header_row from config to 0-based for internal use
+            header_row_1based = csv_section.getint('header_row', fallback=1)
+            header_row_0based = max(0, header_row_1based - 1)  # Convert to 0-based, minimum 0
+            
             return CSVConfig(
                 delimiter=csv_section.get('delimiter', ','),
                 quote_char=csv_section.get('quote_char', '"'),
                 encoding=csv_section.get('encoding', 'utf-8'),
                 has_header=csv_section.getboolean('has_header', fallback=True),
-                skip_rows=csv_section.getint('skip_rows', fallback=0)
+                skip_rows=csv_section.getint('skip_rows', fallback=0),
+                header_row=header_row_0based
             )
         else:
             # Return defaults if no csv_config section

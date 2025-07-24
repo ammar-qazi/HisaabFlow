@@ -2,8 +2,8 @@
 Unknown Bank API Endpoints
 Handles unknown bank CSV analysis, configuration generation, and validation
 """
-from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
-from typing import Dict, Any
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Form
+from typing import Dict, Any, Optional
 import io
 import os
 import uuid
@@ -38,6 +38,7 @@ def get_unknown_bank_service() -> UnknownBankService:
 @unknown_bank_router.post("/analyze-csv")
 async def analyze_unknown_csv(
     file: UploadFile = File(...),
+    header_row: Optional[int] = Form(None),
     service: UnknownBankService = Depends(get_unknown_bank_service)
 ) -> UnknownBankAnalysisResponse:
     """
@@ -51,6 +52,7 @@ async def analyze_unknown_csv(
         UnknownBankAnalysisResponse with analysis results
     """
     print(f"ℹ [API] Analyzing unknown bank CSV: {file.filename}")
+    print(f"ℹ [API] Header row parameter received: {header_row}")
     
     temp_file_path = None
     try:
@@ -64,7 +66,8 @@ async def analyze_unknown_csv(
         # Call the refactored service with the file path
         analysis = service.analyze_unknown_bank_csv(
             file_path=temp_file_path,
-            filename=file.filename or "unknown.csv"
+            filename=file.filename or "unknown.csv",
+            header_row=header_row
         )
         
         # Store analysis for later use
@@ -368,6 +371,60 @@ async def get_analysis(analysis_id: str) -> UnknownBankAnalysisResponse:
     # Convert back to response format (simplified version)
     # In a real implementation, this would be stored in proper format
     return {"success": True, "analysis": analysis, "analysis_id": analysis_id}
+
+
+@unknown_bank_router.post("/validate-header-row")
+async def validate_header_row(
+    file: UploadFile = File(...),
+    header_row: int = 1,
+    service: UnknownBankService = Depends(get_unknown_bank_service)
+) -> Dict[str, Any]:
+    """
+    Validate a specific header row configuration for a CSV file.
+    
+    Args:
+        file: Uploaded CSV file
+        header_row: Header row number (1-based indexing)
+        service: Injected UnknownBankService
+        
+    Returns:
+        Validation results with preview data
+    """
+    print(f"ℹ [API] Validating header row {header_row} for: {file.filename}")
+    
+    temp_file_path = None
+    try:
+        # Save the uploaded file to a temporary path
+        import tempfile
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as temp_file:
+            content = await file.read()
+            temp_file.write(content)
+            temp_file_path = temp_file.name
+        
+        # Read CSV content for validation
+        csv_content = content.decode('utf-8')
+        
+        # Use the structure analyzer to validate header row
+        validation_result = service.structure_analyzer.validate_header_row(
+            csv_data=csv_content,
+            header_row=header_row,
+            delimiter=','  # Could be auto-detected in future
+        )
+        
+        print(f"  Header row validation: {'Valid' if validation_result['valid'] else 'Invalid'}")
+        return validation_result
+        
+    except Exception as e:
+        print(f"[ERROR] [API] Header row validation failed: {str(e)}")
+        return {
+            'valid': False,
+            'error': f'Validation failed: {str(e)}',
+            'total_rows': 0
+        }
+    finally:
+        # Clean up the temporary file
+        if temp_file_path and os.path.exists(temp_file_path):
+            os.unlink(temp_file_path)
 
 
 @unknown_bank_router.delete("/analysis/{analysis_id}")

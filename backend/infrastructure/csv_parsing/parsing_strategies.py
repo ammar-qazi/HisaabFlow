@@ -161,8 +161,8 @@ class ParsingStrategies:
             
             # Special handling when both header_row and start_row are specified
             header_row_data = None
-            if header_row is not None and start_row is not None and header_row < start_row:
-                # Read the header row separately first
+            if header_row is not None and start_row is not None:
+                # Always read the header row separately when both are specified
                 with open(file_path, 'r', encoding=encoding, newline='') as csvfile:
                     reader = csv.reader(csvfile, dialect=CustomDialect)
                     for row_num, row in enumerate(reader):
@@ -176,6 +176,7 @@ class ParsingStrategies:
                                 else:
                                     clean_header_row.append(str(cell))
                             header_row_data = clean_header_row
+                            print(f"        Read header from row {header_row}: {clean_header_row[:3]}...")
                             break
             
             # Read file with custom dialect

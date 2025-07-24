@@ -121,12 +121,16 @@ export class ConfigurationService {
   /**
    * Analyzes an unknown CSV file for automatic configuration generation
    */
-  static async analyzeUnknownCSV(file) {
+  static async analyzeUnknownCSV(file, headerRow = null) {
     try {
       console.log(' Analyzing unknown CSV file:', file.name);
       
       const formData = new FormData();
       formData.append('file', file);
+      if (headerRow !== null) {
+        console.log(' Adding header_row to request:', headerRow);
+        formData.append('header_row', headerRow.toString());
+      }
       
       const response = await axios.post(`${API_V1_BASE}/unknown-bank/analyze-csv`, formData, {
         headers: {

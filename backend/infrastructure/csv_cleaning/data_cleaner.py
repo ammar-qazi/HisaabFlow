@@ -62,6 +62,32 @@ class DataCleaner:
                     'error': 'Invalid input data for cleaning'
                 }
             
+            # CRITICAL FIX: Validate column mapping before cleaning
+            if template_config and 'column_mapping' in template_config:
+                parsed_headers = parsed_data.get('headers', [])
+                column_mapping = template_config['column_mapping']
+                missing_columns = []
+                
+                for semantic_field, csv_column in column_mapping.items():
+                    if csv_column and csv_column not in parsed_headers:
+                        missing_columns.append(f"{semantic_field} -> {csv_column}")
+                
+                if missing_columns:
+                    bank_name = template_config.get('bank_name', 'unknown')
+                    print(f"      [ERROR] Column mapping validation failed for {bank_name}")
+                    print(f"         Missing columns: {missing_columns}")
+                    print(f"         Available headers: {parsed_headers}")
+                    print(f"         Expected headers should be parsed from correct header row")
+                    
+                    return {
+                        'success': False,
+                        'error': f"Column mapping failed - missing columns: {', '.join(missing_columns)}",
+                        'data': [],
+                        'row_count': 0,
+                        'updated_column_mapping': {},
+                        'cleaning_summary': {'error': 'Column mapping validation failed'}
+                    }
+            
             # Step 1: Focus on target data only (remove unwanted rows/columns)
             focused_data = self._focus_target_data(
                 parsed_data['data'], 

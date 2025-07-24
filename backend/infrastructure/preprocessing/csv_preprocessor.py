@@ -49,24 +49,37 @@ class GenericCSVPreprocessor:
             raw_content = self._read_raw_content(file_path, encoding)
             original_line_count = len(raw_content.splitlines())
             
-            # Step 2: Fix encoding and BOM issues
-            cleaned_content = self._fix_encoding_issues(raw_content, issues_fixed)
-            
-            # Step 3: Normalize line endings
-            cleaned_content = self._normalize_line_endings(cleaned_content, issues_fixed)
-            
-            # Step 4: Fix multiline fields (the main issue)
-            cleaned_content = self._fix_multiline_fields(cleaned_content, issues_fixed)
-            
-            # Step 5: Clean up empty rows and basic structure (conditional)
-            if not skip_empty_row_removal:
-                cleaned_content = self._cleanup_structure(cleaned_content, issues_fixed)
+            # For absolute positioning banks, do minimal preprocessing to preserve row numbers
+            if skip_empty_row_removal:
+                print(f"    ABSOLUTE POSITIONING MODE: Minimal preprocessing to preserve row numbers")
+                
+                # Only fix critical encoding issues, skip structural changes
+                cleaned_content = self._fix_encoding_issues(raw_content, issues_fixed)
+                cleaned_content = self._normalize_line_endings(cleaned_content, issues_fixed)
+                
+                # Skip multiline field fixing and structure cleanup to preserve exact row positions
+                issues_fixed.append("Preserved exact row positions for absolute positioning bank")
             else:
-                issues_fixed.append("Preserved empty rows for absolute positioning")
+                # Step 2: Fix encoding and BOM issues
+                cleaned_content = self._fix_encoding_issues(raw_content, issues_fixed)
+                
+                # Step 3: Normalize line endings
+                cleaned_content = self._normalize_line_endings(cleaned_content, issues_fixed)
+                
+                # Step 4: Fix multiline fields (the main issue)
+                cleaned_content = self._fix_multiline_fields(cleaned_content, issues_fixed)
+                
+                # Step 5: Clean up empty rows and basic structure
+                cleaned_content = self._cleanup_structure(cleaned_content, issues_fixed)
             
             # Step 6: Validate and count final rows
             final_lines = cleaned_content.splitlines()
-            processed_row_count = len([line for line in final_lines if line.strip()])
+            if skip_empty_row_removal:
+                # For absolute positioning, count all lines (including empty ones)
+                processed_row_count = len(final_lines)
+            else:
+                # For normal preprocessing, count only non-empty lines
+                processed_row_count = len([line for line in final_lines if line.strip()])
             
             # Step 7: Save processed file
             processed_file_path = self._create_temp_file(file_path, '_cleaned')

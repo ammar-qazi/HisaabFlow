@@ -29,9 +29,24 @@ class PreviewService:
         """
         print(f"‍ Preview request for file: {filename}")
         try:
+            # If no manual header_row override, try to get it from bank config
+            effective_header_row = header_row
+            if header_row is None:
+                # Quick bank detection to get configured header_row
+                from backend.core.bank_detection import BankDetector
+                bank_detector = BankDetector(self.config_service)
+                bank_result = bank_detector.detect_bank(filename, "", [])
+                
+                if bank_result.bank_name != 'unknown' and bank_result.confidence >= 0.1:
+                    bank_config = self.config_service.get_bank_config(bank_result.bank_name)
+                    if bank_config and bank_config.csv_config:
+                        # Convert 1-based config to 0-based for parser
+                        effective_header_row = bank_config.csv_config.header_row - 1 if bank_config.csv_config.header_row else None
+                        print(f"      Using bank-specific header_row: {effective_header_row} (from {bank_result.bank_name} config)")
+            
             # Single call to the robust parser
             print("ℹ [PreviewService] Calling UnifiedCSVParser to get a comprehensive preview.")
-            result = self.unified_parser.preview_csv(file_path, encoding=None, header_row=header_row)
+            result = self.unified_parser.preview_csv(file_path, encoding=None, header_row=effective_header_row)
 
             if not result.get('success'):
                 return result  # Return the error dictionary directly
