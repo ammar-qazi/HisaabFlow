@@ -442,6 +442,31 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
               style={inputStyle}
             />
           </div>
+
+          {/* Amount Format Selection */}
+          <div style={{ marginTop: theme.spacing.md }}>
+            <label style={labelStyle}>
+              Amount Format <span style={{ color: theme.colors.error }}>*</span>
+            </label>
+            <select
+              value={bankConfig.amountFormat}
+              onChange={(e) => setBankConfig(prev => ({ ...prev, amountFormat: e.target.value }))}
+              style={inputStyle}
+            >
+              {AMOUNT_FORMATS.map((format) => (
+                <option key={format.value} value={format.value}>
+                  {format.label}
+                </option>
+              ))}
+            </select>
+            <div style={{
+              fontSize: '12px',
+              color: theme.colors.text.secondary,
+              marginTop: theme.spacing.xs
+            }}>
+              Example: {AMOUNT_FORMATS.find(f => f.value === bankConfig.amountFormat)?.example}
+            </div>
+          </div>
         </div>
 
         {/* Sample Data Preview */}
@@ -481,7 +506,8 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
           <div style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
-            gap: theme.spacing.md
+            gap: theme.spacing.md,
+            marginBottom: theme.spacing.md
           }}>
             {mappingFields.map((field, index) => (
               <div key={index}>
@@ -534,6 +560,8 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
               <div>bank_name = {bankConfig.bankName || 'unknown_bank'}</div>
               <div>display_name = {bankConfig.displayName || 'Unknown Bank'}</div>
               <div>currency_primary = {bankConfig.currencyPrimary || 'USD'}</div>
+              <div>cashew_account = {bankConfig.cashewAccount || bankConfig.bankName || 'unknown_bank'}</div>
+              <div>content_signatures = {bankConfig.detection_content_signatures || ''}</div>
 
               <div style={{ color: theme.colors.primary, marginTop: theme.spacing.md, marginBottom: theme.spacing.sm }}>[column_mapping]</div>
               {Object.entries(bankConfig.columnMappings).map(([key, value]) => (
