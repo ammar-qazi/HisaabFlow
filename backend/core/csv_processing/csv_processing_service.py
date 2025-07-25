@@ -165,11 +165,24 @@ class CSVProcessingService:
     
     def _initial_bank_detection(self, filename: str, file_path: str, encoding: str) -> Dict[str, Any]:
         """Phase 1: Initial detection with raw file access for filename + content signatures"""
-        # Read raw content for content signature matching
+        # Read raw content for content signature matching with encoding fallback
         raw_content = ""
+        encoding_used = encoding
+        
         try:
             with open(file_path, 'r', encoding=encoding, newline='') as f:
                 raw_content = f.read(2000)  # First 2KB for signatures
+        except UnicodeDecodeError:
+            # If the provided encoding fails, try to re-detect the correct encoding
+            print(f"      Encoding {encoding} failed, re-detecting encoding for {filename}")
+            try:
+                detection_result = self.encoding_detector.detect_encoding(file_path)
+                encoding_used = detection_result['encoding']
+                print(f"      Re-detected encoding: {encoding_used} (confidence: {detection_result['confidence']:.2f})")
+                with open(file_path, 'r', encoding=encoding_used, newline='') as f:
+                    raw_content = f.read(2000)
+            except Exception as e2:
+                print(f"Warning: Re-detection also failed: {e2}")
         except Exception as e:
             print(f"Warning: Could not read raw content: {e}")
         

@@ -131,17 +131,35 @@ class BankDetector:
     def _check_content_signatures(self, content: str, signatures: List[str]) -> float:
         """Check if content contains bank-specific signatures"""
         if not signatures:
+            print("[DEBUG] No content signatures to check")
             return 0.0
             
         content_lower = content.lower()
         matches = 0
         
-        for signature in signatures:
-            if signature.lower() in content_lower:
-                matches += 1
+        print(f"\n[DEBUG] Content Signature Matching")
+        print(f"[DEBUG] Looking for {len(signatures)} signatures in content:")
+        print("-" * 80)
         
-        # Return percentage of signatures found
-        return matches / len(signatures)
+        for signature in signatures:
+            signature_lower = signature.lower()
+            if signature_lower in content_lower:
+                matches += 1
+                # Find where the signature appears in the content
+                pos = content_lower.find(signature_lower)
+                context_start = max(0, pos - 20)
+                context_end = min(len(content_lower), pos + len(signature_lower) + 20)
+                context = content_lower[context_start:context_end].replace('\n', ' ').replace('\r', ' ')
+                print(f"✅ FOUND: '{signature}'")
+                print(f"   Context: ...{context}...")
+            else:
+                print(f"❌ MISSING: '{signature}'")
+        
+        score = matches / len(signatures) if signatures else 0.0
+        print(f"\n[DEBUG] Signature matching complete: {matches}/{len(signatures)} signatures found (score: {score:.2f})")
+        print("=" * 80)
+        
+        return score
     
     def _check_header_patterns(self, headers: List[str], required_headers: List[str]) -> float:
         """Check if headers match required patterns"""

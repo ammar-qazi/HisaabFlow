@@ -83,15 +83,21 @@ class UnknownBankService:
             # This call will handle encoding, dialect, and parsing
             # Convert 1-based header_row to 0-based for UnifiedCSVParser if specified
             parser_header_row = None if header_row is None else header_row - 1
-            parsing_result = parser.parse_csv(file_path, header_row=parser_header_row, start_row=1)
+            # Explicitly pass encoding=None to ensure auto-detection
+            parsing_result = parser.parse_csv(file_path, encoding=None, header_row=parser_header_row, start_row=1)
 
             if not parsing_result.get("success"):
                 raise Exception(f"Parsing failed: {parsing_result.get('error')}")
 
             # Extract the parsed data and metadata for analysis
             raw_rows = parsing_result.get("raw_rows", [])
-            detected_encoding = parsing_result.get("encoding_used", "utf-8")
-            detected_delimiter = parsing_result.get("dialect", {}).get("delimiter", ",")
+            # Get encoding from metadata if available, fallback to utf-8
+            metadata = parsing_result.get("metadata", {})
+            encoding_detection = metadata.get("encoding_detection", {})
+            detected_encoding = encoding_detection.get("encoding", "utf-8")
+            # Get delimiter from metadata
+            dialect_detection = metadata.get("dialect_detection", {})
+            detected_delimiter = dialect_detection.get("delimiter", ",")
 
             # Convert raw_rows to CSV data string for the structure analyzer
             # (maintaining compatibility with existing StructureAnalyzer interface)
