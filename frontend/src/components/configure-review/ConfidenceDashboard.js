@@ -19,8 +19,12 @@ function ConfidenceDashboard({
     console.log('[DEBUG] ConfidenceDashboard calculating metrics...');
     console.log('[DEBUG] uploadedFiles:', uploadedFiles.map(f => ({ 
       fileName: f.fileName, 
-      confidence: f.confidence, 
-      bankDetectionConfidence: f.bankDetection?.confidence 
+      confidence: f.confidence
+    })));
+    console.log('[DEBUG] autoParseResults:', autoParseResults?.map(r => ({ 
+      fileId: r.file_id, 
+      bankDetected: r.bank_info?.bank_name,
+      confidence: r.bank_info?.confidence 
     })));
     
     if (!autoParseResults || autoParseResults.length === 0) {
@@ -41,11 +45,19 @@ function ConfidenceDashboard({
     const successfulFiles = autoParseResults.filter(result => 
       result.parse_result?.success && result.parse_result?.row_count > 0).length;
     
-    const bankDetectionConfidence = uploadedFiles.reduce((sum, file) => {
-      // Try file.confidence first (set by auto-detection), then file.bankDetection.confidence (initial value)
-      const confidence = file.confidence || file.bankDetection?.confidence || 0;
-      return sum + confidence;
-    }, 0) / uploadedFiles.length;
+    // CRITICAL FIX: Prioritize confidence from parse results over uploaded files
+    const bankDetectionConfidence = autoParseResults.reduce((sum, result) => {
+      // Use bank_info confidence if available (most up-to-date after configuration save)
+      const bankConfidence = result.bank_info?.confidence;
+      if (bankConfidence !== undefined) {
+        return sum + bankConfidence;
+      }
+      
+      // Fallback to uploaded file confidence (should be sync'd by parseAllFiles)
+      const file = uploadedFiles.find(f => f.fileId === result.file_id);
+      const fileConfidence = file?.confidence || 0;
+      return sum + fileConfidence;
+    }, 0) / autoParseResults.length;
 
     const cleaningApplied = autoParseResults.filter(result => 
       result.parse_result?.cleaning_applied).length;

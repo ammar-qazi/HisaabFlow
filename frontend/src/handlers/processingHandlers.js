@@ -51,7 +51,20 @@ export const createProcessingHandlers = (state) => {
         return prev.map((file, index) => {
           const result = results.find(r => r.file_id === file.fileId);
           if (result) {
-            return { ...file, parsedData: result.parse_result || {} };
+            // CRITICAL FIX: Update confidence from parse results to sync UI
+            const updatedFile = { ...file, parsedData: result.parse_result || {} };
+            
+            // Update confidence if available from bank_info
+            if (result.bank_info?.confidence !== undefined) {
+              updatedFile.confidence = result.bank_info.confidence;
+            }
+            
+            // Update detected bank info if available
+            if (result.bank_info?.bank_name) {
+              updatedFile.detectedBank = result.bank_info.bank_name;
+            }
+            
+            return updatedFile;
           }
           return file;
         });
