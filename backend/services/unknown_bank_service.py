@@ -71,6 +71,7 @@ class UnknownBankService:
             f"ℹ [UnknownBankService] Starting analysis for unknown bank CSV: {filename}"
         )
         print(f"ℹ [UnknownBankService] Header row parameter: {header_row}")
+        print(f"🔍 [DEBUG] Initial header_row input: {header_row} (type: {type(header_row)})")
 
         try:
             # Use the UnifiedCSVParser to handle all file operations
@@ -81,16 +82,30 @@ class UnknownBankService:
             parser = UnifiedCSVParser()
 
             # This call will handle encoding, dialect, and parsing
-            # Convert 1-based header_row to 0-based for UnifiedCSVParser if specified
-            parser_header_row = None if header_row is None else header_row - 1
-            # Explicitly pass encoding=None to ensure auto-detection
-            parsing_result = parser.parse_csv(file_path, encoding=None, header_row=parser_header_row, start_row=1)
+            # For unknown bank analysis, we want to bypass UnifiedCSVParser's header detection
+            # and get all raw rows to let StructureAnalyzer do proper header detection
+            if header_row is None:
+                # Initial upload - get all raw rows without header processing
+                print(f"🔍 [DEBUG] Getting all raw rows for StructureAnalyzer to analyze")
+                parsing_result = parser.parse_csv(file_path, encoding=None, header_row=None, start_row=None)
+            else:
+                # Re-analysis with specific header row - use our calculations
+                parser_header_row = header_row - 1  # Convert 1-based to 0-based
+                start_row = parser_header_row + 1
+                print(f"🔍 [DEBUG] Using specific header_row: {header_row} -> parser_header_row={parser_header_row} -> start_row={start_row}")
+                parsing_result = parser.parse_csv(file_path, encoding=None, header_row=parser_header_row, start_row=start_row)
+            print(f"🔍 [DEBUG] Parsing result success: {parsing_result.get('success')}")
 
             if not parsing_result.get("success"):
                 raise Exception(f"Parsing failed: {parsing_result.get('error')}")
 
             # Extract the parsed data and metadata for analysis
             raw_rows = parsing_result.get("raw_rows", [])
+            print(f"🔍 [DEBUG] Raw rows count: {len(raw_rows)}")
+            if raw_rows:
+                print(f"🔍 [DEBUG] First raw row: {raw_rows[0] if len(raw_rows) > 0 else 'None'}")
+                print(f"🔍 [DEBUG] Second raw row: {raw_rows[1] if len(raw_rows) > 1 else 'None'}")
+                print(f"🔍 [DEBUG] Third raw row: {raw_rows[2] if len(raw_rows) > 2 else 'None'}")
             # Get encoding from metadata if available, fallback to utf-8
             metadata = parsing_result.get("metadata", {})
             encoding_detection = metadata.get("encoding_detection", {})
@@ -116,6 +131,13 @@ class UnknownBankService:
             else:
                 csv_data = ""
 
+            # For unknown bank analysis, read the file directly to avoid parsing issues
+            # that can occur with complex line terminators in UnifiedCSVParser
+            if header_row is None:
+                print(f"🔍 [DEBUG] Reading file directly for unknown bank analysis")
+                with open(file_path, 'r', encoding=detected_encoding) as f:
+                    csv_data = f.read()
+            
             # Now, use the parsed data to perform the analysis
             analysis = self.structure_analyzer.analyze_unknown_csv(
                 csv_data=csv_data,
