@@ -135,6 +135,12 @@ class TransferDetector:
                 if bank_type == 'unknown':
                     bank_type = self.config.detect_bank_type(csv_data.get('file_name', ''))
                 
+                # Ensure currency is set
+                if 'Currency' not in transaction or not transaction['Currency']:
+                    bank_config = self.config.get_bank_config(bank_type)
+                    if bank_config and bank_config.currency_primary:
+                        transaction['Currency'] = bank_config.currency_primary
+                
                 enhanced_transaction = {
                     **transaction,
                     '_csv_index': csv_idx,
