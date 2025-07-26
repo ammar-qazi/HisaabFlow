@@ -84,25 +84,32 @@ class CashewTransformer:
                         print(f"    Row {idx} Preserving existing account: Currency='{currency}', Account='{existing_account}'")
             
             # Apply column mapping (lowercase internally)
+            # This now handles both raw data (using source_col) and pre-cleaned data (using cashew_col)
             for cashew_col, source_col in column_mapping.items():
+                value_found = None
                 if source_col in row and pd.notna(row[source_col]):
+                    value_found = row[source_col]
+                elif cashew_col in row and pd.notna(row[cashew_col]):
+                    value_found = row[cashew_col]
+
+                if value_found is not None:
                     if cashew_col == 'date':
-                        cashew_row[cashew_col] = self.parse_date(str(row[source_col]))
+                        cashew_row[cashew_col] = self.parse_date(str(value_found))
                     elif cashew_col == 'amount':
-                        source_value = row[source_col]
+                        source_value = value_found
                         original_amount = str(source_value)
                         parsed_amount = self.parse_amount(original_amount)
                         cashew_row[cashew_col] = parsed_amount
                         if idx < 3: 
                             print(f"    Row {idx} Amount mapping - source_col='{source_col}', raw_value='{source_value}' (type: {type(source_value)}), str_value='{original_amount}', parsed='{parsed_amount}'")
                     elif cashew_col == 'account' and account_mapping:
-                        currency = str(row[source_col])
+                        currency = str(value_found)
                         mapped_account = account_mapping.get(currency, bank_name)
                         cashew_row[cashew_col] = mapped_account
                         if idx < 3:
                             print(f"    Row {idx} Account mapping: source_col='{source_col}', Currency='{currency}' → Account='{mapped_account}'")
                     else:
-                        cashew_row[cashew_col] = str(row[source_col])
+                        cashew_row[cashew_col] = str(value_found)
             
             # Preserve exchange fields for transfer detection (keep original source column names)
             for source_col in row.keys():
@@ -125,7 +132,7 @@ class CashewTransformer:
                             cashew_row[cashew_field] = str(fallback_value)
                         
                         if idx < 3:
-                            print(f"    Row {idx} Used Backup{cashew_field}: '{fallback_value}' → '{cashew_row[cashew_field]}'")
+                            print(f"    Row {idx} Used fallback for {cashew_field}: '{fallback_value}' → '{cashew_row[cashew_field]}'")
             
             # Apply basic categorization
             self.apply_basic_categorization(cashew_row)
@@ -152,16 +159,16 @@ class CashewTransformer:
 
     def resolve_field_with_fallback(self, row, primary_field):
         """
-        Universal fallback logic - directly looks for Backup[Field] in data.
-        Works for any field: BackupDate, BackupTitle, BackupAmount, BackupCurrency, etc.
+        Universal fallback logic - directly looks for backup fields in data.
+        Works for any field: backupdate, backuptitle, backupamount, backupcurrency, etc.
         """
         # Try primary field first
         value = row.get(primary_field)
         if value and str(value).strip():
             return value
         
-        # Try backup field with direct lookup
-        backup_field = f'Backup{primary_field}'
+        # Try backup field with direct lookup (e.g., backupdate)
+        backup_field = f'backup{primary_field}'
         backup_value = row.get(backup_field)
         
         if backup_value and str(backup_value).strip():
