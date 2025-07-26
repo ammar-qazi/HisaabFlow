@@ -71,7 +71,6 @@ class UnknownBankService:
             f"ℹ [UnknownBankService] Starting analysis for unknown bank CSV: {filename}"
         )
         print(f"ℹ [UnknownBankService] Header row parameter: {header_row}")
-        print(f"🔍 [DEBUG] Initial header_row input: {header_row} (type: {type(header_row)})")
 
         try:
             # Use the UnifiedCSVParser to handle all file operations
@@ -101,11 +100,6 @@ class UnknownBankService:
 
             # Extract the parsed data and metadata for analysis
             raw_rows = parsing_result.get("raw_rows", [])
-            print(f"🔍 [DEBUG] Raw rows count: {len(raw_rows)}")
-            if raw_rows:
-                print(f"🔍 [DEBUG] First raw row: {raw_rows[0] if len(raw_rows) > 0 else 'None'}")
-                print(f"🔍 [DEBUG] Second raw row: {raw_rows[1] if len(raw_rows) > 1 else 'None'}")
-                print(f"🔍 [DEBUG] Third raw row: {raw_rows[2] if len(raw_rows) > 2 else 'None'}")
             # Get encoding from metadata if available, fallback to utf-8
             metadata = parsing_result.get("metadata", {})
             encoding_detection = metadata.get("encoding_detection", {})
