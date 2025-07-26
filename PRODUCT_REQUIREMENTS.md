@@ -77,16 +77,45 @@ The primary users of HisaabFlow are financially-conscious individuals who:
 
 ## 5. User Flow
 
-1.  **Launch:** The user opens the HisaabFlow desktop application.
-2.  **Upload:** The user drags and drops one or more bank statement CSVs into the application window.
-3.  **Configure & Review:**
-    *   **For Known Banks:** The system automatically detects the bank and parses the file. The user is presented with a preview of the parsed data.
-    *   **For Unknown Banks (Low Confidence):** The file is flagged for manual configuration. The user is directed to the **Advanced Configuration Mode**.
-        *   The user maps the columns and saves the new bank configuration.
-        *   The system reloads, and the file is parsed using the newly created configuration.
-4.  **Transform & Analyze:** The user proceeds to the transformation step. The system cleans the data and runs the transfer detection algorithm.
-5.  **Confirm Transfers:** The user reviews potential transfer pairs and manually confirms them.
-6.  **Export:** The user exports the final, unified dataset as a single clean CSV file.
+The following diagram illustrates the user's journey through the HisaabFlow application:
+
+```
+(Start) --> [Launch App] --> [Upload CSVs]
+              ^
+              |
+              +---- (User has more files to process)
+
+[Upload CSVs] --> [For each CSV] --> |Auto-detect Bank?|
+
+|Auto-detect Bank?| -- Yes --> [Apply Config] --> [Parse Data] --> |All files parsed?|
+|Auto-detect Bank?| -- No ---> [Enter Advanced Config Mode]
+
+[Enter Advanced Config Mode] --> [User maps columns] --> [User saves new config] --> [Apply Config]
+
+|All files parsed?| -- Yes --> [Transform & Analyze Data]
+|All files parsed?| -- No ---> (Wait for other files)
+
+[Transform & Analyze Data] --> [Run Transfer Detection] --> [Display Unified Data]
+
+[Display Unified Data] --> |Manual Transfer Confirmation?| -- Yes --> [User confirms pairs]
+|Manual Transfer Confirmation?| -- No ---> [Export CSV]
+
+[User confirms pairs] --> [Export CSV]
+
+[Export CSV] --> (End)
+```
+
+### Step-by-Step Description:
+
+1.  **Launch & Upload**: The user starts the application and uploads one or more CSV files.
+2.  **Bank Detection**: The system analyzes each file to identify the bank.
+3.  **Configuration**: 
+    *   If the bank is **known**, the system automatically applies the existing configuration.
+    *   If the bank is **unknown**, the user is guided through the **Advanced Configuration Mode** to create a new configuration by mapping columns and setting parameters.
+4.  **Parsing**: Each file is parsed into a standard format based on its configuration.
+5.  **Transformation & Analysis**: Once all files are parsed, the system unifies the data, performs data cleaning, and runs the transfer detection algorithm.
+6.  **Review & Confirmation**: The user reviews the combined dataset and can manually confirm any potential transfer pairs.
+7.  **Export**: The user exports the final, clean dataset as a single CSV file.
 
 ## 6. Non-Functional Requirements
 

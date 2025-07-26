@@ -125,24 +125,48 @@ npm run electron-dev
 
 ## Architecture
 
-HisaabFlow uses a modern, modular architecture:
+HisaabFlow is built with a modern, decoupled architecture that separates the user interface from the core data processing logic. This ensures that the application is both robust and easy to maintain.
 
 ```
-HisaabFlow/
-├── backend/                 # FastAPI backend
-│   ├── api/                # API endpoints (modular)
-│   ├── services/           # Business logic
-│   ├── csv_parser/         # Bank statement parsing
-│   ├── transfer_detection/ # Transfer matching algorithms
-│   └── models/             # Data models (Pydantic)
-├── frontend/               # React + Electron frontend
-│   ├── src/components/     # React components
-│   ├── src/services/       # API communication
-│   └── public/             # Electron main process
-├── configs/                # Bank configuration files
-├── sample_data/            # Example bank statements
-└── start_app.sh           # One-command launcher
+                               +--------------------+
+                               |   Frontend (UI)    |
+                               | (React + Electron) |
+                               +--------------------+
+                                        |
+                                        | (API Calls)
+                                        v
++--------------------------------------------------------------------------+
+|                               Backend (API)                              |
+|                                 (FastAPI)                                |
++--------------------------------------------------------------------------+
+|        |                |                  |                 |           |
+|        v                v                  v                 v           v
+|  +-----------+    +-----------+    +---------------+    +-----------+    +---------+
+|  | File Mgmt |    | Parsing   |    | Transformation|    | Transfer  |    | Config  |
+|  | Service   |    | Service   |    | Service       |    | Detection |    | Service |
+|  +-----------+    +-----------+    +---------------+    +-----------+    +---------+
+|        |                |                  |                 |           |
+|        |                |                  |                 |           |
+|        v                v                  v                 v           v
+|  +--------------------------------------------------------------------------+
+|  |                              Core Logic                                |
+|  +--------------------------------------------------------------------------+
+|  | Bank Detection | CSV Processing | Data Cleaning | Transfer Matching | ... |
+|  +--------------------------------------------------------------------------+
+
 ```
+
+### Key Components:
+
+*   **Frontend**: A desktop application built with **React** and **Electron**. It provides the user interface for file uploads, configuration, and data review.
+
+*   **Backend**: A powerful API server built with **FastAPI**. It handles all the heavy lifting, including file parsing, data cleaning, and transfer detection.
+
+*   **Services Layer**: The backend is organized into a set of focused services, each responsible for a specific part of the workflow (e.g., `ParsingService`, `TransformationService`).
+
+*   **Core Logic**: This is the heart of the application, containing the sophisticated algorithms for bank detection, CSV processing, and transfer matching.
+
+*   **Configuration Files**: The entire process is driven by simple `.conf` files, which define the rules for each bank. This makes the application incredibly flexible and easy to extend.
 
 ## Configuration
 
@@ -225,27 +249,35 @@ HisaabFlow currently includes configurations for:
 | **Wise (TransferWise)** | HUF | [SUCCESS] Full Support | N/A |
 | **NayaPay** | PKR | [SUCCESS] Full Support | `m-02-2025.csv` |
 | **Erste Bank** | HUF | [SUCCESS] Full Support | `12345678-00000000-87654321_2025-06-01_2025-06-30.csv` |
-| **Revolut** | Multiple | 🚧 Coming Next | In development |
+| **Revolut** | Multiple | [SUCCESS] Full Support | `account-statement_2024-04-01_2025-06-25_en-us_b9705c.csv` |
 
-**Planning to add your bank?** HisaabFlow's flexible .conf system is designed to support new banks, though it's currently experimental as each bank format has required adjustments to the universal parsing system so far.
+**Don't see your bank?** HisaabFlow's powerful configuration system allows you to easily add support for any bank that provides CSV exports. See the "Adding New Banks" section for more details.
 
 ## Workflow
 
-### 1. File Upload
-- Drag & drop CSV files or click to browse
-- **Desktop App users**: Use sample data from `~/HisaabFlow/sample_data/` for testing
-- Automatic bank detection from file format and content
-- Support for multiple files simultaneously
+HisaabFlow provides a simple, step-by-step workflow to transform your messy bank statements into a clean, unified dataset.
 
-### 2. Configuration & Review
-- Review detected bank configuration
-- Preview parsed results in interactive table
-- Change configs if needed
+1.  **Upload Your CSVs**: Drag and drop one or more of your bank statement CSV files into the application. HisaabFlow will automatically analyze each file.
 
-### 3. Review & Export
-- View categorized transactions in interactive table
-- Analyze transfer detection insights
-- Export structured data in CSV format for budgeting apps
+2.  **Automatic Bank Detection**: For each file, HisaabFlow's intelligent detection engine will identify the source bank using filename patterns and content analysis.
+    *   **Known Banks**: If the bank is recognized, the corresponding configuration is automatically applied.
+    *   **Unknown Banks**: If a bank isn't recognized, you'll be guided through a simple, one-time setup process to create a new configuration.
+
+3.  **Configure and Review**: In this step, you can:
+    *   Review the automatically parsed data in an interactive table.
+    *   For unknown banks, visually map the columns from your CSV (e.g., "Transaction Date", "Details", "Amount In") to HisaabFlow's standard fields.
+    *   Save the new configuration for future use.
+
+4.  **Transform and Analyze**: With all your data parsed and standardized, HisaabFlow performs its most powerful operations:
+    *   **Data Cleaning**: Standardizes dates, cleans up transaction descriptions, and ensures all data is in a consistent format.
+    *   **Transfer Detection**: Intelligently identifies and flags transfer transactions between your different accounts, preventing them from being counted as income or expenses.
+
+5.  **Review and Export**: In the final step, you can:
+    *   Review the fully processed and unified transaction list.
+    *   Manually confirm any potential transfer pairs that the system is not 100% confident about.
+    *   Export the final, clean dataset as a single CSV file, ready for import into your favorite budgeting application.
+
+## Use Cases
 
 ## Use Cases
 
@@ -268,52 +300,15 @@ HisaabFlow currently includes configurations for:
 
 ## Advanced Usage
 
-### Adding New Banks (Experimental)
+### Adding New Banks
 
-**Note**: Adding new banks via .conf files is currently experimental. The three supported banks (Wise, NayaPay, Erste) required significant adjustments to make the parsing system more universal.
+HisaabFlow is designed to be easily extended to support any bank that provides CSV exports. If you use a bank that isn't already supported, you can add it yourself in a few simple steps. The application will guide you through a one-time setup process where you can:
 
-1. **Create Configuration File**
-```bash
-# All desktop app users work from the home directory:
-cp ~/HisaabFlow/configs/nayapay.conf.template ~/HisaabFlow/configs/yourbank.conf
-```
+1.  **Visually Map Columns**: Match the columns from your bank's CSV file to HisaabFlow's standard fields (Date, Amount, Title, etc.).
+2.  **Define Key Details**: Specify the date format, number format, and other CSV properties.
+3.  **Save and Go**: Save your new configuration, and HisaabFlow will be ready to process your bank's statements automatically in the future.
 
-2. **Configure Bank Detection**
-```conf
-[bank_info]
-name = yourbank
-file_patterns = yourbank,your_bank
-filename_regex_patterns = ^yourbank.*\.csv$
-detection_content_signatures = Unique Header,Bank Identifier
-currency_primary = USD
-```
-
-3. **Set Column Mapping**
-```conf
-[column_mapping]
-Date = Transaction Date
-Amount = Amount
-Title = Description
-Note = Reference
-Balance = Running Balance
-```
-
-4. **Add Description Cleaning Rules**
-```conf
-[description_cleaning]
-# Transform merchant names and clean descriptions
-merchant_pattern = Original Pattern.*|Clean Name
-card_transaction = Card transaction at (.*?)\|.*|Card purchase at \1
-```
-
-5. **Configure Categorization**
-```conf
-[categorization]
-grocery_store = Grocery
-gas_station = Transportation
-restaurant = Food
-amazon = Shopping
-```
+This powerful feature ensures that you can adapt HisaabFlow to your specific needs and are not limited to the pre-configured banks.
 
 ### Custom Categorization
 
