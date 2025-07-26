@@ -561,24 +561,48 @@ class UnifiedConfigService:
             return []
     
     def categorize_merchant(self, bank_name: str, merchant: str) -> Optional[str]:
-        """Categorize merchant using bank-specific rules"""
-        bank_config = self._bank_configs.get(bank_name)
-        if not bank_config:
-            return None
-        
+        """Categorize merchant using two-tier precedence: bank-specific first, then app-wide"""
         merchant_lower = merchant.lower()
         
-        # Check categorization rules with word boundary matching
-        for pattern, category in bank_config.categorization_rules.items():
-            if re.search(r'\b' + re.escape(pattern.lower()) + r'\b', merchant_lower):
-                return category
+        # First tier: Bank-specific categorization rules (highest priority)
+        bank_config = self._bank_configs.get(bank_name)
+        if bank_config:
+            # Check bank-specific categorization rules
+            for pattern, category in bank_config.categorization_rules.items():
+                if self._pattern_matches(pattern, merchant_lower):
+                    return category
+            
+            # Check bank-specific default category rules  
+            for pattern, category in bank_config.default_category_rules.items():
+                if self._pattern_matches(pattern, merchant_lower):
+                    return category
         
-        # Check default category rules with word boundary matching
-        for pattern, category in bank_config.default_category_rules.items():
-            if re.search(r'\b' + re.escape(pattern.lower()) + r'\b', merchant_lower):
-                return category
+        # Second tier: App-wide categorization rules (fallback)
+        if self._app_config and 'app_wide_categorization' in self._app_config:
+            for pattern, category in self._app_config['app_wide_categorization'].items():
+                if self._pattern_matches(pattern, merchant_lower):
+                    return category
+        
+        # Third tier: App-wide default category rules (final fallback)
+        if self._app_config and 'default_category_rules' in self._app_config:
+            for pattern, category in self._app_config['default_category_rules'].items():
+                if self._pattern_matches(pattern, merchant_lower):
+                    return category
         
         return None
+    
+    def _pattern_matches(self, pattern: str, merchant_lower: str) -> bool:
+        """Check if pattern matches merchant name with regex support"""
+        try:
+            # If pattern contains regex characters (like .*), use regex matching
+            if any(char in pattern for char in ['.*', '|', '\\', '^', '$', '[', ']', '{', '}', '(', ')', '+', '?']):
+                return bool(re.search(pattern.lower(), merchant_lower))
+            else:
+                # Use word boundary matching for simple patterns
+                return bool(re.search(r'\b' + re.escape(pattern.lower()) + r'\b', merchant_lower))
+        except re.error:
+            # If regex is invalid, fall back to simple string matching
+            return pattern.lower() in merchant_lower
     
     def apply_description_cleaning(self, bank_name: str, description: str) -> str:
         """Apply bank-specific description cleaning rules"""
