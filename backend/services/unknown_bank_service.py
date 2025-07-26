@@ -95,6 +95,9 @@ class UnknownBankService:
             metadata = parsing_result.get("metadata", {})
             encoding_detection = metadata.get("encoding_detection", {})
             detected_encoding = encoding_detection.get("encoding", "utf-8")
+            print(f"  DEBUG: UnknownBankService - Metadata: {metadata}")
+            print(f"  DEBUG: UnknownBankService - Encoding detection: {encoding_detection}")
+            print(f"  DEBUG: UnknownBankService - Detected encoding: {detected_encoding}")
             # Get delimiter from metadata
             dialect_detection = metadata.get("dialect_detection", {})
             detected_delimiter = dialect_detection.get("delimiter", ",")
@@ -122,6 +125,7 @@ class UnknownBankService:
                 header_row=header_row,
             )
 
+            print(f"  DEBUG: UnknownBankService - Analysis object encoding: {analysis.encoding}")
             print(
                 f"  Analysis complete. Structure confidence: {analysis.structure_confidence:.2f}"
             )

@@ -285,6 +285,7 @@ class StructureAnalyzer:
                 header_detection, amount_format_analysis, field_mapping_suggestions
             )
             
+            print(f"  DEBUG: StructureAnalyzer - Creating UnknownBankAnalysis with encoding: {encoding}")
             return UnknownBankAnalysis(
                 filename=filename,
                 encoding=encoding,

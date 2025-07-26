@@ -151,6 +151,7 @@ class UnifiedCSVParser:
             if not processing_result['success']:
                 raise CSVParsingError(processing_result['error'], file_path)
             
+            print(f"  DEBUG: UnifiedCSVParser - Encoding result being returned: {encoding_result}")
             return {
                 'success': True,
                 'data': processing_result['data'],

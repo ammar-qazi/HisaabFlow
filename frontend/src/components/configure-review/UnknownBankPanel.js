@@ -64,6 +64,8 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
       const result = await ConfigurationService.analyzeUnknownCSV(actualFile, headerRow);
 
       if (result.success) {
+        console.log('DEBUG: Frontend - Analysis result received:', result.analysis);
+        console.log('DEBUG: Frontend - Analysis encoding:', result.analysis?.encoding);
         setAnalysis(result.analysis);
         setBankConfig(prev => ({
           ...prev,
@@ -245,6 +247,10 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
 
   const saveConfiguration = async (config) => {
     try {
+      console.log('DEBUG: Frontend - saveConfiguration - analysis:', analysis);
+      console.log('DEBUG: Frontend - saveConfiguration - analysis.encoding:', analysis?.encoding);
+      const finalEncoding = analysis?.encoding || 'utf-8';
+      console.log('DEBUG: Frontend - saveConfiguration - finalEncoding being used:', finalEncoding);
       const bankConfig = {
         bank_info: {
           bank_name: config.bankName,
@@ -258,7 +264,7 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
           cashew_account: config.cashewAccount || config.bankName
         },
         csv_config: {
-          encoding: 'utf-8',
+          encoding: finalEncoding,
           delimiter: ',',
           header_row: config.headerRow,  // Use the configured header row (1-based)
           has_header: true,
@@ -608,7 +614,7 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
 
               <div style={{ color: theme.colors.primary, marginTop: theme.spacing.md, marginBottom: theme.spacing.sm }}>[csv_config]</div>
               <div>header_row = {bankConfig.headerRow || 1}</div>
-              <div>encoding = utf-8</div>
+              <div>encoding = {analysis?.encoding || 'utf-8'}</div>
               <div>delimiter = ,</div>
               <div>has_header = true</div>
 

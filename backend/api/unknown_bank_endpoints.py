@@ -103,6 +103,7 @@ async def analyze_unknown_csv(
             )
         
         # Create response
+        print(f"  DEBUG: API - analysis.encoding being returned: {analysis.encoding}")
         response = UnknownBankAnalysisResponse(
             success=True,
             filename=analysis.filename,

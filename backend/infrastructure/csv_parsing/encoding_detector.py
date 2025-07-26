@@ -32,7 +32,7 @@ class EncodingDetector:
         # Thresholds
         self.HIGH_CONFIDENCE_THRESHOLD = 0.80
         # If chardet's guess, after being tested by _test_encoding, meets this, we accept it.
-        self.CHARDET_TESTED_ACCEPTANCE_THRESHOLD = 0.75 
+        self.CHARDET_TESTED_ACCEPTANCE_THRESHOLD = 0.70 
     
     def detect_encoding(self, file_path: str, sample_size: int = 8192) -> Dict:
         """
