@@ -43,17 +43,53 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
   });
   const [validationResult, setValidationResult] = useState(null);
 
-  // Auto-select first unknown file
+  // Effect to select a file when the list changes or a file is removed
   useEffect(() => {
-    if (unknownFiles.length > 0 && !selectedFile) {
-      setSelectedFile(unknownFiles[0]);
+    if (unknownFiles.length > 0) {
+      const isSelectedFileStillInList = selectedFile && unknownFiles.some(f => (f.fileName || f.name) === (selectedFile.fileName || selectedFile.name));
+      if (!isSelectedFileStillInList) {
+        setSelectedFile(unknownFiles[0]);
+      }
+    } else {
+      setSelectedFile(null);
     }
-  }, [unknownFiles, selectedFile]);
+  }, [unknownFiles]);
 
-  // Analyze selected file
+  // Effect to analyze the selected file and reset state
   useEffect(() => {
     if (selectedFile) {
+      // Reset state before analyzing a new file
+      setAnalysis(null);
+      setBankConfig({
+        bankName: '',
+        displayName: '',
+        filenamePatterns: [],
+        expected_headers: [],
+        detection_content_signatures: '',
+        columnMappings: {},
+        amountFormat: 'american',
+        currencyPrimary: 'USD',
+        cashewAccount: '',
+        headerRow: 1
+      });
+      setValidationResult(null);
       analyzeUnknownCSV(selectedFile);
+    } else {
+      // Clear state if no file is selected
+      setAnalysis(null);
+      setBankConfig({
+        bankName: '',
+        displayName: '',
+        filenamePatterns: [],
+        expected_headers: [],
+        detection_content_signatures: '',
+        columnMappings: {},
+        amountFormat: 'american',
+        currencyPrimary: 'USD',
+        cashewAccount: '',
+        headerRow: 1
+      });
+      setValidationResult(null);
     }
   }, [selectedFile]);
 
