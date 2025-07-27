@@ -573,6 +573,7 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
                 showPagination={true}
                 showTitle={false}
                 defaultItemsPerPage={10}
+                disableSorting={true}
               />
             </div>
           </div>

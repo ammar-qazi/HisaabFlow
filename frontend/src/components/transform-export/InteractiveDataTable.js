@@ -9,7 +9,8 @@ function InteractiveDataTable({
   showToolbar = true,
   showPagination = true,
   showTitle = true,
-  defaultItemsPerPage = 25
+  defaultItemsPerPage = 25,
+  disableSorting = false
 }) {
   const theme = useTheme();
   const [searchTerm, setSearchTerm] = useState('');
@@ -124,18 +125,20 @@ function InteractiveDataTable({
       Object.keys(item).forEach(key => allKeys.add(key));
     });
 
-    // In review mode, just show all keys as is.
+    // In review mode, apply ordered columns but handle lowercase backend data
     if (isReviewMode) {
-      return Array.from(allKeys).filter(key => !key.startsWith('_'));
+      const preferredOrder = ['date', 'title', 'amount', 'note', 'currency', 'category', 'account', 'backuptitle', 'backupdate'];
+      const otherKeys = Array.from(allKeys).filter(key => 
+        !preferredOrder.includes(key.toLowerCase()) && !key.startsWith('_') // Hide internal fields
+      );
+      // Add row index as first column in review mode
+      return ['__row_index__', ...preferredOrder.filter(key => allKeys.has(key)), ...otherKeys];
     }
 
-    // Define preferred column order
+    // Define preferred column order - only show these columns
     const preferredOrder = ['Date', 'Title', 'Amount', 'Category', 'Account', 'Note'];
-    const otherKeys = Array.from(allKeys).filter(key => 
-      !preferredOrder.includes(key) && !key.startsWith('_') // Hide internal fields
-    );
 
-    return [...preferredOrder.filter(key => allKeys.has(key)), ...otherKeys];
+    return preferredOrder.filter(key => allKeys.has(key));
   }, [data, isReviewMode]);
 
   // Export filtered data
@@ -282,22 +285,23 @@ function InteractiveDataTable({
               {columns.map(column => (
                 <th
                   key={column}
-                  onClick={() => handleSort(column)}
+                  onClick={column === '__row_index__' || disableSorting ? undefined : () => handleSort(column)}
                   style={{
                     padding: theme.spacing.md,
                     textAlign: 'left',
                     borderBottom: `1px solid ${theme.colors.border}`,
-                    cursor: 'pointer',
+                    cursor: column === '__row_index__' || disableSorting ? 'default' : 'pointer',
                     userSelect: 'none',
                     position: 'relative', // for sort icons
                     ...theme.typography.body2,
                     fontWeight: 600,
-                    color: theme.colors.text.primary
+                    color: theme.colors.text.primary,
+                    width: column === '__row_index__' ? '80px' : 'auto' // Fixed width for row index
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing.sm }}>
-                    {column}
-                    {sortConfig.key === column && (
+                    {column === '__row_index__' ? 'Row #' : column.charAt(0).toUpperCase() + column.slice(1)}
+                    {sortConfig.key === column && column !== '__row_index__' && !disableSorting && (
                       sortConfig.direction === 'asc' 
                         ? <ChevronUp size={14} />
                         : <ChevronDown size={14} />
@@ -328,8 +332,18 @@ function InteractiveDataTable({
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap'
                     }}
-                    title={String(row[column] || '')} // Show full value on hover
+                    title={column === '__row_index__' ? `Row ${(currentPage - 1) * itemsPerPage + index + 1}` : String(row[column] || '')} // Show full value on hover
                   >
+                    {/* Special row index column */}
+                    {column === '__row_index__' && (
+                      <span style={{ 
+                        fontWeight: 600,
+                        color: theme.colors.text.secondary,
+                        fontFamily: 'monospace'
+                      }}>
+                        {(currentPage - 1) * itemsPerPage + index + 1}
+                      </span>
+                    )}
                     {/* Special formatting for certain columns */}
                     {column === 'Amount' && !isReviewMode && (
                       <span style={{ 
@@ -352,7 +366,7 @@ function InteractiveDataTable({
                         {row[column] || 'Uncategorized'}
                       </span>
                     )}
-                    {(isReviewMode || (column !== 'Amount' && column !== 'Category')) && (
+                    {(isReviewMode || (column !== 'Amount' && column !== 'Category')) && column !== '__row_index__' && (
                       String(row[column] || '')
                     )}
                   </td>

@@ -117,7 +117,7 @@ function TransactionReview({ autoParseResults, uploadedFiles }) {
                 <div 
                   id={`transaction-details-${index}`}
                   style={{ backgroundColor: theme.colors.background.paper, borderTop: `1px solid ${theme.colors.border}` }}>
-                  <InteractiveDataTable data={data} isReviewMode={true} showToolbar={false} showTitle={false} showPagination={false} />
+                  <InteractiveDataTable data={data} isReviewMode={true} showToolbar={false} showTitle={false} showPagination={true} />
                 </div>
               )}
             </div>

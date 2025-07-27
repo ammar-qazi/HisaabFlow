@@ -266,8 +266,8 @@ class StructureAnalyzer:
             # Generate filename patterns
             filename_patterns = self._generate_filename_patterns(filename)
             
-            # Extract sample data for preview
-            sample_data = self._extract_sample_data(headers, data_rows[:10])
+            # Extract sample data for preview (increased for banks with metadata like NayaPay)
+            sample_data = self._extract_sample_data(headers, data_rows[:25])
             
             # Calculate overall structure confidence
             # For manual header row selection, create a mock header_detection

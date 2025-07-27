@@ -69,13 +69,12 @@ function ConfigureAndReviewStep({
       if (previewPromises.length > 0) {
         const results = await Promise.all(previewPromises);
         
-        // 3. Count the actual number of files processed (not configurations applied).
-        const processedFileCount = filesToProcess.length;
-
-        // 4. Show a single, consolidated toast notification.
-        if (processedFileCount > 0) {
+        // 3. Show a neutral processing notification
+        // Specific success/unknown file notifications will be handled by the components
+        // that have access to the actual detection results
+        if (filesToProcess.length > 0) {
           toast.success(
-            `Successfully applied configurations to ${processedFileCount} file(s) based on bank detection.`
+            `Processed ${filesToProcess.length} file(s) for bank detection.`
           );
         }
       }
@@ -122,6 +121,27 @@ function ConfigureAndReviewStep({
   const allFilesParsed = uploadedFiles.length > 0 && autoParseResults && autoParseResults.length === uploadedFiles.length;
   const hasUnknownFiles = allFilesParsed && shouldTriggerUnknownBankWorkflow(uploadedFiles);
   const unknownFiles = allFilesParsed ? getUnknownBankFiles(uploadedFiles) : [];
+
+  // Show specific notifications once detection is complete
+  useEffect(() => {
+    if (allFilesParsed && uploadedFiles.length > 0) {
+      const knownFiles = uploadedFiles.filter(file => file.detectedBank && (file.confidence || 0) >= 0.5);
+      const unknownFilesList = getUnknownBankFiles(uploadedFiles);
+      
+      if (knownFiles.length > 0) {
+        toast.success(
+          `Successfully applied configurations to ${knownFiles.length} file(s) based on bank detection.`
+        );
+      }
+      
+      if (unknownFilesList.length > 0) {
+        toast(
+          `Found ${unknownFilesList.length} unknown CSV file(s) requiring manual configuration.`,
+          { duration: 4000 }
+        );
+      }
+    }
+  }, [allFilesParsed, uploadedFiles.length]);
 
   const handleConfigCreated = async (newConfig) => {
     console.log('[DEBUG] New bank configuration created:', newConfig);
