@@ -201,7 +201,7 @@ class CSVProcessingService:
             try:
                 config_file_path = os.path.join(self.config_service.config_dir, f"{initial_result.bank_name}.conf")
                 if os.path.exists(config_file_path):
-                    raw_config = configparser.ConfigParser()
+                    raw_config = config_parser = configparser.ConfigParser(allow_no_value=True)
                     raw_config.read(config_file_path)
                     header_row = raw_config.getint('csv_config', 'header_row', fallback=None)
                     uses_absolute_positioning = header_row is not None
@@ -314,7 +314,7 @@ class CSVProcessingService:
                 
                 # Read header_row directly from config file
                 config_file_path = os.path.join(self.config_service.config_dir, f"{detected_bank_name}.conf")
-                raw_config = configparser.ConfigParser()
+                raw_config = configparser.ConfigParser(allow_no_value=True)
                 raw_config.read(config_file_path)
                 
                 configured_row_1_indexed = raw_config.getint('csv_config', 'header_row', fallback=None)

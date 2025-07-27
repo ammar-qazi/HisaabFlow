@@ -452,7 +452,7 @@ def _generate_config_preview(config: Dict[str, Any]) -> str:
     import io
     
     try:
-        config_parser = configparser.ConfigParser()
+        config_parser = config_parser = configparser.ConfigParser(allow_no_value=True)
         
         # Add sections in order
         if 'bank_info' in config:

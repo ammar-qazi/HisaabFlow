@@ -346,7 +346,7 @@ class UnknownBankService:
             config_path = os.path.join(config_dir, config_filename)
 
             # Create ConfigParser object
-            config_parser = configparser.ConfigParser()
+            config_parser = config_parser = configparser.ConfigParser(allow_no_value=True)
 
             # Add sections to config file
             self._add_bank_info_section(config_parser, config["bank_info"])

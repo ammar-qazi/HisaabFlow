@@ -143,7 +143,7 @@ class UnifiedConfigService:
     
     def _load_app_config(self) -> None:
         """Load application configuration"""
-        self._app_config = configparser.ConfigParser()
+        self._app_config = configparser.ConfigParser(allow_no_value=True)
         app_config_path = os.path.join(self.config_dir, "app.conf")
         
         if os.path.exists(app_config_path):
@@ -209,9 +209,16 @@ class UnifiedConfigService:
     
     def _load_bank_config(self, config_path: str, bank_name: str) -> Optional[UnifiedBankConfig]:
         """Load individual bank configuration"""
-        config = configparser.ConfigParser()
+        config = configparser.ConfigParser(allow_no_value=True)
         config.read(config_path)
         
+        # Define reserved sections that are not categories
+        reserved_sections = [
+            'bank_info', 'csv_config', 'column_mapping', 'account_mapping',
+            'data_cleaning', 'description_cleaning', 'outgoing_patterns', 
+            'incoming_patterns', 'default_category_rules', 'conditional_overrides'
+        ]
+
         try:
             # Extract bank info
             bank_info = config['bank_info']
@@ -238,8 +245,14 @@ class UnifiedConfigService:
             outgoing_patterns = self._extract_transfer_patterns(config, 'outgoing_patterns')
             incoming_patterns = self._extract_transfer_patterns(config, 'incoming_patterns')
             
-            # Build categorization rules
-            categorization_rules = dict(config['categorization']) if 'categorization' in config else {}
+            # Build categorization rules from category sections
+            categorization_rules = {}
+            for section_name in config.sections():
+                if section_name not in reserved_sections:
+                    category = section_name
+                    for pattern in config[section_name]:
+                        categorization_rules[pattern] = category
+
             default_category_rules = dict(config['default_category_rules']) if 'default_category_rules' in config else {}
             
             # Build conditional overrides
@@ -456,16 +469,20 @@ class UnifiedConfigService:
         return patterns
     
     def _extract_conditional_overrides(self, config: configparser.ConfigParser) -> List[Dict[str, Any]]:
-        """Extract conditional override rules"""
+        """Extract conditional override rules from [conditional_overrides] section"""
         overrides = []
-        
-        # Look for conditional override sections
-        for section_name in config.sections():
-            if section_name.startswith('conditional_override_'):
-                override_config = dict(config[section_name])
-                override_config['name'] = section_name
-                overrides.append(override_config)
-        
+        if 'conditional_overrides' in config:
+            for rule_name, rule_value in config['conditional_overrides'].items():
+                try:
+                    # Rule format: "condition_pattern | new_description"
+                    condition, new_description = rule_value.split('|', 1)
+                    overrides.append({
+                        'name': rule_name.strip(),
+                        'condition': condition.strip(),
+                        'description': new_description.strip()
+                    })
+                except ValueError:
+                    print(f"[WARNING] [UnifiedConfigService] Skipping invalid conditional override rule: {rule_name}")
         return overrides
     
     # ========== Public API Methods ==========
@@ -567,7 +584,7 @@ class UnifiedConfigService:
         # First tier: Bank-specific categorization rules (highest priority)
         bank_config = self._bank_configs.get(bank_name)
         if bank_config:
-            # Check bank-specific categorization rules
+            # Check bank-specific categorization rules (now loaded from sections)
             for pattern, category in bank_config.categorization_rules.items():
                 if self._pattern_matches(pattern, merchant_lower):
                     return category
@@ -577,11 +594,15 @@ class UnifiedConfigService:
                 if self._pattern_matches(pattern, merchant_lower):
                     return category
         
-        # Second tier: App-wide categorization rules (fallback)
-        if self._app_config and 'app_wide_categorization' in self._app_config:
-            for pattern, category in self._app_config['app_wide_categorization'].items():
-                if self._pattern_matches(pattern, merchant_lower):
-                    return category
+        # Second tier: App-wide categorization rules from sections (fallback)
+        if self._app_config:
+            reserved_sections = ['general', 'transfer_detection', 'transfer_categorization', 'default_category_rules']
+            for section_name in self._app_config.sections():
+                if section_name not in reserved_sections:
+                    category = section_name
+                    for pattern in self._app_config[section_name]:
+                        if self._pattern_matches(pattern, merchant_lower):
+                            return category
         
         # Third tier: App-wide default category rules (final fallback)
         if self._app_config and 'default_category_rules' in self._app_config:
@@ -668,7 +689,7 @@ class UnifiedConfigService:
             config_path = os.path.join(self.config_dir, f"{bank_name}.conf")
             
             # Convert config_data to ConfigParser format
-            config = configparser.ConfigParser()
+            config = config_parser = configparser.ConfigParser(allow_no_value=True)
             
             for section_name, section_data in config_data.items():
                 config[section_name] = {}
