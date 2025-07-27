@@ -134,6 +134,9 @@ GEMINI.md
 mind.md
 reflection.md
 TASKS.md
+.claude/
+.kiro/
+PRODUCT_REQUIREMENTS.md
 
 # Python bundled runtime (large files - should be generated, not tracked)
 frontend/python-bundle/
