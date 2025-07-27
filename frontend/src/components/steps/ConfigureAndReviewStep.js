@@ -69,13 +69,13 @@ function ConfigureAndReviewStep({
       if (previewPromises.length > 0) {
         const results = await Promise.all(previewPromises);
         
-        // 3. Count successes.
-        const successfulConfigCount = results.filter(msg => msg !== null).length;
+        // 3. Count the actual number of files processed (not configurations applied).
+        const processedFileCount = filesToProcess.length;
 
         // 4. Show a single, consolidated toast notification.
-        if (successfulConfigCount > 0) {
+        if (processedFileCount > 0) {
           toast.success(
-            `Successfully applied configurations to ${successfulConfigCount} file(s) based on bank detection.`
+            `Successfully applied configurations to ${processedFileCount} file(s) based on bank detection.`
           );
         }
       }
@@ -118,8 +118,10 @@ function ConfigureAndReviewStep({
     autoParseResults?.map(r => r.file_id) || []);
 
   // Check for unknown banks that need configuration
-  const hasUnknownFiles = shouldTriggerUnknownBankWorkflow(uploadedFiles);
-  const unknownFiles = getUnknownBankFiles(uploadedFiles);
+  // Only show unknown panel after parsing is complete for all files
+  const allFilesParsed = uploadedFiles.length > 0 && autoParseResults && autoParseResults.length === uploadedFiles.length;
+  const hasUnknownFiles = allFilesParsed && shouldTriggerUnknownBankWorkflow(uploadedFiles);
+  const unknownFiles = allFilesParsed ? getUnknownBankFiles(uploadedFiles) : [];
 
   const handleConfigCreated = async (newConfig) => {
     console.log('[DEBUG] New bank configuration created:', newConfig);
