@@ -579,6 +579,11 @@ class UnifiedConfigService:
     
     def categorize_merchant(self, bank_name: str, merchant: str) -> Optional[str]:
         """Categorize merchant using two-tier precedence: bank-specific first, then app-wide"""
+        result = self.categorize_merchant_with_debug(bank_name, merchant)
+        return result['category'] if result else None
+    
+    def categorize_merchant_with_debug(self, bank_name: str, merchant: str) -> Optional[dict]:
+        """Categorize merchant and return debug info including matched pattern"""
         merchant_lower = merchant.lower()
         
         # First tier: Bank-specific categorization rules (highest priority)
@@ -587,12 +592,22 @@ class UnifiedConfigService:
             # Check bank-specific categorization rules (now loaded from sections)
             for pattern, category in bank_config.categorization_rules.items():
                 if self._pattern_matches(pattern, merchant_lower):
-                    return category
+                    return {
+                        'category': category,
+                        'pattern': pattern,
+                        'source': f'bank-specific ({bank_name})',
+                        'rule_type': 'categorization_rules'
+                    }
             
             # Check bank-specific default category rules  
             for pattern, category in bank_config.default_category_rules.items():
                 if self._pattern_matches(pattern, merchant_lower):
-                    return category
+                    return {
+                        'category': category,
+                        'pattern': pattern,
+                        'source': f'bank-specific ({bank_name})',
+                        'rule_type': 'default_category_rules'
+                    }
         
         # Second tier: App-wide categorization rules from sections (fallback)
         if self._app_config:
@@ -602,20 +617,30 @@ class UnifiedConfigService:
                     category = section_name
                     for pattern in self._app_config[section_name]:
                         if self._pattern_matches(pattern, merchant_lower):
-                            return category
+                            return {
+                                'category': category,
+                                'pattern': pattern,
+                                'source': 'app-wide (app.conf)',
+                                'rule_type': f'section [{section_name}]'
+                            }
         
         # Third tier: App-wide default category rules (final fallback)
         if self._app_config and 'default_category_rules' in self._app_config:
             for pattern, category in self._app_config['default_category_rules'].items():
                 if self._pattern_matches(pattern, merchant_lower):
-                    return category
+                    return {
+                        'category': category,
+                        'pattern': pattern,
+                        'source': 'app-wide (app.conf)',
+                        'rule_type': 'default_category_rules'
+                    }
         
         return None
     
     def _pattern_matches(self, pattern: str, merchant_lower: str) -> bool:
         """Check if pattern matches merchant name with regex support"""
         try:
-            # If pattern contains regex characters (like .*), use regex matching
+            # If pattern contains regex characters, use regex matching
             if any(char in pattern for char in ['.*', '|', '\\', '^', '$', '[', ']', '{', '}', '(', ')', '+', '?']):
                 return bool(re.search(pattern.lower(), merchant_lower))
             else:

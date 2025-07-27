@@ -217,12 +217,17 @@ class DataCleaningService:
                 continue
             
             description = row.get('Title', '')
-            category = self.config_service.categorize_merchant(bank_name_for_row, description)
+            categorization_result = self.config_service.categorize_merchant_with_debug(bank_name_for_row, description)
             
-            if category:
+            if categorization_result:
+                category = categorization_result['category']
+                pattern = categorization_result['pattern']
+                source = categorization_result['source']
+                rule_type = categorization_result['rule_type']
+                
                 # Log only if category changes or is newly set by this step
                 if row.get('Category') != category:
-                    print(f"            CATEGORIZED (Row {row_idx + 1}, Bank: {bank_name_for_row}): Desc='{description[:50]}...' → Category='{category}'")
+                    print(f"            CATEGORIZED (Row {row_idx + 1}, Bank: {bank_name_for_row}): Desc='{description[:50]}...' → Category='{category}' [Pattern: '{pattern}' from {source} {rule_type}]")
                     row['Category'] = category
                     categorized_count += 1
         
