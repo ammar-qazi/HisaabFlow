@@ -86,6 +86,7 @@ class CurrencyConverter:
                         'confidence': confidence,
                         'pair_id': f"conversion_{len(conversion_pairs)}",
                         'transfer_type': 'currency_conversion',
+                        'match_strategy': 'currency_conversion',
                         'conversion_details': {
                             'from_currency': conv1['from_currency'],
                             'to_currency': conv1['to_currency'],

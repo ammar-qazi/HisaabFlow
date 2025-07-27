@@ -75,7 +75,7 @@ const AppHeader = () => {
           <Building size={28} color={theme.colors.primary} />
           <span>HisaabFlow</span>
           <div style={versionBadgeStyles}>
-            <Badge variant="primary">v1.0.2</Badge>
+            <Badge variant="primary">v1.1.0</Badge>
           </div>
         </div>
         <span style={taglineStyles}>
