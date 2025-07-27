@@ -197,7 +197,7 @@ function TransferAnalysisPanel({
           }}>
             <TrendingUp size={20} color={theme.colors.info} />
             <p style={{ ...theme.typography.body2, color: theme.colors.text.primary }}>
-              Detected {allTransferPairs.length} transfer pair(s) ({transferPairs.length} auto-detected, {localManuallyConfirmedTransfers.length} manually confirmed){currencyConversions > 0 ? ` and ${currencyConversions} currency conversion(s)` : ''}.
+              Detected {allTransferPairs.length} transfer pair(s) ({transferPairs.length} auto-detected{currencyConversions > 0 ? ` including ${currencyConversions} currency conversion(s)` : ''}, {localManuallyConfirmedTransfers.length} manually confirmed.)
             </p>
           </div>
           {allTransferPairs.map((pair, index) => {
