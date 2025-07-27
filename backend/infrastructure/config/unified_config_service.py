@@ -474,13 +474,25 @@ class UnifiedConfigService:
         if 'conditional_overrides' in config:
             for rule_name, rule_value in config['conditional_overrides'].items():
                 try:
-                    # Rule format: "condition_pattern | new_description"
-                    condition, new_description = rule_value.split('|', 1)
-                    overrides.append({
+                    # Rule format: "conditions | new_description"
+                    # e.g., "if_amount_min=-2000, if_amount_max=-0.01, if_note_equals=Raast Out, if_description_contains=Outgoing fund transfer to | Ride Hailing Services"
+                    condition_part, new_description = rule_value.split('|', 1)
+                    
+                    rule_dict = {
                         'name': rule_name.strip(),
-                        'condition': condition.strip(),
-                        'description': new_description.strip()
-                    })
+                        'set_description': new_description.strip()
+                    }
+                    
+                    # Parse individual conditions
+                    conditions = [c.strip() for c in condition_part.split(',')]
+                    for condition in conditions:
+                        if '=' in condition:
+                            key, value = condition.split('=', 1)
+                            key = key.strip()
+                            value = value.strip()
+                            rule_dict[key] = value
+                    
+                    overrides.append(rule_dict)
                 except ValueError:
                     print(f"[WARNING] [UnifiedConfigService] Skipping invalid conditional override rule: {rule_name}")
         return overrides
@@ -590,7 +602,9 @@ class UnifiedConfigService:
         bank_config = self._bank_configs.get(bank_name)
         if bank_config:
             # Check bank-specific categorization rules (now loaded from sections)
-            for pattern, category in bank_config.categorization_rules.items():
+            # Sort patterns by length (longest first) for specificity-based matching
+            sorted_patterns = sorted(bank_config.categorization_rules.items(), key=lambda x: len(x[0]), reverse=True)
+            for pattern, category in sorted_patterns:
                 if self._pattern_matches(pattern, merchant_lower):
                     return {
                         'category': category,
@@ -599,8 +613,10 @@ class UnifiedConfigService:
                         'rule_type': 'categorization_rules'
                     }
             
-            # Check bank-specific default category rules  
-            for pattern, category in bank_config.default_category_rules.items():
+            # Check bank-specific default category rules
+            # Sort patterns by length (longest first) for specificity-based matching
+            sorted_default_patterns = sorted(bank_config.default_category_rules.items(), key=lambda x: len(x[0]), reverse=True)
+            for pattern, category in sorted_default_patterns:
                 if self._pattern_matches(pattern, merchant_lower):
                     return {
                         'category': category,
@@ -610,23 +626,41 @@ class UnifiedConfigService:
                     }
         
         # Second tier: App-wide categorization rules from sections (fallback)
+        # Collect ALL patterns from ALL sections, then prioritize by length globally
         if self._app_config:
             reserved_sections = ['general', 'transfer_detection', 'transfer_categorization', 'default_category_rules']
+            all_patterns = []
+            
+            # Collect all patterns with their metadata
             for section_name in self._app_config.sections():
                 if section_name not in reserved_sections:
                     category = section_name
                     for pattern in self._app_config[section_name]:
-                        if self._pattern_matches(pattern, merchant_lower):
-                            return {
-                                'category': category,
-                                'pattern': pattern,
-                                'source': 'app-wide (app.conf)',
-                                'rule_type': f'section [{section_name}]'
-                            }
+                        all_patterns.append({
+                            'pattern': pattern,
+                            'category': category,
+                            'section': section_name,
+                            'length': len(pattern)
+                        })
+            
+            # Sort all patterns by length (longest first) for global specificity-based matching
+            sorted_all_patterns = sorted(all_patterns, key=lambda x: x['length'], reverse=True)
+            
+            # Try patterns in order of specificity (longest first)
+            for pattern_info in sorted_all_patterns:
+                if self._pattern_matches(pattern_info['pattern'], merchant_lower):
+                    return {
+                        'category': pattern_info['category'],
+                        'pattern': pattern_info['pattern'],
+                        'source': 'app-wide (app.conf)',
+                        'rule_type': f'section [{pattern_info["section"]}]'
+                    }
         
         # Third tier: App-wide default category rules (final fallback)
         if self._app_config and 'default_category_rules' in self._app_config:
-            for pattern, category in self._app_config['default_category_rules'].items():
+            # Sort patterns by length (longest first) for specificity-based matching
+            sorted_default_rules = sorted(self._app_config['default_category_rules'].items(), key=lambda x: len(x[0]), reverse=True)
+            for pattern, category in sorted_default_rules:
                 if self._pattern_matches(pattern, merchant_lower):
                     return {
                         'category': category,
@@ -651,16 +685,15 @@ class UnifiedConfigService:
             return pattern.lower() in merchant_lower
     
     def apply_description_cleaning(self, bank_name: str, description: str) -> str:
-        """Apply bank-specific description cleaning rules"""
+        """Apply bank-specific description cleaning rules with multi-line support"""
         bank_config = self._bank_configs.get(bank_name)
         if not bank_config or not bank_config.data_cleaning or not bank_config.data_cleaning.description_cleaning_rules:
             return description
-        
+
         cleaned_description = description
         
         # Apply each cleaning rule
         for rule_name, rule_pattern in bank_config.data_cleaning.description_cleaning_rules.items():
-            import re
             try:
                 # Check if it's a regex replacement pattern (contains |)
                 if '|' in rule_pattern:
@@ -668,13 +701,26 @@ class UnifiedConfigService:
                     pattern, replacement = rule_pattern.rsplit('|', 1)
                     pattern = pattern.strip()
                     replacement = replacement.strip()
-                    cleaned_description = re.sub(pattern, replacement, cleaned_description, flags=re.IGNORECASE)
+                    
+                    # Use re.DOTALL to match across newlines
+                    new_description = re.sub(pattern, replacement, cleaned_description, flags=re.IGNORECASE | re.DOTALL)
+                    
+                    if new_description != cleaned_description:
+                        print(f"      [CLEANING] Applied rule '{rule_name}': '{cleaned_description}' -> '{new_description}'")
+                        cleaned_description = new_description
                 else:
-                    # Simple replacement using rule name as pattern
-                    cleaned_description = cleaned_description.replace(rule_name, rule_pattern)
-            except re.error:
-                # If regex fails, do simple replacement
-                cleaned_description = cleaned_description.replace(rule_name, rule_pattern)
+                    # Simple replacement (less common now)
+                    if rule_name in cleaned_description:
+                        new_description = cleaned_description.replace(rule_name, rule_pattern)
+                        print(f"      [CLEANING] Applied simple replacement '{rule_name}': '{cleaned_description}' -> '{new_description}'")
+                        cleaned_description = new_description
+
+            except re.error as e:
+                print(f"[WARNING] [UnifiedConfigService] Invalid regex in rule '{rule_name}' for bank '{bank_name}': {e}")
+                # Fallback to simple replacement if regex is invalid
+                if '|' in rule_pattern:
+                    pattern, replacement = rule_pattern.rsplit('|', 1)
+                    cleaned_description = cleaned_description.replace(pattern, replacement)
         
         return cleaned_description
     
