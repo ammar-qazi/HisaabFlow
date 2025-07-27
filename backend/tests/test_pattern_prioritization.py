@@ -33,7 +33,7 @@ class TestPatternPrioritization:
             'Bus.*': None       # Length: 5 chars
         }
         
-        def mock_getitem(section_name):
+        def mock_getitem(self, section_name):
             if section_name == 'Entertainment':
                 return entertainment_section
             elif section_name == 'Transport':
@@ -70,7 +70,7 @@ class TestPatternPrioritization:
             'Net.*': None               # Length: 5 chars (shortest)
         }
         
-        self.config_service._app_config.__getitem__ = lambda section: entertainment_section if section == 'Entertainment' else {}
+        self.config_service._app_config.__getitem__ = lambda self, section: entertainment_section if section == 'Entertainment' else {}
         
         result = self.config_service.categorize_merchant_with_debug('test_bank', 'Netflix Monthly Subscription')
         
@@ -85,7 +85,7 @@ class TestPatternPrioritization:
             'Net.*': None                               # Shortest pattern
         }
         
-        self.config_service._app_config.__getitem__ = lambda section: entertainment_section if section == 'Entertainment' else {}
+        self.config_service._app_config.__getitem__ = lambda self, section: entertainment_section if section == 'Entertainment' else {}
         
         result = self.config_service.categorize_merchant_with_debug('test_bank', 'Netflix Original Series')
         
@@ -122,7 +122,9 @@ class TestPatternPrioritization:
 
     def test_empty_sections_handled_gracefully(self):
         """Test that empty sections don't cause errors"""
-        self.config_service._app_config.__getitem__ = lambda section: {} if section == 'Entertainment' else {}
+        # Create a completely empty config
+        self.config_service._app_config = None
+        self.config_service._bank_configs = {}
         
         result = self.config_service.categorize_merchant_with_debug('test_bank', 'Netflix')
         
@@ -136,7 +138,7 @@ class TestPatternPrioritization:
         large_section = {f'Pattern{i}.*': None for i in range(1000)}
         large_section['Netflix.*'] = None
         
-        self.config_service._app_config.__getitem__ = lambda section: large_section if section == 'Entertainment' else {}
+        self.config_service._app_config.__getitem__ = lambda self, section: large_section if section == 'Entertainment' else {}
         
         start_time = time.time()
         result = self.config_service.categorize_merchant_with_debug('test_bank', 'Netflix')
@@ -153,7 +155,7 @@ class TestPatternPrioritization:
             '\\bGap\\b.*': None         # Pattern with word boundaries
         }
         
-        self.config_service._app_config.__getitem__ = lambda section: entertainment_section if section == 'Entertainment' else {}
+        self.config_service._app_config.__getitem__ = lambda self, section: entertainment_section if section == 'Entertainment' else {}
         
         result = self.config_service.categorize_merchant_with_debug('test_bank', "McDonald's Restaurant")
         
