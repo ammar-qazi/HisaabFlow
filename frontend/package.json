@@ -47,6 +47,13 @@
     "directories": {
       "output": "dist"
     },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "allowToChangeInstallationDirectory": true
+    },
     "files": [
       "build/**/*",
       "node_modules/**/*",
@@ -100,13 +107,6 @@
       ],
       "icon": "assets/icon.ico",
       "compression": "normal",
-      "nsis": {
-        "oneClick": false,
-        "perMachine": false,
-        "createDesktopShortcut": true,
-        "createStartMenuShortcut": true,
-        "allowToChangeInstallationDirectory": true
-      },
       "extraResources": [
         {
           "from": "compiled-backend/hisaabflow-backend.exe",
