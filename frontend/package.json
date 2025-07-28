@@ -92,8 +92,21 @@
       ]
     },
     "win": {
-      "target": "portable",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64", "ia32"]
+        }
+      ],
       "icon": "assets/icon.ico",
+      "compression": "normal",
+      "nsis": {
+        "oneClick": false,
+        "perMachine": false,
+        "createDesktopShortcut": true,
+        "createStartMenuShortcut": true,
+        "allowToChangeInstallationDirectory": true
+      },
       "extraResources": [
         {
           "from": "compiled-backend/hisaabflow-backend.exe",
