@@ -17,6 +17,8 @@ class ColumnStandardizer:
             'TYPE': 'Note', 
             'DESCRIPTION': 'Title',
             'AMOUNT': 'Amount',
+            'DEBIT': 'Debit',
+            'CREDIT': 'Credit',
             'BALANCE': 'Balance',
             'CURRENCY': 'Currency',
             'Total amount': 'Amount',
@@ -184,6 +186,8 @@ class ColumnStandardizer:
         patterns = {
             'Date': ['datum', 'date', 'timestamp', 'created', 'processed', 'rentedatum'],
             'Amount': ['bedrag', 'amount', 'value', 'sum', 'total'],
+            'Debit': ['debit', 'withdrawal', 'out', 'expense'],
+            'Credit': ['credit', 'deposit', 'in', 'income'],
             'Title': ['omschrijving', 'description', 'memo', 'note', 'details', 'narrative', 'naam'],
             'Note': ['type', 'category', 'kind', 'code', 'reference']
         }

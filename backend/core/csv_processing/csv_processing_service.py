@@ -510,7 +510,8 @@ class CSVProcessingService:
                     'column_mapping': bank_column_mapping,
                     'bank_name': bank_info['detected_bank'],
                     'expected_headers': expected_headers,
-                    'default_currency': default_currency
+                    'default_currency': default_currency,
+                    'data_cleaning': bank_config.data_cleaning
                 }
                 print(f"         Using bank-specific cleaning config for {bank_info['detected_bank']}")
             

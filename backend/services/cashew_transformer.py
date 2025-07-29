@@ -102,6 +102,11 @@ class CashewTransformer:
                         cashew_row[cashew_col] = parsed_amount
                         if idx < 3: 
                             print(f"    Row {idx} Amount mapping - source_col='{source_col}', raw_value='{source_value}' (type: {type(source_value)}), str_value='{original_amount}', parsed='{parsed_amount}'")
+                    elif cashew_col in ['debit', 'credit']:
+                        # Store debit/credit values for later calculation
+                        cashew_row[cashew_col] = str(value_found)
+                        if idx < 3:
+                            print(f"    Row {idx} {cashew_col.title()} mapping - source_col='{source_col}', raw_value='{value_found}'")
                     elif cashew_col == 'account' and account_mapping:
                         currency = str(value_found)
                         mapped_account = account_mapping.get(currency, bank_name)
@@ -118,6 +123,18 @@ class CashewTransformer:
                         cashew_row[source_col] = row[source_col]
                         if idx < 3:
                             print(f"    Row {idx} Preserving exchange field: {source_col} = {row[source_col]}")
+            
+            # Calculate amount from debit/credit if no direct amount mapping exists
+            if not cashew_row.get('amount') and ('debit' in cashew_row or 'credit' in cashew_row):
+                debit_val = self.parse_amount(cashew_row.get('debit', '0'))
+                credit_val = self.parse_amount(cashew_row.get('credit', '0'))
+                
+                # Calculate final amount: credit - debit (credit is positive, debit is negative)
+                final_amount = float(credit_val) - float(debit_val)
+                cashew_row['amount'] = str(final_amount)
+                
+                if idx < 3:
+                    print(f"    Row {idx} Debit/Credit calculation - debit='{debit_val}', credit='{credit_val}', final_amount='{final_amount}'")
             
             # Apply universal fallback logic for any empty field (lowercase internally)
             for cashew_field in ['date', 'title', 'amount', 'currency']:

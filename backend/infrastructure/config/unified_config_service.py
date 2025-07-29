@@ -55,6 +55,9 @@ class DataCleaningConfig:
     date_standardization: bool = True
     remove_invalid_rows: bool = True
     default_currency: str = "USD"
+    
+    # Row filtering configuration
+    skip_rows_containing: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -387,6 +390,7 @@ class UnifiedConfigService:
         date_standardization = True
         remove_invalid_rows = True
         default_currency = "USD"
+        skip_rows_containing = []
         
         if 'data_cleaning' in config:
             cleaning_section = config['data_cleaning']
@@ -396,6 +400,10 @@ class UnifiedConfigService:
             date_standardization = cleaning_section.getboolean('date_standardization', fallback=True)
             remove_invalid_rows = cleaning_section.getboolean('remove_invalid_rows', fallback=True)
             default_currency = cleaning_section.get('default_currency', 'USD')
+            
+            # Parse skip_rows_containing
+            if 'skip_rows_containing' in cleaning_section:
+                skip_rows_containing = [pattern.strip() for pattern in cleaning_section['skip_rows_containing'].split(',')]
         
         return DataCleaningConfig(
             currency_symbols=currency_symbols,
@@ -411,7 +419,8 @@ class UnifiedConfigService:
             numeric_amount_conversion=numeric_amount_conversion,
             date_standardization=date_standardization,
             remove_invalid_rows=remove_invalid_rows,
-            default_currency=default_currency
+            default_currency=default_currency,
+            skip_rows_containing=skip_rows_containing
         )
     
     def _parse_amount_format_from_config(self, cleaning_section: configparser.SectionProxy, 

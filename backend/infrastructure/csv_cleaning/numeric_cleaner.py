@@ -16,7 +16,7 @@ class NumericCleaner:
     """
     
     def __init__(self, amount_format: Optional[AmountFormat] = None):
-        self.numeric_keywords = ['amount', 'balance', 'exchange_amount', 'fee', 'total']
+        self.numeric_keywords = ['amount', 'balance', 'debit', 'credit', 'exchange_amount', 'fee', 'total']
         self.amount_format = amount_format or RegionalFormatRegistry.AMERICAN
         self.format_detector = AmountFormatDetector()
         self.format_validator = FormatValidator()

@@ -231,9 +231,39 @@ class DataCleaner:
         
         print(f"       Target columns: {sorted(target_columns)}")
         
+        # Get skip patterns from data cleaning configuration
+        skip_patterns = []
+        print(f"       [DEBUG] template_config keys: {list(template_config.keys()) if template_config else 'None'}")
+        
+        if template_config and 'data_cleaning' in template_config:
+            data_cleaning_config = template_config['data_cleaning']
+            if hasattr(data_cleaning_config, 'skip_rows_containing'):
+                skip_patterns = data_cleaning_config.skip_rows_containing
+                print(f"       [DEBUG] Found skip patterns: {skip_patterns}")
+        elif template_config and 'data_cleaning_config' in template_config:
+            data_cleaning_config = template_config['data_cleaning_config']
+            if hasattr(data_cleaning_config, 'skip_rows_containing'):
+                skip_patterns = data_cleaning_config.skip_rows_containing
+                print(f"       [DEBUG] Found skip patterns: {skip_patterns}")
+        else:
+            print(f"       [DEBUG] No data_cleaning config found in template_config")
+        
         # Filter data to only include target columns
         focused_data = []
         for row in data:
+            # Check if row should be skipped based on content patterns
+            should_skip = False
+            if skip_patterns:
+                row_content = ' '.join(str(value) for value in row.values() if value)
+                for pattern in skip_patterns:
+                    if pattern.lower() in row_content.lower():
+                        should_skip = True
+                        print(f"      [SKIP] Row containing '{pattern}': {row_content[:50]}...")
+                        break
+            
+            if should_skip:
+                continue
+            
             focused_row = {}
             for col in target_columns:
                 if col in row:
