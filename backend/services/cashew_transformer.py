@@ -40,6 +40,9 @@ class CashewTransformer:
         cashew_data = []
         
         for idx, row in enumerate(data):
+            # Get source bank for debugging
+            source_bank = row.get('_source_bank', 'unknown')
+            
             # Initialize Cashew row with required fields (lowercase internally)
             # Preserve existing Account value if it exists (from multi-CSV processing)
             existing_account = row.get('Account', row.get('account', bank_name))
@@ -83,6 +86,13 @@ class CashewTransformer:
                         existing_account = cashew_row.get('account', bank_name)
                         print(f"    Row {idx} Preserving existing account: Currency='{currency}', Account='{existing_account}'")
             
+            # Debug: Show available fields for Meezan rows
+            if source_bank == 'Meezan' and idx < 10:
+                print(f"    Row {idx} (Meezan) available fields: {list(row.keys())}")
+                print(f"    Row {idx} (Meezan) amount field value: '{row.get('amount', 'NOT_FOUND')}'")
+                print(f"    Row {idx} (Meezan) debit field value: '{row.get('debit', 'NOT_FOUND')}'")
+                print(f"    Row {idx} (Meezan) credit field value: '{row.get('credit', 'NOT_FOUND')}'")
+            
             # Apply column mapping (lowercase internally)
             # This now handles both raw data (using source_col) and pre-cleaned data (using cashew_col)
             for cashew_col, source_col in column_mapping.items():
@@ -124,17 +134,21 @@ class CashewTransformer:
                         if idx < 3:
                             print(f"    Row {idx} Preserving exchange field: {source_col} = {row[source_col]}")
             
-            # Calculate amount from debit/credit if no direct amount mapping exists
-            if not cashew_row.get('amount') and ('debit' in cashew_row or 'credit' in cashew_row):
-                debit_val = self.parse_amount(cashew_row.get('debit', '0'))
-                credit_val = self.parse_amount(cashew_row.get('credit', '0'))
+            # Calculate amount from debit/credit if no direct amount mapping exists or amount is empty
+            amount_val = cashew_row.get('amount', '')
+            has_debit_credit = ('debit' in cashew_row or 'credit' in cashew_row or 
+                               'debit' in row or 'credit' in row)
+            
+            if (not amount_val or str(amount_val).strip() == '') and has_debit_credit:
+                # Check both cashew_row (from column mapping) and original row for debit/credit
+                debit_val = self.parse_amount(cashew_row.get('debit', row.get('debit', '0')))
+                credit_val = self.parse_amount(cashew_row.get('credit', row.get('credit', '0')))
                 
                 # Calculate final amount: credit - debit (credit is positive, debit is negative)
                 final_amount = float(credit_val) - float(debit_val)
                 cashew_row['amount'] = str(final_amount)
                 
-                if idx < 3:
-                    print(f"    Row {idx} Debit/Credit calculation - debit='{debit_val}', credit='{credit_val}', final_amount='{final_amount}'")
+                print(f"    Row {idx} ({source_bank}) Debit/Credit calculation - debit='{debit_val}', credit='{credit_val}', final_amount='{final_amount}'")
             
             # Apply universal fallback logic for any empty field (lowercase internally)
             for cashew_field in ['date', 'title', 'amount', 'currency']:
@@ -160,16 +174,22 @@ class CashewTransformer:
             
             # Only include rows with valid amounts
             amount_val = cashew_row['amount']
-            if idx < 5:
-                print(f"   [DEBUG] Row {idx} final amount check - value: '{amount_val}', type: {type(amount_val)}, bool: {bool(amount_val)}")
+            source_bank = cashew_row.get('_source_bank', 'unknown')
+            
+            # Enhanced debugging for amount validation
+            print(f"   [DEBUG] Row {idx} ({source_bank}) final amount check - value: '{amount_val}', type: {type(amount_val)}, bool: {bool(amount_val)}")
             
             if amount_val and amount_val != '0' and amount_val != 0:
                 # Convert to uppercase for final Cashew format before adding to results
                 final_cashew_row = self._convert_to_final_cashew_format(cashew_row)
                 cashew_data.append(final_cashew_row)
+                if source_bank == 'Meezan':
+                    print(f"   [SUCCESS] Meezan row {idx} INCLUDED with amount '{amount_val}'")
             else:
-                if idx < 5:
-                    print(f"   [WARNING]  Skipping row {idx}: Invalid/zero amount '{amount_val}' (type: {type(amount_val)})")
+                print(f"   [WARNING] FILTERING OUT row {idx} ({source_bank}): Invalid/zero amount '{amount_val}' (type: {type(amount_val)})")
+                if source_bank == 'Meezan':
+                    print(f"   [CRITICAL] MEEZAN ROW FILTERED! Row data: {cashew_row}")
+                    print(f"   [DEBUG] Original row data from input: {data[idx] if idx < len(data) else 'Index out of range'}")
         
         print(f"   [SUCCESS] Clean transformation complete: {len(cashew_data)} valid rows")
         return cashew_data

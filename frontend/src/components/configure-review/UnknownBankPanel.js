@@ -6,7 +6,9 @@ import InteractiveDataTable from '../transform-export/InteractiveDataTable';
 
 const STANDARD_FIELDS = [
   { value: 'date', label: 'Date', required: true },
-  { value: 'amount', label: 'Amount', required: true },
+  { value: 'amount', label: 'Amount', required: true, columnType: 'amount' },
+  { value: 'debit', label: 'Debit', required: false, columnType: 'debit_credit' },
+  { value: 'credit', label: 'Credit', required: false, columnType: 'debit_credit' },
   { value: 'title', label: 'Title/Description', required: true },
   { value: 'note', label: 'Note/Type', required: false },
   { value: 'currency', label: 'Currency', required: false },
@@ -39,7 +41,8 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
     amountFormat: 'american',
     currencyPrimary: 'USD',
     cashewAccount: '',
-    headerRow: 1  // 1-based indexing for user display
+    headerRow: 1,  // 1-based indexing for user display
+    columnType: 'amount'  // 'amount' or 'debit_credit'
   });
   const [validationResult, setValidationResult] = useState(null);
 
@@ -70,7 +73,8 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
         amountFormat: 'american',
         currencyPrimary: 'USD',
         cashewAccount: '',
-        headerRow: 1
+        headerRow: 1,
+        columnType: 'amount'
       });
       setValidationResult(null);
       analyzeUnknownCSV(selectedFile);
@@ -87,7 +91,8 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
         amountFormat: 'american',
         currencyPrimary: 'USD',
         cashewAccount: '',
-        headerRow: 1
+        headerRow: 1,
+        columnType: 'amount'
       });
       setValidationResult(null);
     }
@@ -111,7 +116,8 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
           expected_headers: result.analysis.headers || [],
           amountFormat: mapDetectedFormat(result.analysis.amount_format_analysis?.detected_format),
           currencyPrimary: detectCurrency(result.analysis.sample_data),
-          headerRow: headerRow || prev.headerRow  // Keep user's header row choice or use provided value
+          headerRow: headerRow || prev.headerRow,  // Keep user's header row choice or use provided value
+          columnType: detectColumnType(result.analysis.headers || [])
         }));
       } else {
         console.warn('API not available, using mock analysis:', result.error);
@@ -184,6 +190,20 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
     return 'USD';
   };
 
+  const detectColumnType = (headers) => {
+    const lowercaseHeaders = headers.map(h => h.toLowerCase());
+    const hasDebit = lowercaseHeaders.some(h => h.includes('debit'));
+    const hasCredit = lowercaseHeaders.some(h => h.includes('credit'));
+    
+    // If both debit and credit columns exist, suggest debit_credit mode
+    if (hasDebit && hasCredit) {
+      return 'debit_credit';
+    }
+    
+    // Default to amount mode
+    return 'amount';
+  };
+
   const startManualConfiguration = (file) => {
     setAnalysis(null);
     setValidationResult(null);
@@ -197,6 +217,7 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
       amountFormat: 'american',
       currencyPrimary: 'USD',
       cashewAccount: generateBankName(file.fileName || file.name),
+      columnType: 'amount',
       manualMode: true
     });
     analyzeForManualConfig(file);
@@ -243,11 +264,21 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
   };
 
   const isConfigValid = (config) => {
-    return config.bankName &&
+    const hasBasicFields = config.bankName &&
       config.displayName &&
       config.columnMappings.date &&
-      config.columnMappings.amount &&
       config.columnMappings.title;
+    
+    // Check amount fields based on column type
+    let hasAmountFields = false;
+    if (config.columnType === 'amount') {
+      hasAmountFields = config.columnMappings.amount;
+    } else if (config.columnType === 'debit_credit') {
+      // For debit/credit, at least one of them should be mapped
+      hasAmountFields = config.columnMappings.debit || config.columnMappings.credit;
+    }
+    
+    return hasBasicFields && hasAmountFields;
   };
 
   const validateConfig = async (config, analysis) => {
@@ -271,8 +302,16 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
 
         if (!config.bankName) validation.errors.push('Bank name is required');
         if (!config.columnMappings.date) validation.errors.push('Date column mapping is required');
-        if (!config.columnMappings.amount) validation.errors.push('Amount column mapping is required');
         if (!config.columnMappings.title) validation.errors.push('Title/Description column mapping is required');
+        
+        // Validate amount fields based on column type
+        if (config.columnType === 'amount') {
+          if (!config.columnMappings.amount) validation.errors.push('Amount column mapping is required');
+        } else if (config.columnType === 'debit_credit') {
+          if (!config.columnMappings.debit && !config.columnMappings.credit) {
+            validation.errors.push('At least one of Debit or Credit column mapping is required');
+          }
+        }
 
         setValidationResult(validation);
       }
@@ -348,8 +387,16 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
   // Header options for mapping dropdowns
   const headerOptions = ['Select column...', ...(analysis?.headers || [])];
 
-  // Mapping fields for the form
-  const mappingFields = STANDARD_FIELDS;
+  // Mapping fields for the form - filter based on column type
+  const mappingFields = STANDARD_FIELDS.filter(field => {
+    if (field.columnType === 'amount' && bankConfig.columnType !== 'amount') {
+      return false;
+    }
+    if (field.columnType === 'debit_credit' && bankConfig.columnType !== 'debit_credit') {
+      return false;
+    }
+    return true;
+  });
 
   // Common input style
   const inputStyle = {
@@ -528,6 +575,47 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
             </div>
           </div>
 
+          {/* Column Type Selection */}
+          <div style={{ marginTop: theme.spacing.md }}>
+            <label style={labelStyle}>
+              Amount Column Type <span style={{ color: theme.colors.error }}>*</span>
+            </label>
+            <div style={{ display: 'flex', gap: theme.spacing.md, marginBottom: theme.spacing.sm }}>
+              <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                <input
+                  type="radio"
+                  name="columnType"
+                  value="amount"
+                  checked={bankConfig.columnType === 'amount'}
+                  onChange={(e) => setBankConfig(prev => ({ ...prev, columnType: e.target.value }))}
+                  style={{ marginRight: theme.spacing.xs }}
+                />
+                Single Amount Column
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                <input
+                  type="radio"
+                  name="columnType"
+                  value="debit_credit"
+                  checked={bankConfig.columnType === 'debit_credit'}
+                  onChange={(e) => setBankConfig(prev => ({ ...prev, columnType: e.target.value }))}
+                  style={{ marginRight: theme.spacing.xs }}
+                />
+                Separate Debit/Credit Columns
+              </label>
+            </div>
+            <div style={{
+              fontSize: '12px',
+              color: theme.colors.text.secondary,
+              marginTop: theme.spacing.xs
+            }}>
+              {bankConfig.columnType === 'amount' 
+                ? 'Use when the CSV has one column for amounts (positive/negative values)'
+                : 'Use when the CSV has separate columns for debits and credits'
+              }
+            </div>
+          </div>
+
           {/* Amount Format Selection */}
           <div style={{ marginTop: theme.spacing.md }}>
             <label style={labelStyle}>
@@ -656,7 +744,7 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
               <div>has_header = true</div>
 
               <div style={{ color: theme.colors.primary, marginTop: theme.spacing.md, marginBottom: theme.spacing.sm }}>[column_mapping]</div>
-              {Object.entries(bankConfig.columnMappings).map(([key, value]) => (
+              {Object.entries(bankConfig.columnMappings).filter(([key, value]) => value).map(([key, value]) => (
                 <div key={key}>{key} = {value}</div>
               ))}
 

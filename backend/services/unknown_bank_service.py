@@ -241,15 +241,31 @@ class UnknownBankService:
 
         try:
             # Check required fields are mapped
-            required_fields = ["date", "amount", "title"]
             column_mapping = config.get("column_mapping", {})
-
-            for field in required_fields:
+            
+            # Always require date and title
+            basic_required_fields = ["date", "title"]
+            for field in basic_required_fields:
                 if field not in column_mapping or not column_mapping[field]:
                     errors.append(
                         f"Required field '{field}' is not mapped to any column"
                     )
                 elif column_mapping[field] not in analysis.headers:
+                    errors.append(
+                        f"Field '{field}' is mapped to '{column_mapping[field]}' which doesn't exist in CSV headers"
+                    )
+            
+            # Check amount field requirements - either amount OR (debit and/or credit)
+            has_amount = column_mapping.get("amount")
+            has_debit = column_mapping.get("debit")
+            has_credit = column_mapping.get("credit")
+            
+            if not has_amount and not has_debit and not has_credit:
+                errors.append("At least one amount field must be mapped: either 'amount' or 'debit'/'credit'")
+            
+            # Validate that mapped columns exist in headers
+            for field in ["amount", "debit", "credit"]:
+                if field in column_mapping and column_mapping[field] and column_mapping[field] not in analysis.headers:
                     errors.append(
                         f"Field '{field}' is mapped to '{column_mapping[field]}' which doesn't exist in CSV headers"
                     )

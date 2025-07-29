@@ -202,32 +202,16 @@ class CashewTransformationService:
         
         print(f"\n   Combined data from all CSVs: {len(all_transformed_data)} total rows")
         
-        # Get bank-specific column mapping from the first CSV's detected bank
+        # Use identity mapping since data is already cleaned with bank-specific configs
         combined_column_mapping = {}
         combined_bank_name = 'multi_bank_combined'
         
-        if csv_data_list and all_transformed_data:
-            # Use the first CSV's bank info to get proper column mapping
-            first_csv = csv_data_list[0]
-            bank_info = first_csv.get('bank_info', {})
-            # Directly use the clean bank name, not the formatted string for logging
-            detected_bank_name = self._get_detected_bank(bank_info)
-            
-            if detected_bank_name and detected_bank_name != 'unknown':
-                # Get bank-specific column mapping from config
-                bank_column_mapping = self.config_service.get_column_mapping(detected_bank_name)
-                if bank_column_mapping:
-                    combined_column_mapping = bank_column_mapping
-                    combined_bank_name = detected_bank_name
-                    print(f"      [SUCCESS] Using bank-specific column mapping for {detected_bank_name}: {combined_column_mapping}")
-                else:
-                    print(f"      [WARNING] No column mapping found for bank {detected_bank_name}, falling back to identity mapping")
-            
-            # Fallback to identity mapping if no bank-specific mapping found
-            if not combined_column_mapping:
-                sample_row = all_transformed_data[0]
-                combined_column_mapping = {field: field for field in sample_row.keys()}
-                print(f"      [FALLBACK] Using identity column mapping: {combined_column_mapping}")
+        if all_transformed_data:
+            # Each CSV was already processed with its own bank configuration during parsing
+            # Use identity mapping to preserve all standardized fields without forcing incompatible column mappings
+            sample_row = all_transformed_data[0]
+            combined_column_mapping = {field: field for field in sample_row.keys() if field not in ['_source_bank']}
+            print(f"      [SUCCESS] Using identity column mapping for multi-bank data: {combined_column_mapping}")
         else:
             print(f"      [WARNING] No data available for column mapping")
         
