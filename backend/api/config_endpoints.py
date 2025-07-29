@@ -20,21 +20,23 @@ config_router = APIRouter()
 
 @config_router.get("/configs", response_model=ConfigListResponse)
 async def list_configs(config_manager = Depends(get_config_manager)):
-    """List available bank configurations"""
+    """List available bank configurations using lightweight detection patterns"""
     print(f" API: Listing available bank configurations...")
     try:
-        available_configs = config_manager.list_configured_banks()
+        # Use detection patterns instead of loading full configs
+        detection_patterns = config_manager.unified_service.get_detection_patterns()
         
-        # Return user-friendly names
+        # Return user-friendly names from detection patterns
         config_display_names = []
-        for bank_name in available_configs:
-            config = config_manager.get_bank_config(bank_name)
-            if config:
-                display_name = f"{config.name.title()} Configuration"
-                config_display_names.append(display_name)
-                print(f" Available: {display_name} (from {bank_name}.conf)")
+        available_configs = []
         
-        print(f" Total configurations found: {len(config_display_names)}")
+        for bank_name, detection_info in detection_patterns.items():
+            display_name = f"{detection_info.display_name} Configuration"
+            config_display_names.append(display_name)
+            available_configs.append(bank_name)
+            print(f" Available: {display_name} (from {bank_name}.conf)")
+        
+        print(f" Total configurations found: {len(config_display_names)} (lightweight)")
         
         return {
             "configurations": config_display_names,

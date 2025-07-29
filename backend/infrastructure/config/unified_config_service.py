@@ -117,9 +117,9 @@ class UnifiedConfigService:
         
         # Load configurations on initialization
         self._load_app_config()
-        self._load_all_bank_configs()
+        self._build_detection_index()
         
-        print(f"[BUILD] [UnifiedConfigService] Initialized with {len(self._bank_configs)} bank configurations")
+        print(f"[BUILD] [UnifiedConfigService] Initialized with {len(self._detection_patterns)} bank detection patterns")
     
     def _resolve_config_dir(self, config_dir: Optional[str]) -> str:
         """Resolve configuration directory path"""
@@ -183,9 +183,9 @@ class UnifiedConfigService:
     
     # ========== Bank Configuration Loading ==========
     
-    def _load_all_bank_configs(self) -> None:
-        """Load all bank configurations from .conf files"""
-        print(f"[BUILD] [UnifiedConfigService] Loading bank configurations from: {self.config_dir}")
+    def _build_detection_index(self) -> None:
+        """Build lightweight detection index by reading only [bank_info] sections from .conf files"""
+        print(f"[BUILD] [UnifiedConfigService] Building detection index from: {self.config_dir}")
         
         if not os.path.exists(self.config_dir):
             print(f"[ERROR] [UnifiedConfigService] Config directory not found: {self.config_dir}")
@@ -202,13 +202,16 @@ class UnifiedConfigService:
             config_path = os.path.join(self.config_dir, config_file)
             
             try:
-                bank_config = self._load_bank_config(config_path, bank_name)
-                if bank_config:
-                    self._bank_configs[bank_name] = bank_config
-                    self._detection_patterns[bank_name] = bank_config.detection_info
-                    print(f"[SUCCESS] [UnifiedConfigService] Loaded config for bank: {bank_name}")
+                # Parse only the [bank_info] section for fast indexing
+                bank_info_data = self._parse_bank_info_section(config_path)
+                if bank_info_data:
+                    detection_info = self._build_detection_info_from_partial(bank_info_data, bank_name)
+                    self._detection_patterns[bank_name] = detection_info
+                    print(f"[SUCCESS] [UnifiedConfigService] Indexed detection patterns for bank: {bank_name}")
+                else:
+                    print(f"[WARNING] [UnifiedConfigService] No [bank_info] section found in {config_file}")
             except Exception as e:
-                print(f"[ERROR] [UnifiedConfigService] Failed to load {config_file}: {e}")
+                print(f"[ERROR] [UnifiedConfigService] Failed to index {config_file}: {e}")
     
     def _load_bank_config(self, config_path: str, bank_name: str) -> Optional[UnifiedBankConfig]:
         """Load individual bank configuration"""
@@ -284,6 +287,91 @@ class UnifiedConfigService:
         except Exception as e:
             print(f"[ERROR] [UnifiedConfigService] Error parsing config for {bank_name}: {e}")
             return None
+    
+    def _parse_bank_info_section(self, config_path: str) -> Optional[Dict[str, str]]:
+        """
+        Parse only the [bank_info] section from a config file for fast detection index building.
+        Returns dictionary with bank_info key-value pairs, or None if section not found.
+        """
+        bank_info_data = {}
+        current_section = None
+        in_bank_info = False
+        
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    
+                    # Skip empty lines and comments
+                    if not line or line.startswith('#') or line.startswith(';'):
+                        continue
+                    
+                    # Check for section headers
+                    if line.startswith('[') and line.endswith(']'):
+                        current_section = line[1:-1].strip()
+                        
+                        if current_section == 'bank_info':
+                            in_bank_info = True
+                            continue
+                        elif in_bank_info:
+                            # We've finished the bank_info section, can stop reading
+                            break
+                        else:
+                            in_bank_info = False
+                            continue
+                    
+                    # Parse key-value pairs within [bank_info] section
+                    if in_bank_info and '=' in line:
+                        key, value = line.split('=', 1)
+                        bank_info_data[key.strip()] = value.strip()
+            
+            return bank_info_data if bank_info_data else None
+            
+        except Exception as e:
+            print(f"[ERROR] [UnifiedConfigService] Failed to parse bank_info from {config_path}: {e}")
+            return None
+    
+    def _build_detection_info_from_partial(self, bank_info_data: Dict[str, str], bank_name: str) -> BankDetectionInfo:
+        """
+        Build BankDetectionInfo from partial bank_info data (for fast indexing).
+        Used by _build_detection_index for lightweight startup.
+        """
+        display_name = bank_info_data.get('display_name', bank_name.title())
+        
+        # Extract content signatures
+        content_signatures = []
+        if 'detection_content_signatures' in bank_info_data:
+            content_signatures = [sig.strip() for sig in bank_info_data['detection_content_signatures'].split(',')]
+        
+        # Extract required headers
+        required_headers = []
+        if 'expected_headers' in bank_info_data:
+            required_headers = [header.strip() for header in bank_info_data['expected_headers'].split(',')]
+        
+        # Extract filename patterns
+        filename_patterns = [bank_name.lower()]  # Default pattern
+        
+        # Add simple file patterns
+        if 'file_patterns' in bank_info_data:
+            patterns = [pattern.strip() for pattern in bank_info_data['file_patterns'].split(',')]
+            filename_patterns.extend(patterns)
+        
+        # Add regex patterns
+        if 'filename_regex_patterns' in bank_info_data:
+            regex_patterns = [pattern.strip() for pattern in bank_info_data['filename_regex_patterns'].split(',')]
+            filename_patterns.extend(regex_patterns)
+        
+        # Extract confidence weight
+        confidence_weight = float(bank_info_data.get('confidence_weight', 1.0))
+        
+        return BankDetectionInfo(
+            bank_name=bank_name,
+            display_name=display_name,
+            content_signatures=content_signatures,
+            required_headers=required_headers,
+            filename_patterns=filename_patterns,
+            confidence_weight=confidence_weight
+        )
     
     def _build_detection_info(self, config: configparser.ConfigParser, bank_name: str, display_name: str) -> BankDetectionInfo:
         """Build bank detection information from config"""
@@ -510,11 +598,38 @@ class UnifiedConfigService:
     
     def list_banks(self) -> List[str]:
         """List all available bank configurations"""
-        return list(self._bank_configs.keys())
+        return list(self._detection_patterns.keys())
     
     def get_bank_config(self, bank_name: str) -> Optional[UnifiedBankConfig]:
-        """Get bank configuration by name"""
-        return self._bank_configs.get(bank_name)
+        """
+        Get bank configuration by name with lazy loading.
+        Loads configuration from disk on first access and caches it.
+        """
+        # Check cache first
+        if bank_name in self._bank_configs:
+            return self._bank_configs[bank_name]
+        
+        # Cache miss - load from disk
+        config_path = os.path.join(self.config_dir, f"{bank_name}.conf")
+        
+        # Verify file exists
+        if not os.path.exists(config_path):
+            return None
+        
+        try:
+            # Load full configuration using existing method
+            bank_config = self._load_bank_config(config_path, bank_name)
+            if bank_config:
+                # Cache the loaded configuration
+                self._bank_configs[bank_name] = bank_config
+                print(f"[LAZY_LOAD] [UnifiedConfigService] Loaded and cached config for bank: {bank_name}")
+                return bank_config
+            else:
+                print(f"[ERROR] [UnifiedConfigService] Failed to load config for bank: {bank_name}")
+                return None
+        except Exception as e:
+            print(f"[ERROR] [UnifiedConfigService] Error lazy loading config for {bank_name}: {e}")
+            return None
     
     def get_detection_patterns(self) -> Dict[str, BankDetectionInfo]:
         """Get all bank detection patterns"""
@@ -740,25 +855,86 @@ class UnifiedConfigService:
     
     def has_bank_config(self, bank_name: str) -> bool:
         """Check if a bank configuration exists"""
-        return bank_name in self._bank_configs
+        return bank_name in self._detection_patterns
     
     def reload_all_configs(self) -> bool:
-        """Hot-reload all bank configurations"""
+        """Hot-reload all bank configurations and rebuild detection index"""
         try:
             print("[INFO] [UnifiedConfigService] Reloading all configurations...")
             
-            # Clear existing configs
+            # Clear both caches
             self._bank_configs.clear()
             self._detection_patterns.clear()
             
-            # Reload all configurations
-            self._load_all_bank_configs()
+            # Rebuild detection index
+            self._build_detection_index()
             
-            print(f"[SUCCESS] [UnifiedConfigService] Reloaded {len(self._bank_configs)} bank configurations")
+            print(f"[SUCCESS] [UnifiedConfigService] Reloaded {len(self._detection_patterns)} bank detection patterns")
             return True
             
         except Exception as e:
             print(f"[ERROR] [UnifiedConfigService] Failed to reload configs: {e}")
+            return False
+    
+    def add_bank_config_dynamically(self, bank_name: str, config_data: Dict[str, Any]) -> bool:
+        """
+        Dynamically add a new bank configuration for unknown bank panel support.
+        Updates both detection index and enables immediate lazy loading.
+        """
+        try:
+            # First save the configuration to disk
+            if not self.save_bank_config(bank_name, config_data):
+                return False
+            
+            # Extract bank_info for detection index
+            bank_info_data = config_data.get('bank_info', {})
+            if bank_info_data:
+                # Create detection info and add to index
+                detection_info = self._build_detection_info_from_partial(bank_info_data, bank_name)
+                self._detection_patterns[bank_name] = detection_info
+                print(f"[DYNAMIC_ADD] [UnifiedConfigService] Added detection patterns for new bank: {bank_name}")
+            
+            # Note: Full config will be lazy loaded when first requested via get_bank_config()
+            print(f"[SUCCESS] [UnifiedConfigService] Dynamically added bank configuration: {bank_name}")
+            return True
+            
+        except Exception as e:
+            print(f"[ERROR] [UnifiedConfigService] Failed to dynamically add bank config {bank_name}: {e}")
+            return False
+    
+    def refresh_bank_detection_index(self, bank_name: str) -> bool:
+        """
+        Refresh detection index for a specific bank (useful after config file changes).
+        """
+        try:
+            config_path = os.path.join(self.config_dir, f"{bank_name}.conf")
+            
+            if not os.path.exists(config_path):
+                # Remove from index if file no longer exists
+                if bank_name in self._detection_patterns:
+                    del self._detection_patterns[bank_name]
+                    print(f"[REFRESH] [UnifiedConfigService] Removed detection patterns for deleted bank: {bank_name}")
+                return True
+            
+            # Parse bank_info and update detection index
+            bank_info_data = self._parse_bank_info_section(config_path)
+            if bank_info_data:
+                detection_info = self._build_detection_info_from_partial(bank_info_data, bank_name)
+                self._detection_patterns[bank_name] = detection_info
+                print(f"[REFRESH] [UnifiedConfigService] Refreshed detection patterns for bank: {bank_name}")
+                
+                # Clear cached config to force reload
+                if bank_name in self._bank_configs:
+                    del self._bank_configs[bank_name]
+                    print(f"[REFRESH] [UnifiedConfigService] Cleared cached config for bank: {bank_name}")
+                
+                return True
+            else:
+                print(f"[WARNING] [UnifiedConfigService] No [bank_info] section found when refreshing {bank_name}")
+                return False
+                
+        except Exception as e:
+            print(f"[ERROR] [UnifiedConfigService] Failed to refresh detection index for {bank_name}: {e}")
             return False
     
     # ========== Configuration Save/Load API ==========
@@ -782,9 +958,6 @@ class UnifiedConfigService:
             # Write to file
             with open(config_path, 'w') as config_file:
                 config.write(config_file)
-            
-            # Reload configuration
-            self._load_all_bank_configs()
             
             print(f"[SUCCESS] [UnifiedConfigService] Saved configuration for {bank_name}")
             return True
