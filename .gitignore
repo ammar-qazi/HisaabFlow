@@ -108,6 +108,7 @@ Thumbs.db
 
 # MCP specific
 codemcp.toml.bak
+.mcp.json
 
 # Development files (local only)
 *.desktop
