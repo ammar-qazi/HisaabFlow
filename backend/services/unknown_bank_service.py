@@ -85,14 +85,25 @@ class UnknownBankService:
             # and get all raw rows to let StructureAnalyzer do proper header detection
             if header_row is None:
                 # Initial upload - get all raw rows without header processing
-                print(f"🔍 [DEBUG] Getting all raw rows for StructureAnalyzer to analyze")
-                parsing_result = parser.parse_csv(file_path, encoding=None, header_row=None, start_row=None)
+                print(
+                    f"🔍 [DEBUG] Getting all raw rows for StructureAnalyzer to analyze"
+                )
+                parsing_result = parser.parse_csv(
+                    file_path, encoding=None, header_row=None, start_row=None
+                )
             else:
                 # Re-analysis with specific header row - use our calculations
                 parser_header_row = header_row - 1  # Convert 1-based to 0-based
                 start_row = parser_header_row + 1
-                print(f"🔍 [DEBUG] Using specific header_row: {header_row} -> parser_header_row={parser_header_row} -> start_row={start_row}")
-                parsing_result = parser.parse_csv(file_path, encoding=None, header_row=parser_header_row, start_row=start_row)
+                print(
+                    f"🔍 [DEBUG] Using specific header_row: {header_row} -> parser_header_row={parser_header_row} -> start_row={start_row}"
+                )
+                parsing_result = parser.parse_csv(
+                    file_path,
+                    encoding=None,
+                    header_row=parser_header_row,
+                    start_row=start_row,
+                )
             print(f"🔍 [DEBUG] Parsing result success: {parsing_result.get('success')}")
 
             if not parsing_result.get("success"):
@@ -105,8 +116,12 @@ class UnknownBankService:
             encoding_detection = metadata.get("encoding_detection", {})
             detected_encoding = encoding_detection.get("encoding", "utf-8")
             print(f"  DEBUG: UnknownBankService - Metadata: {metadata}")
-            print(f"  DEBUG: UnknownBankService - Encoding detection: {encoding_detection}")
-            print(f"  DEBUG: UnknownBankService - Detected encoding: {detected_encoding}")
+            print(
+                f"  DEBUG: UnknownBankService - Encoding detection: {encoding_detection}"
+            )
+            print(
+                f"  DEBUG: UnknownBankService - Detected encoding: {detected_encoding}"
+            )
             # Get delimiter from metadata
             dialect_detection = metadata.get("dialect_detection", {})
             detected_delimiter = dialect_detection.get("delimiter", ",")
@@ -129,19 +144,36 @@ class UnknownBankService:
             # that can occur with complex line terminators in UnifiedCSVParser
             if header_row is None:
                 print(f"🔍 [DEBUG] Reading file directly for unknown bank analysis")
-                with open(file_path, 'r', encoding=detected_encoding) as f:
+                with open(file_path, "r", encoding=detected_encoding) as f:
                     csv_data = f.read()
-            
+                # Pass header_row for auto-detection
+                analyzer_header_row = header_row
+            else:
+                # When user specifies header_row, read file directly and pass the user's choice
+                # This ensures the user's header row selection is respected
+                print(
+                    f"🔍 [DEBUG] Reading file directly to respect user's header row choice: {header_row}"
+                )
+                with open(file_path, "r", encoding=detected_encoding) as f:
+                    csv_data = f.read()
+                # Pass 1-based header_row directly to analyzer (it will convert to 0-based internally)
+                analyzer_header_row = header_row
+                print(
+                    f"🔍 [DEBUG] Passing header_row {header_row} (1-based) to analyzer"
+                )
+
             # Now, use the parsed data to perform the analysis
             analysis = self.structure_analyzer.analyze_unknown_csv(
                 csv_data=csv_data,
                 filename=filename,
                 encoding=detected_encoding,
                 delimiter=detected_delimiter,
-                header_row=header_row,
+                header_row=analyzer_header_row,
             )
 
-            print(f"  DEBUG: UnknownBankService - Analysis object encoding: {analysis.encoding}")
+            print(
+                f"  DEBUG: UnknownBankService - Analysis object encoding: {analysis.encoding}"
+            )
             print(
                 f"  Analysis complete. Structure confidence: {analysis.structure_confidence:.2f}"
             )
@@ -192,7 +224,8 @@ class UnknownBankService:
                 "csv_config": {
                     "encoding": analysis.encoding,
                     "delimiter": analysis.delimiter,
-                    "header_row": analysis.header_row + 1,  # Convert to 1-based for config file
+                    "header_row": analysis.header_row
+                    + 1,  # Convert to 1-based for config file
                     "has_header": True,
                     "skip_rows": 0,
                 },
@@ -242,7 +275,7 @@ class UnknownBankService:
         try:
             # Check required fields are mapped
             column_mapping = config.get("column_mapping", {})
-            
+
             # Always require date and title
             basic_required_fields = ["date", "title"]
             for field in basic_required_fields:
@@ -254,18 +287,24 @@ class UnknownBankService:
                     errors.append(
                         f"Field '{field}' is mapped to '{column_mapping[field]}' which doesn't exist in CSV headers"
                     )
-            
+
             # Check amount field requirements - either amount OR (debit and/or credit)
             has_amount = column_mapping.get("amount")
             has_debit = column_mapping.get("debit")
             has_credit = column_mapping.get("credit")
-            
+
             if not has_amount and not has_debit and not has_credit:
-                errors.append("At least one amount field must be mapped: either 'amount' or 'debit'/'credit'")
-            
+                errors.append(
+                    "At least one amount field must be mapped: either 'amount' or 'debit'/'credit'"
+                )
+
             # Validate that mapped columns exist in headers
             for field in ["amount", "debit", "credit"]:
-                if field in column_mapping and column_mapping[field] and column_mapping[field] not in analysis.headers:
+                if (
+                    field in column_mapping
+                    and column_mapping[field]
+                    and column_mapping[field] not in analysis.headers
+                ):
                     errors.append(
                         f"Field '{field}' is mapped to '{column_mapping[field]}' which doesn't exist in CSV headers"
                     )
@@ -362,7 +401,9 @@ class UnknownBankService:
             config_path = os.path.join(config_dir, config_filename)
 
             # Create ConfigParser object
-            config_parser = config_parser = configparser.ConfigParser(allow_no_value=True)
+            config_parser = config_parser = configparser.ConfigParser(
+                allow_no_value=True
+            )
 
             # Add sections to config file
             self._add_bank_info_section(config_parser, config["bank_info"])
