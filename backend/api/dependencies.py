@@ -25,10 +25,11 @@ def get_parsing_service() -> ParsingService:
     return ParsingService()
 
 
-@lru_cache()
 def get_multi_csv_service() -> MultiCSVService:
-    """Get singleton MultiCSVService instance"""
-    return MultiCSVService()
+    """Get MultiCSVService instance with preview service for bank detection caching"""
+    # Get preview service for bank detection caching
+    preview_service = get_preview_service()
+    return MultiCSVService(preview_service=preview_service)
 
 
 @lru_cache()

@@ -9,11 +9,16 @@ from backend.core.csv_processing.csv_processing_service import CSVProcessingServ
 from backend.infrastructure.csv_parsing.adapters import (
     UnifiedCSVParserAdapter, CSVPreprocessorAdapter, EncodingDetectorAdapter
 )
+from backend.services.preview_service import PreviewService
+from backend.infrastructure.config.unified_config_service import get_unified_config_service
 
 
-def create_csv_processing_service() -> CSVProcessingService:
+def create_csv_processing_service(preview_service=None) -> CSVProcessingService:
     """
     Factory function to create CSVProcessingService with injected dependencies
+    
+    Args:
+        preview_service: Optional preview service for cached bank detection
     
     Returns:
         CSVProcessingService: Configured service instance
@@ -27,7 +32,8 @@ def create_csv_processing_service() -> CSVProcessingService:
     return CSVProcessingService(
         csv_parser=csv_parser,
         csv_preprocessor=csv_preprocessor,
-        encoding_detector=encoding_detector
+        encoding_detector=encoding_detector,
+        preview_service=preview_service
     )
 
 

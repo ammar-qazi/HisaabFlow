@@ -14,6 +14,7 @@ from backend.infrastructure.csv_cleaning.data_cleaner import DataCleaner
 from backend.core.bank_detection import BankDetector
 from backend.infrastructure.config.unified_config_service import get_unified_config_service
 from backend.shared.models.csv_models import BankDetectionResult
+from backend.services.bank_detection_cache import get_bank_detection_cache
 
 
 class CSVProcessingService:
@@ -22,7 +23,8 @@ class CSVProcessingService:
     def __init__(self, 
                  csv_parser: CSVParserPort,
                  csv_preprocessor: CSVPreprocessorPort,
-                 encoding_detector: EncodingDetectorPort):
+                 encoding_detector: EncodingDetectorPort,
+                 preview_service=None):
         """
         Initialize service with injected dependencies
         
@@ -30,10 +32,12 @@ class CSVProcessingService:
             csv_parser: CSV parsing implementation
             csv_preprocessor: CSV preprocessing implementation  
             encoding_detector: Encoding detection implementation
+            preview_service: Preview service for cached bank detection (optional)
         """
         self.csv_parser = csv_parser
         self.csv_preprocessor = csv_preprocessor
         self.encoding_detector = encoding_detector
+        self.preview_service = preview_service
         
         # Domain services - these stay as direct dependencies
         self.config_service = get_unified_config_service()
@@ -74,7 +78,7 @@ class CSVProcessingService:
             # Step 4: Bank detection and header finding
             bank_detection, header_info = self._detect_bank_and_headers(
                 preprocessing_result['file_path'], filename, current_config,
-                effective_encoding, preprocessing_result['info']['applied']
+                effective_encoding, preprocessing_result['info']['applied'], initial_bank_detection
             )
             
             # Step 5: Parse with enhanced parser
@@ -165,6 +169,46 @@ class CSVProcessingService:
     
     def _initial_bank_detection(self, filename: str, file_path: str, encoding: str) -> Dict[str, Any]:
         """Phase 1: Initial detection with raw file access for filename + content signatures"""
+        
+        # Try to use cached bank detection result from global cache first
+        cache = get_bank_detection_cache()
+        cached_result = cache.get(filename, file_path)
+        if cached_result:
+            print(f"      ✅ [CACHE] Using cached bank detection for {filename}: {cached_result['bank_name']} (confidence: {cached_result['confidence']:.2f})")
+            
+            # Extract component scores from cached reasons
+            filename_score = self._extract_component_score(cached_result['reasons'], 'filename_match')
+            content_score = self._extract_component_score(cached_result['reasons'], 'content_signature')
+            
+            # Check preprocessing config if bank detected
+            uses_absolute_positioning = False
+            if cached_result['bank_name'] != 'unknown' and cached_result['confidence'] >= 0.5:
+                try:
+                    config_file_path = os.path.join(self.config_service.config_dir, f"{cached_result['bank_name']}.conf")
+                    if os.path.exists(config_file_path):
+                        raw_config = configparser.ConfigParser(allow_no_value=True)
+                        raw_config.read(config_file_path)
+                        header_row = raw_config.getint('csv_config', 'header_row', fallback=None)
+                        uses_absolute_positioning = header_row is not None
+                except Exception:
+                    pass
+            
+            return {
+                'bank_name': cached_result['bank_name'],
+                'confidence': cached_result['confidence'],
+                'reasons': cached_result['reasons'],
+                'detection_phase': 'cached_initial',
+                'uses_absolute_positioning': uses_absolute_positioning,
+                'components': {
+                    'filename_score': filename_score,
+                    'content_score': content_score,
+                    'header_score': 0.0  # Not available yet
+                }
+            }
+        
+        # Fallback to original detection if no cache available
+        print(f"      🔍 [DETECTION] No cached result available, performing fresh bank detection for {filename}")
+        
         # Read raw content for content signature matching with encoding fallback
         raw_content = ""
         encoding_used = encoding
@@ -201,7 +245,7 @@ class CSVProcessingService:
             try:
                 config_file_path = os.path.join(self.config_service.config_dir, f"{initial_result.bank_name}.conf")
                 if os.path.exists(config_file_path):
-                    raw_config = config_parser = configparser.ConfigParser(allow_no_value=True)
+                    raw_config = configparser.ConfigParser(allow_no_value=True)
                     raw_config.read(config_file_path)
                     header_row = raw_config.getint('csv_config', 'header_row', fallback=None)
                     uses_absolute_positioning = header_row is not None
@@ -276,33 +320,23 @@ class CSVProcessingService:
         }
     
     def _detect_bank_and_headers(self, file_path: str, filename: str, current_file_config: Any, 
-                                file_encoding: str, preprocessing_applied: bool) -> Tuple[Any, Dict[str, Any]]:
-        """Detect bank and validate header using robust header validation"""
+                                file_encoding: str, preprocessing_applied: bool, 
+                                initial_detection: Dict[str, Any]) -> Tuple[Any, Dict[str, Any]]:
+        """Detect bank and validate header using robust header validation - optimized to reuse initial detection"""
         from backend.infrastructure.csv_parsing.header_validator import find_and_validate_header, HeaderValidationError
         
-        print(f"      Detecting bank and headers for {filename} with encoding {file_encoding}")
+        print(f"      ⚡ [OPTIMIZED] Using cached bank detection for header validation: {filename}")
         
-        # Read initial content for bank detection
-        content_for_detection = ""
-        sample_headers_for_detection = []
-        try:
-            with open(file_path, 'r', encoding=file_encoding, newline='') as f:
-                raw_lines_for_detection = [next(f, '') for _ in range(20)]
-            content_for_detection = "".join(raw_lines_for_detection)
-            for line in raw_lines_for_detection:
-                if line.strip():
-                    sample_headers_for_detection = [h.strip() for h in line.split(',')]
-                    break
-        except Exception as e:
-            print(f"         [WARNING] Could not read initial lines from {file_path} for bank detection: {e}")
-        
-        # Create fresh BankDetector with latest patterns
-        bank_detector = BankDetector(self.config_service)
-        bank_detection_result = bank_detector.detect_bank(filename, content_for_detection, sample_headers_for_detection)
+        # Use the initial detection result instead of re-detecting
+        bank_detection_result = type('BankDetectionResult', (), {
+            'bank_name': initial_detection['bank_name'],
+            'confidence': initial_detection['confidence'],
+            'reasons': initial_detection['reasons']
+        })()
         
         if bank_detection_result.bank_name != 'unknown' and bank_detection_result.confidence >= 0.5:
             detected_bank_name = bank_detection_result.bank_name
-            print(f"      Tentatively detected bank: {detected_bank_name} (confidence: {bank_detection_result.confidence:.2f})")
+            print(f"      ✅ [CACHED] Using detected bank: {detected_bank_name} (confidence: {bank_detection_result.confidence:.2f})")
             
             try:
                 # Get config from the unified service
@@ -456,17 +490,41 @@ class CSVProcessingService:
     
     def _finalize_bank_detection(self, filename: str, parse_result: Dict[str, Any], 
                                 initial_detection: Dict[str, Any], preprocessing_info: Dict[str, Any]) -> Dict[str, Any]:
-        """Finalize bank detection using hybrid approach"""
-        print(f"      Hybrid bank detection for {filename}")
+        """Finalize bank detection using optimized approach - reuse cached results when possible"""
+        print(f"      ⚡ [OPTIMIZED] Finalizing bank detection for {filename}")
         
-        # Phase 2: Header-only detection
         headers = parse_result.get('headers', [])
-        header_detection = self._header_bank_detection(filename, headers)
+        
+        # Check if we can reuse cached header detection from global cache
+        header_detection = None
+        cache = get_bank_detection_cache()
+        cached_result = cache.get(filename, parse_result.get('file_path', ''))
+        if cached_result and cached_result.get('headers'):
+            # Calculate header score from cached result
+            cached_header_score = self._extract_component_score(cached_result['reasons'], 'header_match')
+            if cached_header_score > 0:
+                print(f"      ✅ [CACHE] Reusing header detection from cache (header_score: {cached_header_score:.1f})")
+                header_detection = {
+                    'bank_name': cached_result['bank_name'],
+                    'confidence': cached_result['confidence'],
+                    'reasons': cached_result['reasons'],
+                    'detection_phase': 'cached_header',
+                    'components': {
+                        'filename_score': self._extract_component_score(cached_result['reasons'], 'filename_match'),
+                        'content_score': 0.0,  # Not used in header phase
+                        'header_score': cached_header_score
+                    }
+                }
+        
+        # Fallback to fresh header detection if no cache available
+        if not header_detection:
+            print(f"      🔍 [DETECTION] Performing fresh header detection for {filename}")
+            header_detection = self._header_bank_detection(filename, headers)
         
         # Phase 3: Hybrid confidence calculation
         hybrid_result = self._calculate_hybrid_confidence(initial_detection, header_detection)
         
-        print(f"      Hybrid bank detected: {hybrid_result['bank_name']} (confidence={hybrid_result['confidence']:.2f})")
+        print(f"      ✅ [FINAL] Bank detected: {hybrid_result['bank_name']} (confidence={hybrid_result['confidence']:.2f})")
         print(f"      Component scores - Filename: {hybrid_result['detection_phases']['initial']['components']['filename_score']:.1f}, Content: {hybrid_result['detection_phases']['initial']['components']['content_score']:.1f}, Header: {hybrid_result['detection_phases']['header']['components']['header_score']:.1f}")
         
         # Store comprehensive bank detection info

@@ -5,21 +5,22 @@ import os
 from typing import Any, Dict, List
 from backend.shared.models.csv_models import CSVRow, BankDetectionResult
 from decimal import Decimal
-from backend.infrastructure.config.dependency_injection import get_csv_processing_service
+
 from backend.services.export_formatting_service import ExportFormattingService
 from backend.infrastructure.config.unified_config_service import get_unified_config_service
 
 class MultiCSVService:
     """Service for coordinating multi-CSV parsing operations using focused services"""
     
-    def __init__(self):
+    def __init__(self, preview_service=None):
         self.config_service = get_unified_config_service()
         
-        # Initialize focused services
-        self.csv_processing_service = get_csv_processing_service()
+        # Initialize focused services with preview service for bank detection caching
+        from backend.infrastructure.config.dependency_injection import create_csv_processing_service
+        self.csv_processing_service = create_csv_processing_service(preview_service=preview_service)
         self.export_formatting_service = ExportFormattingService()
         
-        print(f"ℹ [MultiCSVService] Initialized with focused services")
+        print(f"ℹ [MultiCSVService] Initialized with focused services and bank detection caching")
     
     def parse_multiple_files(self, file_infos: list, parse_configs: list, 
                            enable_cleaning: bool = True, use_pydantic: bool = False):
