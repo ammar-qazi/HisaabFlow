@@ -125,14 +125,24 @@ function InteractiveDataTable({
       Object.keys(item).forEach(key => allKeys.add(key));
     });
 
-    // In review mode, apply ordered columns but handle lowercase backend data
+    // In review mode, apply ordered columns but handle case variations
     if (isReviewMode) {
       const preferredOrder = ['date', 'title', 'amount', 'note', 'currency', 'category', 'account', 'backuptitle', 'backupdate'];
+      
+      // Find actual keys that match preferred order (case-insensitive)
+      const matchedKeys = [];
+      preferredOrder.forEach(preferred => {
+        const actualKey = Array.from(allKeys).find(key => key.toLowerCase() === preferred.toLowerCase());
+        if (actualKey) {
+          matchedKeys.push(actualKey);
+        }
+      });
+      
       const otherKeys = Array.from(allKeys).filter(key => 
         !preferredOrder.includes(key.toLowerCase()) && !key.startsWith('_') // Hide internal fields
       );
       // Add row index as first column in review mode
-      return ['__row_index__', ...preferredOrder.filter(key => allKeys.has(key)), ...otherKeys];
+      return ['__row_index__', ...matchedKeys, ...otherKeys];
     }
 
     // Define preferred column order - only show these columns

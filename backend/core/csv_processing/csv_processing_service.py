@@ -197,7 +197,7 @@ class CSVProcessingService:
         
         # Check preprocessing config if bank detected
         uses_absolute_positioning = False
-        if initial_result.bank_name != 'unknown' and initial_result.confidence >= 0.1:
+        if initial_result.bank_name != 'unknown' and initial_result.confidence >= 0.5:
             try:
                 config_file_path = os.path.join(self.config_service.config_dir, f"{initial_result.bank_name}.conf")
                 if os.path.exists(config_file_path):
@@ -300,7 +300,7 @@ class CSVProcessingService:
         bank_detector = BankDetector(self.config_service)
         bank_detection_result = bank_detector.detect_bank(filename, content_for_detection, sample_headers_for_detection)
         
-        if bank_detection_result.bank_name != 'unknown' and bank_detection_result.confidence > 0.1:
+        if bank_detection_result.bank_name != 'unknown' and bank_detection_result.confidence >= 0.5:
             detected_bank_name = bank_detection_result.bank_name
             print(f"      Tentatively detected bank: {detected_bank_name} (confidence: {bank_detection_result.confidence:.2f})")
             

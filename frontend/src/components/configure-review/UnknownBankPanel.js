@@ -107,6 +107,8 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
       if (result.success) {
         console.log('DEBUG: Frontend - Analysis result received:', result.analysis);
         console.log('DEBUG: Frontend - Analysis encoding:', result.analysis?.encoding);
+        console.log('DEBUG: Frontend - Sample data being set:', result.analysis?.sample_data);
+        console.log('DEBUG: Frontend - Headers received:', result.analysis?.headers);
         setAnalysis(result.analysis);
         setBankConfig(prev => ({
           ...prev,
@@ -654,6 +656,7 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
               Sample Data Preview
             </h2>
             <div>
+              {console.log('DEBUG: Frontend - Rendering InteractiveDataTable with data:', analysis.sample_data)}
               <InteractiveDataTable
                 data={analysis.sample_data}
                 isReviewMode={true}
