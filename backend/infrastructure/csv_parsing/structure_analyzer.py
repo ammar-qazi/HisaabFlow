@@ -39,11 +39,32 @@ class StructureAnalyzer:
     """Analyze CSV structure and detect patterns"""
     
     def __init__(self):
-        self.header_indicators = [
-            'date', 'timestamp', 'time', 'amount', 'balance', 'description', 
-            'type', 'category', 'account', 'reference', 'id', 'transaction',
-            'currency', 'memo', 'payee', 'value', 'debit', 'credit', 'status'
-        ]
+        
+        # Multilingual financial keywords for global CSV support
+        self.multilingual_header_indicators = {
+            'en': ['date', 'timestamp', 'time', 'amount', 'balance', 'description', 
+                   'transaction', 'debit', 'credit', 'type', 'category', 'account', 
+                   'reference', 'memo', 'payee', 'value', 'currency', 'status',
+                   'opening', 'closing', 'spent', 'income'],
+            'es': ['fecha', 'importe', 'saldo', 'descripcion', 'descripción', 'transaccion', 
+                   'transacción', 'debe', 'haber', 'tipo', 'categoria', 'categoría', 
+                   'cuenta', 'referencia', 'memo', 'beneficiario', 'valor', 'moneda'],
+            'fr': ['date', 'montant', 'solde', 'description', 'transaction', 
+                   'debit', 'débit', 'credit', 'crédit', 'type', 'categorie', 
+                   'catégorie', 'compte', 'reference', 'référence', 'memo', 'valeur'],
+            'de': ['datum', 'betrag', 'saldo', 'beschreibung', 'transaktion', 
+                   'soll', 'haben', 'typ', 'kategorie', 'konto', 'referenz', 
+                   'memo', 'wert', 'währung', 'waehrung'],
+            'it': ['data', 'importo', 'saldo', 'descrizione', 'transazione', 
+                   'addebito', 'accredito', 'tipo', 'categoria', 'conto', 
+                   'riferimento', 'memo', 'valore', 'valuta'],
+            'pt': ['data', 'valor', 'saldo', 'descrição', 'descricao', 'transação', 
+                   'transacao', 'débito', 'debito', 'crédito', 'credito', 'tipo', 
+                   'categoria', 'conta', 'referência', 'referencia', 'moeda'],
+            'nl': ['datum', 'bedrag', 'saldo', 'omschrijving', 'transactie', 
+                   'debet', 'credit', 'type', 'categorie', 'rekening', 
+                   'referentie', 'memo', 'waarde', 'valuta']
+        }
         
         # Enhanced field mapping patterns for unknown bank support
         self.standard_field_patterns = {
@@ -104,8 +125,8 @@ class StructureAnalyzer:
             row_count = len(sample_rows)
             col_count = len(sample_rows[0]) if sample_rows else 0
             
-            # Detect header row
-            header_detection = self.detect_header_row(sample_rows)
+            # Detect header row using global method
+            header_detection = self.detect_header_row_global(sample_rows)
             
             # Get headers and data for analysis
             suggested_header_row = header_detection.get('suggested_row', 0)
@@ -138,44 +159,166 @@ class StructureAnalyzer:
             print(f"[ERROR]  Structure analysis failed: {str(e)}")
             return {'success': False, 'error': f"Structure analysis failed: {str(e)}"}
     
-    def detect_header_row(self, sample_rows: List[List[str]]) -> Dict:
-        """Detect the most likely header row"""
+    
+    def detect_header_row_global(self, sample_rows: List[List[str]]) -> Dict:
+        """
+        Global header detection with multilingual support and no-header detection.
+        
+        Args:
+            sample_rows: First few rows of the CSV
+            
+        Returns:
+            dict: {
+                'suggested_row': int or None,
+                'confidence': float,
+                'has_headers': bool,
+                'method': str,
+                'detected_languages': List[str]
+            }
+        """
+        print(f" Global header detection on {len(sample_rows)} sample rows")
+        
         if not sample_rows:
-            return {'suggested_row': None, 'confidence': 0.0, 'method': 'none'}
+            return {
+                'suggested_row': None, 
+                'confidence': 0.0, 
+                'has_headers': False, 
+                'method': 'no_data',
+                'detected_languages': []
+            }
         
         scores = []
+        detected_languages = set()
         
-        # Analyze first few rows as potential headers
-        for row_idx in range(min(3, len(sample_rows))):
+        # Analyze first 20 rows as potential headers (many bank CSVs have metadata at top)
+        for row_idx in range(min(20, len(sample_rows))):
             row = sample_rows[row_idx]
+            if not row:  # Skip empty rows
+                continue
+                
             score = 0
+            row_languages = set()
             
-            # Score based on header indicators
-            for cell in row:
-                cell_lower = str(cell).lower().strip()
-                for indicator in self.header_indicators:
-                    if indicator in cell_lower:
-                        score += 2
-                        break
-                else:
-                    # Check for non-numeric content
-                    if cell_lower and not cell_lower.replace('.', '').replace('-', '').replace(',', '').isdigit():
-                        score += 1
+            # Multi-language keyword matching
+            for lang, keywords in self.multilingual_header_indicators.items():
+                lang_matches = 0
+                for cell in row:
+                    cell_lower = str(cell).lower().strip()
+                    if any(keyword in cell_lower for keyword in keywords):
+                        lang_matches += 1
+                        row_languages.add(lang)
+                
+                if lang_matches > 0:
+                    score += lang_matches * 2  # Strong signal for header keywords
+                    # Bonus for multiple financial keywords in same row
+                    if lang_matches >= 3:  # 3+ financial terms = likely header row
+                        score += 5
+                    detected_languages.update(row_languages)
             
-            scores.append({'row_index': row_idx, 'score': score})
+            # Data type consistency check (headers should be mostly text, not pure numbers)
+            text_cells = sum(1 for cell in row if self._is_text_not_data(str(cell)))
+            if len(row) > 0:
+                score += (text_cells / len(row)) * 1.5
+            
+            # Next row validation (should look like actual data)
+            if row_idx + 1 < len(sample_rows):
+                next_row = sample_rows[row_idx + 1]
+                data_score = self._score_as_data_row(next_row)
+                score += data_score * 2  # Very strong signal
+            
+            scores.append({
+                'row_index': row_idx, 
+                'score': score,
+                'languages': row_languages
+            })
+            
+            print(f"  Row {row_idx}: score={score:.2f}, languages={list(row_languages)}")
         
-        # Find best scoring row
+        # Determine if file has headers
         if scores:
             best_entry = max(scores, key=lambda x: x['score'])
-            confidence = min(best_entry['score'] / 10.0, 1.0) if best_entry['score'] > 0 else 0.1
+            
+            # No headers threshold - if best score is too low, assume no headers
+            NO_HEADERS_THRESHOLD = 3.0  # Requires at least some clear header indicators
+            if best_entry['score'] < NO_HEADERS_THRESHOLD:
+                print(f"  No headers detected (best score {best_entry['score']:.2f} < {NO_HEADERS_THRESHOLD})")
+                return {
+                    'suggested_row': None,
+                    'confidence': 0.0,
+                    'has_headers': False,
+                    'method': 'no_headers_detected',
+                    'detected_languages': list(detected_languages)
+                }
+            
+            confidence = min(best_entry['score'] / 8.0, 1.0)  # Normalize to 0-1
+            print(f"  Best header row: {best_entry['row_index']} (score={best_entry['score']:.2f}, confidence={confidence:.2f})")
             
             return {
                 'suggested_row': best_entry['row_index'],
                 'confidence': confidence,
-                'method': 'pattern_analysis'
+                'has_headers': True,
+                'method': 'multilingual_analysis',
+                'detected_languages': list(detected_languages)
             }
-        else:
-            return {'suggested_row': 0, 'confidence': 0.1, 'method': 'fallback'}
+        
+        # Fallback - no valid rows analyzed
+        return {
+            'suggested_row': None, 
+            'confidence': 0.0, 
+            'has_headers': False,
+            'method': 'no_valid_rows',
+            'detected_languages': []
+        }
+    
+    def _is_text_not_data(self, cell_str: str) -> bool:
+        """Check if a cell contains text rather than pure data (numbers, dates)"""
+        cell_clean = cell_str.strip()
+        if not cell_clean:
+            return False
+        
+        # Check if it's a pure number (including decimals, negatives)
+        if re.match(r'^-?\d+([,.]?\d+)*$', cell_clean.replace(' ', '')):
+            return False
+        
+        # Check if it's a date pattern
+        date_patterns = [
+            r'^\d{4}[-/.]\d{1,2}[-/.]\d{1,2}$',   # YYYY-MM-DD
+            r'^\d{1,2}[-/.]\d{1,2}[-/.]\d{4}$',   # MM-DD-YYYY or DD-MM-YYYY  
+            r'^\d{1,2}[-/.]\d{1,2}[-/.]\d{2}$',   # MM-DD-YY or DD-MM-YY
+        ]
+        if any(re.match(pattern, cell_clean) for pattern in date_patterns):
+            return False
+        
+        # If it contains letters, it's likely text (header)
+        return bool(re.search(r'[a-zA-Z]', cell_clean))
+    
+    def _score_as_data_row(self, row: List[str]) -> float:
+        """Score how much a row looks like actual data (vs headers)"""
+        if not row:
+            return 0.0
+        
+        data_indicators = 0
+        total_cells = len(row)
+        
+        for cell in row:
+            cell_clean = str(cell).strip()
+            if not cell_clean:
+                continue
+            
+            # Check for numeric values (amounts, IDs, etc.)
+            if re.match(r'^-?\d+([,.]?\d+)*$', cell_clean.replace(' ', '')):
+                data_indicators += 1
+            
+            # Check for date patterns
+            date_patterns = [
+                r'\d{4}[-/.]\d{1,2}[-/.]\d{1,2}',   # YYYY-MM-DD
+                r'\d{1,2}[-/.]\d{1,2}[-/.]\d{4}',   # MM-DD-YYYY
+                r'\d{1,2}[-/.]\d{1,2}[-/.]\d{2}',   # MM-DD-YY
+            ]
+            if any(re.search(pattern, cell_clean) for pattern in date_patterns):
+                data_indicators += 1
+        
+        return data_indicators / total_cells if total_cells > 0 else 0.0
     
     def estimate_data_types(self, data_rows: List[List[str]], headers: Optional[List[str]] = None) -> Dict:
         """Estimate data types for each column"""
@@ -245,8 +388,8 @@ class StructureAnalyzer:
                     raise StructureDetectionError(f"Header row {header_row} is out of range (1-{len(rows)})")
                 print(f"  Using specified header row: {header_row} (1-based)")
             else:
-                # Auto-detect header row
-                header_detection = self.detect_header_row(rows)
+                # Auto-detect header row using global method
+                header_detection = self.detect_header_row_global(rows)
                 header_row_idx = header_detection.get('suggested_row', 0)
                 print(f"  Auto-detected header row: {header_row_idx + 1} (1-based)")
             

@@ -28,3 +28,23 @@ class StructureDetectionError(CSVParsingError):
 class DataExtractionError(CSVParsingError):
     """Exception raised during data extraction phase"""
     pass
+
+
+class NoHeadersFoundError(CSVParsingError):
+    """Raised when CSV file has no detectable headers"""
+    
+    def __init__(self, file_path: str, message: str = None):
+        self.file_path = file_path
+        default_message = f"No headers detected in CSV file: {file_path}"
+        super().__init__(message or default_message, file_path)
+
+
+class HeaderlessCSVDetected(Exception):
+    """Not an error - indicates CSV has data but no headers (informational exception)"""
+    
+    def __init__(self, file_path: str, suggested_columns: list, total_columns: int = None):
+        self.file_path = file_path
+        self.suggested_columns = suggested_columns
+        self.total_columns = total_columns or len(suggested_columns)
+        message = f"Headerless CSV detected: {file_path} ({self.total_columns} columns)"
+        super().__init__(message)

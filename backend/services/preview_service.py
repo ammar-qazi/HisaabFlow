@@ -16,78 +16,110 @@ class PreviewService:
     
     def preview_csv_file(self, file_path: str, filename: str, encoding: Optional[str] = None, header_row: Optional[int] = None):
         """
-        Preview CSV file with bank-aware header detection
+        Preview CSV file with global structure analysis and single-pass bank detection
         
         Args:
             file_path: Path to the CSV file
             filename: Original filename for bank detection
-            encoding: File encoding
-            header_row: Manual header row override
+            encoding: File encoding override
+            header_row: Manual header row override (0-based)
             
         Returns:
-            dict: Preview result with bank detection info
+            dict: Preview result with bank detection info and global support
         """
-        print(f"‍ Preview request for file: {filename}")
+        print(f"ℹ [REFACTORED] Preview request for file: {filename}")
+        
         try:
-            # If no manual header_row override, try to get it from bank config
-            effective_header_row = header_row
-            if header_row is None:
-                # Quick bank detection to get configured header_row
-                from backend.core.bank_detection import BankDetector
-                bank_detector = BankDetector(self.config_service)
-                bank_result = bank_detector.detect_bank(filename, "", [])
+            # Step 1: Single comprehensive structure analysis
+            print("ℹ [REFACTORED] Performing global structure analysis...")
+            structure_result = self.unified_parser.analyze_structure(file_path, encoding)
+            
+            if not structure_result['success']:
+                return structure_result
+            
+            # Step 2: Handle headerless files
+            if not structure_result.get('has_headers', True):
+                print(f"ℹ [REFACTORED] Headerless CSV detected: {structure_result['total_columns']} columns")
                 
-                if bank_result.bank_name != 'unknown' and bank_result.confidence >= 0.5:
-                    bank_config = self.config_service.get_bank_config(bank_result.bank_name)
-                    if bank_config and bank_config.csv_config:
-                        # Convert 1-based config to 0-based for parser
-                        effective_header_row = bank_config.csv_config.header_row - 1 if bank_config.csv_config.header_row else None
-                        print(f"      Using bank-specific header_row: {effective_header_row} (from {bank_result.bank_name} config)")
+                # Parse some sample data for preview
+                sample_parse = self.unified_parser.preview_csv(
+                    file_path,
+                    encoding=structure_result['encoding'],
+                    header_row=None,  # No headers
+                    max_rows=20
+                )
+                
+                return {
+                    'success': True,
+                    'headerless_file': True,
+                    'preview_data': sample_parse.get('preview_data', []),
+                    'column_names': structure_result['suggested_columns'],
+                    'total_rows': sample_parse.get('total_rows', 0),
+                    'encoding_used': structure_result['encoding'],
+                    'dialect_detected': structure_result['dialect'],
+                    'language_hints': structure_result.get('language_hints', []),
+                    'structure_confidence': structure_result['confidence'],
+                    'bank_detection': {
+                        'detected_bank': 'unknown',
+                        'confidence': 0.0,
+                        'reasons': ['Headerless file - bank detection not applicable']
+                    },
+                    'message': 'CSV file has no headers. Generated column names provided.'
+                }
             
-            # Single call to the robust parser
-            print("ℹ [PreviewService] Calling UnifiedCSVParser to get a comprehensive preview.")
-            result = self.unified_parser.preview_csv(file_path, encoding=None, header_row=effective_header_row)
-
-            if not result.get('success'):
-                return result  # Return the error dictionary directly
-
-            # Now, use the successful result for bank detection
-            effective_encoding = result['encoding_used']
-            headers_for_detection = result.get('column_names', [])
-            preview_data = result['preview_data']
+            # Step 3: Override header row if manually specified
+            effective_header_row = header_row if header_row is not None else structure_result['suggested_header_row']
             
-            # Extract content for bank detection
-            content_lines = []
+            print(f"ℹ [REFACTORED] Using header row: {effective_header_row}")
             
-            # Add the actual header line to content_for_detection
-            if headers_for_detection:
-                content_lines.append(' '.join(headers_for_detection))
-
-            for row in preview_data[:10]:  # Use first 10 rows for detection
-                row_text = ' '.join([str(cell) for cell in row.values() if cell])
-                content_lines.append(row_text)
-
-            content_for_detection = '\n'.join(content_lines)
-            
-            # Detect bank using filename, content, and the headers extracted by the parser
+            # Step 4: Single bank detection with complete structure info
+            print("ℹ [REFACTORED] Performing bank detection with complete structure...")
             bank_detector = BankDetector(self.config_service)
-            bank_detection = bank_detector.detect_bank(filename, content_for_detection, headers_for_detection)
-            print(f" Detected bank: {bank_detection.bank_name} (confidence: {bank_detection.confidence:.2f})")
-
-            # Add bank detection info to the final result
-            result['bank_detection'] = {
-                'detected_bank': bank_detection.bank_name,
-                'confidence': bank_detection.confidence,
-                'reasons': bank_detection.reasons
+            bank_detection = bank_detector.detect_bank(
+                filename=filename,
+                csv_content=structure_result['content_sample'],
+                headers=structure_result['raw_headers']
+            )
+            
+            print(f"ℹ [REFACTORED] Detected bank: {bank_detection.bank_name} (confidence: {bank_detection.confidence:.2f})")
+            
+            # Step 5: Parse with known structure (no more guessing!)
+            print("ℹ [REFACTORED] Parsing with definitive structure...")
+            parse_result = self.unified_parser.preview_csv(
+                file_path,
+                encoding=structure_result['encoding'],
+                header_row=effective_header_row,
+                max_rows=20
+            )
+            
+            if not parse_result.get('success'):
+                return parse_result
+            
+            # Step 6: Combine results
+            final_result = {
+                **parse_result,
+                'bank_detection': {
+                    'detected_bank': bank_detection.bank_name,
+                    'confidence': bank_detection.confidence,
+                    'reasons': bank_detection.reasons
+                },
+                'structure_analysis': {
+                    'method': structure_result.get('method', 'multilingual_analysis'),
+                    'confidence': structure_result['confidence'],
+                    'language_hints': structure_result.get('language_hints', []),
+                    'has_headers': structure_result['has_headers']
+                },
+                'encoding_used': structure_result['encoding'],
+                'dialect_detected': structure_result['dialect']
             }
-
-            print(f"[SUCCESS] Enhanced preview completed with {len(result['column_names'])} columns")
-            return result
+            
+            print(f"ℹ [SUCCESS] Single-pass preview completed: {len(parse_result.get('column_names', []))} columns")
+            return final_result
 
         except Exception as e:
-            print(f"[ERROR]  Preview exception: {str(e)}")
+            print(f"[ERROR] Preview exception: {str(e)}")
             import traceback
-            print(f" Traceback: {traceback.format_exc()}")
+            print(f"Traceback: {traceback.format_exc()}")
             return {
                 'success': False,
                 'error': str(e)

@@ -8,7 +8,7 @@ from .dialect_detector import DialectDetector
 from .parsing_strategies import ParsingStrategies
 from .data_processor import DataProcessor
 from .structure_analyzer import StructureAnalyzer
-from .exceptions import CSVParsingError
+from .exceptions import CSVParsingError, NoHeadersFoundError, HeaderlessCSVDetected
 
 class UnifiedCSVParser:
     """Main API orchestrator for unified CSV parsing"""
@@ -172,54 +172,6 @@ class UnifiedCSVParser:
                 'error': str(e)
             }
     
-    def detect_structure(self, file_path: str, encoding: Optional[str] = None) -> Dict:
-        """
-        Detect CSV structure without full parsing
-        
-        Args:
-            file_path: Path to CSV file
-            encoding: Optional encoding override
-            
-        Returns:
-            dict: Structure detection result
-        """
-        print(f" Structure detection: {file_path}")
-        
-        try:
-            # Detect encoding if needed
-            if encoding is None:
-                encoding_result = self.encoding_detector.detect_encoding(file_path)
-                encoding = encoding_result['encoding']
-            
-            # Detect dialect
-            dialect_result = self.dialect_detector.detect_dialect(file_path, encoding)
-            
-            # Parse small sample for structure analysis (including line terminator)
-            parsing_result = self.parsing_strategies.parse_with_fallbacks(
-                file_path, encoding, dialect_result, max_rows=10
-            )
-            
-            if not parsing_result['success']:
-                return {
-                    'success': False,
-                    'error': parsing_result['error']
-                }
-            
-            # Analyze structure
-            structure_result = self.structure_analyzer.analyze_structure(parsing_result['raw_rows'])
-            
-            return {
-                'success': True,
-                'structure_analysis': structure_result,
-                'encoding': encoding,
-                'dialect': dialect_result
-            }
-            
-        except Exception as e:
-            return {
-                'success': False,
-                'error': str(e)
-            }
     
     def validate_csv(self, file_path: str, encoding: Optional[str] = None) -> Dict:
         """
@@ -235,31 +187,34 @@ class UnifiedCSVParser:
         print(f"[SUCCESS] CSV validation: {file_path}")
         
         try:
-            # Get structure analysis
-            structure_result = self.detect_structure(file_path, encoding)
+            # Get structure analysis using new global method
+            structure_result = self.analyze_structure(file_path, encoding)
             
             if not structure_result['success']:
                 return structure_result
             
-            # Extract validation info
-            structure_analysis = structure_result['structure_analysis']
-            validation = structure_analysis.get('validation', {})
-            
-            # Additional validation checks
-            issues = validation.get('issues', [])
-            warnings = validation.get('warnings', [])
+            # Simplified validation based on new structure analysis
+            issues = []
+            warnings = []
             
             # Check confidence levels
-            if structure_analysis.get('confidence', 0) < 0.5:
+            confidence = structure_result.get('confidence', 0)
+            if confidence < 0.5:
                 warnings.append("Low confidence in structure detection")
+            
+            # Check if headers were found
+            has_headers = structure_result.get('has_headers', True)
+            if not has_headers:
+                warnings.append("No headers detected in CSV file")
             
             return {
                 'success': True,
-                'valid': validation.get('valid', False),
+                'valid': confidence > 0.3,  # Basic validity check
                 'issues': issues,
                 'warnings': warnings,
-                'structure_confidence': structure_analysis.get('confidence', 0),
-                'detailed_analysis': structure_analysis
+                'structure_confidence': confidence,
+                'has_headers': has_headers,
+                'method': structure_result.get('method', 'unknown')
             }
             
         except Exception as e:
@@ -268,6 +223,156 @@ class UnifiedCSVParser:
                 'error': str(e)
             }
     
+    def analyze_structure(self, file_path: str, encoding: Optional[str] = None) -> Dict:
+        """
+        Global-ready, bank-agnostic CSV structure analysis.
+        
+        This is the main method for decoupled structure analysis that:
+        - Detects encoding automatically using chardet
+        - Detects CSV dialect (delimiter, quotes, etc.)
+        - Uses multilingual header detection
+        - Handles headerless files gracefully
+        - Provides content sample for bank detection
+        
+        Args:
+            file_path: Path to CSV file
+            encoding: Optional encoding override
+            
+        Returns:
+            dict: {
+                'success': True,
+                'encoding': 'utf-8',
+                'dialect': {'delimiter': ';', 'quotechar': '"'},
+                'suggested_header_row': 2 or None,
+                'suggested_data_start_row': 3,
+                'raw_headers': ['Fecha', 'Descripción'] or [],
+                'content_sample': "...",
+                'confidence': 0.95,
+                'has_headers': True,
+                'language_hints': ['es'],
+                'total_columns': 5
+            }
+        """
+        print(f" Global structure analysis: {file_path}")
+        
+        try:
+            # Step 1: Detect encoding (leveraging existing robust detection)
+            if encoding is None:
+                encoding_result = self.encoding_detector.detect_encoding(file_path)
+                detected_encoding = encoding_result['encoding']
+                print(f"    Detected encoding: {detected_encoding}")
+            else:
+                detected_encoding = encoding
+                print(f"    Using provided encoding: {detected_encoding}")
+            
+            # Step 2: Detect dialect (supports international CSV formats)
+            dialect_result = self.dialect_detector.detect_dialect(file_path, detected_encoding)
+            print(f"   Detected dialect: delimiter='{dialect_result['delimiter']}'")
+            
+            # Step 3: Parse sample for structure analysis (50 rows to handle bank CSVs with metadata)
+            parsing_result = self.parsing_strategies.parse_with_fallbacks(
+                file_path, detected_encoding, dialect_result, max_rows=50
+            )
+            
+            if not parsing_result['success']:
+                return {
+                    'success': False,
+                    'error': f"Failed to parse CSV for structure analysis: {parsing_result['error']}"
+                }
+            
+            sample_rows = parsing_result['raw_rows']
+            print(f"   Parsed {len(sample_rows)} sample rows for analysis")
+            
+            # Step 4: Global header detection with multilingual support
+            header_result = self.structure_analyzer.detect_header_row_global(sample_rows)
+            
+            # Step 5: Handle results based on header detection
+            if not header_result['has_headers']:
+                # Headerless file detected
+                total_columns = len(sample_rows[0]) if sample_rows else 0
+                suggested_columns = [f'Column_{i+1}' for i in range(total_columns)]
+                
+                print(f"   Headerless CSV detected: {total_columns} columns")
+                
+                # Create content sample from first few data rows
+                content_sample = self._create_content_sample_from_rows(sample_rows[:10])
+                
+                return {
+                    'success': True,
+                    'encoding': detected_encoding,
+                    'dialect': dialect_result,
+                    'suggested_header_row': None,
+                    'suggested_data_start_row': 0,
+                    'raw_headers': [],
+                    'suggested_columns': suggested_columns,
+                    'content_sample': content_sample,
+                    'confidence': header_result['confidence'],
+                    'has_headers': False,
+                    'language_hints': header_result.get('detected_languages', []),
+                    'total_columns': total_columns,
+                    'method': header_result['method']
+                }
+            else:
+                # Headers found
+                header_row_idx = header_result['suggested_row']
+                data_start_row = header_row_idx + 1
+                
+                raw_headers = sample_rows[header_row_idx] if header_row_idx < len(sample_rows) else []
+                print(f"   Headers found at row {header_row_idx}: {raw_headers}")
+                
+                # Create content sample including headers and some data
+                content_sample = self._create_content_sample_with_headers(sample_rows, header_row_idx)
+                
+                return {
+                    'success': True,
+                    'encoding': detected_encoding,
+                    'dialect': dialect_result,
+                    'suggested_header_row': header_row_idx,
+                    'suggested_data_start_row': data_start_row,
+                    'raw_headers': raw_headers,
+                    'content_sample': content_sample,
+                    'confidence': header_result['confidence'],
+                    'has_headers': True,
+                    'language_hints': header_result.get('detected_languages', []),
+                    'total_columns': len(raw_headers),
+                    'method': header_result['method']
+                }
+                
+        except Exception as e:
+            print(f"[ERROR]  Structure analysis failed: {str(e)}")
+            return {
+                'success': False,
+                'error': f"Structure analysis failed: {str(e)}"
+            }
+    
+    def _create_content_sample_from_rows(self, rows: List[List[str]]) -> str:
+        """Create content sample from raw CSV rows for bank detection"""
+        content_lines = []
+        for row in rows[:10]:  # First 10 rows
+            if row:  # Skip empty rows
+                row_text = ' '.join([str(cell) for cell in row if cell])
+                content_lines.append(row_text)
+        return '\n'.join(content_lines)
+    
+    def _create_content_sample_with_headers(self, rows: List[List[str]], header_row_idx: int) -> str:
+        """Create content sample including headers and data for bank detection"""
+        content_lines = []
+        
+        # Add header row
+        if header_row_idx < len(rows):
+            header_row = rows[header_row_idx]
+            content_lines.append(' '.join([str(cell) for cell in header_row if cell]))
+        
+        # Add some data rows
+        data_start = header_row_idx + 1
+        for i in range(data_start, min(data_start + 10, len(rows))):
+            row = rows[i]
+            if row:  # Skip empty rows
+                row_text = ' '.join([str(cell) for cell in row if cell])
+                content_lines.append(row_text)
+        
+        return '\n'.join(content_lines)
+
     def detect_data_range(self, file_path: str, encoding: Optional[str] = None) -> Dict:
         """
         Auto-detect where the actual data starts (compatibility method)
@@ -283,7 +388,7 @@ class UnifiedCSVParser:
         
         try:
             # Use structure detection to find header row
-            structure_result = self.detect_structure(file_path, encoding)
+            structure_result = self.analyze_structure(file_path, encoding)
             
             if not structure_result['success']:
                 return {
@@ -291,8 +396,7 @@ class UnifiedCSVParser:
                     'error': structure_result['error']
                 }
             
-            structure_analysis = structure_result['structure_analysis']
-            suggested_header_row = structure_analysis.get('suggested_header_row', 0)
+            suggested_header_row = structure_result.get('suggested_header_row', 0)
             
             # Parse small sample to get total row estimate (including line terminator)
             parsing_result = self.parsing_strategies.parse_with_fallbacks(
@@ -311,7 +415,7 @@ class UnifiedCSVParser:
                 'success': True,
                 'suggested_header_row': suggested_header_row,
                 'total_rows': total_rows,
-                'confidence': structure_analysis.get('confidence', 0.0)
+                'confidence': structure_result.get('confidence', 0.0)
             }
             
         except Exception as e:
