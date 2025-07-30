@@ -114,13 +114,40 @@ class NumericCleaner:
         if not data:
             return []
         
-        sample_row = data[0]
+        # Use up to 10 sample rows for better accuracy
+        sample_size = min(10, len(data))
+        sample_rows = data[:sample_size]
         numeric_cols = []
         
-        for col, value in sample_row.items():
-            if (self._is_numeric_column_name(col.lower()) or 
-                self._looks_like_number(str(value)) or
-                col.lower() in ['amount', 'balance']):  # Ensure Amount and Balance are always cleaned
+        # Get all column names from first row
+        all_columns = list(data[0].keys())
+        
+        for col in all_columns:
+            col_lower = col.lower()
+            
+            # Skip columns that are clearly non-numeric (IBAN, account numbers, etc.)
+            if self._is_non_numeric_column(col_lower):
+                continue
+            
+            # Always include known amount/balance columns
+            if col_lower in ['amount', 'balance'] or self._is_numeric_column_name(col_lower):
+                numeric_cols.append(col)
+                continue
+            
+            # Check if majority of sample values look like numbers
+            numeric_count = 0
+            total_count = 0
+            
+            for row in sample_rows:
+                value = row.get(col)
+                if value is not None and str(value).strip():  # Only count non-empty values
+                    total_count += 1
+                    if self._looks_like_number(str(value)):
+                        numeric_count += 1
+            
+            # Consider it numeric if at least 70% of non-empty values look like numbers
+            # and we have at least 2 samples to avoid false positives
+            if total_count >= 2 and numeric_count / total_count >= 0.7:
                 numeric_cols.append(col)
         
         return numeric_cols
@@ -128,6 +155,18 @@ class NumericCleaner:
     def _is_numeric_column_name(self, col_name: str) -> bool:
         """Check if column name indicates numeric data"""
         return any(keyword in col_name for keyword in self.numeric_keywords)
+    
+    def _is_non_numeric_column(self, col_name: str) -> bool:
+        """Check if column name indicates non-numeric data (IBAN, account numbers, etc.)"""
+        non_numeric_keywords = [
+            'iban', 'bban', 'account', 'rekening', 'tegenrekening',
+            'reference', 'referentie', 'transactiereferentie',
+            'naam', 'name', 'partij', 'party', 'tegenpartij',
+            'description', 'omschrijving', 'title', 'note',
+            'date', 'datum', 'timestamp', 'tijd',
+            'currency', 'munt', 'valuta'
+        ]
+        return any(keyword in col_name for keyword in non_numeric_keywords)
     
     def _looks_like_number(self, value: str) -> bool:
         """Check if value looks like a number"""
