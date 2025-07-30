@@ -31,74 +31,8 @@ function ConfigureAndReviewStep({
 }) {
   const theme = useTheme();
   const [showAdvancedConfig, setShowAdvancedConfig] = useState(false);
-  // Add this ref to track which files have been sent for processing
-  const processedFileIds = useRef(new Set());
 
-  // Clear processed file IDs when step changes or uploadedFiles change significantly
-  useEffect(() => {
-    if (currentStep !== 2) {
-      processedFileIds.current.clear();
-    }
-  }, [currentStep]);
 
-  // Reset processed IDs when the number of files decreases (indicates going back/starting fresh)
-  useEffect(() => {
-    const currentFileIds = new Set(uploadedFiles.map(f => f.fileId));
-    const processedIds = Array.from(processedFileIds.current);
-    const staleProcesedIds = processedIds.filter(id => !currentFileIds.has(id));
-    
-    if (staleProcesedIds.length > 0) {
-      console.log('[DEBUG] Clearing stale processed file IDs:', staleProcesedIds);
-      staleProcesedIds.forEach(id => processedFileIds.current.delete(id));
-    }
-    
-    // Also log current state for debugging
-    console.log('[DEBUG] Current file IDs:', Array.from(currentFileIds));
-    console.log('[DEBUG] Processed file IDs:', Array.from(processedFileIds.current));
-  }, [uploadedFiles]);
-
-  useEffect(() => {
-    // This function will run all previews and then show a single toast.
-    const runAllPreviews = async (filesToProcess) => {
-      // 1. Create a list of preview promises for the new files.
-      const previewPromises = filesToProcess.map((file, index) => 
-        previewFile(uploadedFiles.findIndex(f => f.fileId === file.fileId))
-      );
-
-      // 2. Wait for all the new previews to complete.
-      if (previewPromises.length > 0) {
-        const results = await Promise.all(previewPromises);
-        
-        // 3. Show a neutral processing notification
-        // Specific success/unknown file notifications will be handled by the components
-        // that have access to the actual detection results
-        if (filesToProcess.length > 0) {
-          toast.success(
-            `Processed ${filesToProcess.length} file(s) for bank detection.`
-          );
-        }
-      }
-    };
-
-    // Find files that are new and haven't been processed yet.
-    const filesToProcess = uploadedFiles.filter(
-      file => !processedFileIds.current.has(file.fileId)
-    );
-
-    // If there are new files to process, run the logic.
-    if (filesToProcess.length > 0) {
-      console.log('[DEBUG] Processing new files for preview:', filesToProcess.map(f => f.fileName));
-      
-      // Immediately add their IDs to our ref to "lock" them and prevent re-processing.
-      filesToProcess.forEach(file => processedFileIds.current.add(file.fileId));
-      
-      // Add a small delay to avoid conflicting with auto-detection
-      setTimeout(() => {
-        runAllPreviews(filesToProcess);
-      }, 500);
-    }
-
-  }, [uploadedFiles, previewFile]);
 
   if (currentStep < 2 || uploadedFiles.length === 0) return null;
 
@@ -109,12 +43,6 @@ function ConfigureAndReviewStep({
     currentFileIds.has(result.file_id)
   ) : [];
   
-  // Debug logging
-  console.log('[DEBUG] ConfigureAndReviewStep - All parsedResults:', parsedResults?.length || 0);
-  console.log('[DEBUG] ConfigureAndReviewStep - Current uploadedFiles:', uploadedFiles.length);
-  console.log('[DEBUG] ConfigureAndReviewStep - Filtered autoParseResults:', autoParseResults?.length || 0);
-  console.log('[DEBUG] ConfigureAndReviewStep - File IDs match:', 
-    autoParseResults?.map(r => r.file_id) || []);
 
   // Check for unknown banks that need configuration
   // Only show unknown panel after parsing is complete for all files
