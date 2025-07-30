@@ -12,10 +12,12 @@ from backend.infrastructure.config.api_facade import APIConfigFacade
 
 from backend.infrastructure.config.unified_config_service import get_unified_config_service
 
+@lru_cache()
 def get_preview_service() -> PreviewService:
-    """Get a new PreviewService instance with the latest config"""
+    """Get singleton PreviewService instance with cached config"""
     config_service = get_unified_config_service()
-    config_service.reload_all_configs()
+    # Only reload configs on first initialization, not on every request
+    # Configs will be reloaded when explicitly needed (e.g., new config creation)
     return PreviewService(config_service)
 
 

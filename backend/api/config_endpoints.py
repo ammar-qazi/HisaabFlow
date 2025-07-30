@@ -167,7 +167,7 @@ async def reload_configurations(config_manager = Depends(get_config_manager)):
     print("ℹ [API] Reloading all bank configurations...")
     try:
         # Call the reload method on the underlying unified service
-        success = config_manager.unified_service.reload_all_configs()
+        success = config_manager.unified_service.reload_all_configs(force=True)
         
         if not success:
             raise HTTPException(

@@ -114,10 +114,12 @@ class UnifiedConfigService:
         self._app_config: Optional[configparser.ConfigParser] = None
         self._bank_configs: Dict[str, UnifiedBankConfig] = {}
         self._detection_patterns: Dict[str, BankDetectionInfo] = {}
+        self._configs_loaded: bool = False  # Track if configs have been loaded
         
         # Load configurations on initialization
         self._load_app_config()
         self._build_detection_index()
+        self._configs_loaded = True
         
         print(f"[BUILD] [UnifiedConfigService] Initialized with {len(self._detection_patterns)} bank detection patterns")
     
@@ -857,8 +859,18 @@ class UnifiedConfigService:
         """Check if a bank configuration exists"""
         return bank_name in self._detection_patterns
     
-    def reload_all_configs(self) -> bool:
-        """Hot-reload all bank configurations and rebuild detection index"""
+    def reload_all_configs(self, force: bool = False) -> bool:
+        """
+        Hot-reload all bank configurations and rebuild detection index
+        
+        Args:
+            force: If True, force reload even if configs are already loaded
+        """
+        # Skip reload if configs are already loaded and not forced
+        if self._configs_loaded and not force:
+            print("[SKIP] [UnifiedConfigService] Configs already loaded, skipping reload (use force=True to override)")
+            return True
+            
         try:
             print("[INFO] [UnifiedConfigService] Reloading all configurations...")
             
@@ -868,6 +880,7 @@ class UnifiedConfigService:
             
             # Rebuild detection index
             self._build_detection_index()
+            self._configs_loaded = True
             
             print(f"[SUCCESS] [UnifiedConfigService] Reloaded {len(self._detection_patterns)} bank detection patterns")
             return True

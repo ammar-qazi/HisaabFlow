@@ -81,7 +81,7 @@ class FileReEvaluationService:
         print(f"ℹ [FileReEvaluationService] Starting re-evaluation for {len(unknown_files)} files after creating config: {new_config_name}")
         
         # Reload configurations to pick up the new one
-        reload_success = self.config_service.reload_all_configs()
+        reload_success = self.config_service.reload_all_configs(force=True)
         if not reload_success:
             self.logger.warning("Failed to reload configurations - proceeding with cached configs")
         

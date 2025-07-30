@@ -402,7 +402,7 @@ class UnknownBankService:
             print(f"  Config saved to: {config_path}")
 
             # Reload all configurations to pick up the new one
-            reload_success = self.config_service.reload_all_configs()
+            reload_success = self.config_service.reload_all_configs(force=True)
             if reload_success:
                 print(
                     f"  Configs reloaded successfully. Bank '{bank_name}' is now available."
