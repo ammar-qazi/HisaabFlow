@@ -109,6 +109,7 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
         console.log('DEBUG: Frontend - Analysis encoding:', result.analysis?.encoding);
         console.log('DEBUG: Frontend - Sample data being set:', result.analysis?.sample_data);
         console.log('DEBUG: Frontend - Headers received:', result.analysis?.headers);
+        console.log('DEBUG: Frontend - Auto-detected header row:', result.analysis?.header_row);
         setAnalysis(result.analysis);
         setBankConfig(prev => ({
           ...prev,
@@ -118,7 +119,7 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
           expected_headers: result.analysis.headers || [],
           amountFormat: mapDetectedFormat(result.analysis.amount_format_analysis?.detected_format),
           currencyPrimary: detectCurrency(result.analysis.sample_data),
-          headerRow: headerRow || prev.headerRow,  // Keep user's header row choice or use provided value
+          headerRow: headerRow || result.analysis.header_row || prev.headerRow,  // Use manual override, then auto-detected, then previous value
           columnType: detectColumnType(result.analysis.headers || [])
         }));
       } else {

@@ -110,7 +110,7 @@ async def analyze_unknown_csv(
             encoding=analysis.encoding,
             delimiter=analysis.delimiter,
             headers=analysis.headers,
-            header_row=analysis.header_row,
+            header_row=analysis.header_row + 1,  # Convert 0-based to 1-based for frontend
             data_start_row=analysis.data_start_row,
             amount_format_analysis=amount_analysis_model,
             field_mapping_suggestions=field_suggestions,

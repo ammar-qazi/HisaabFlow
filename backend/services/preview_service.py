@@ -111,7 +111,9 @@ class PreviewService:
                     "reasons": bank_detection.reasons,
                     "headers": structure_result["raw_headers"],
                     "encoding": structure_result["encoding"],
-                    "content_sample": structure_result["content_sample"],  # Store content for signature matching
+                    "content_sample": structure_result[
+                        "content_sample"
+                    ],  # Store content for signature matching
                 },
             )
 
@@ -147,6 +149,9 @@ class PreviewService:
                 },
                 "encoding_used": structure_result["encoding"],
                 "dialect_detected": structure_result["dialect"],
+                "detected_header_row": structure_result["suggested_header_row"] + 1
+                if header_row is None
+                else None,  # Convert to 1-based, only if auto-detected
             }
 
             print(

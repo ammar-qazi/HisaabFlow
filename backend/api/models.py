@@ -224,6 +224,7 @@ class PreviewResponse(BaseModel):
     encoding_used: str
     parsing_info: Dict[str, Union[str, int, float, bool, Dict]]
     bank_detection: BankDetection
+    detected_header_row: Optional[int] = None  # 1-based header row that was automatically detected
     error: Optional[str] = None
 
 
