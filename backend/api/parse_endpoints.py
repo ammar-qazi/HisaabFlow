@@ -41,7 +41,7 @@ parse_router = APIRouter()
 @parse_router.get("/preview/{file_id}", response_model=PreviewResponse)
 async def preview_csv(
     file_id: str, 
-    encoding: str = "utf-8", 
+    encoding: Optional[str] = None, 
     header_row: int = None,
     preview_service = Depends(get_preview_service)
 ):
@@ -68,7 +68,7 @@ async def preview_csv(
 @parse_router.get("/detect-range/{file_id}", response_model=DetectRangeResponse)
 async def detect_data_range(
     file_id: str, 
-    encoding: str = "utf-8",
+    encoding: Optional[str] = None,
     preview_service = Depends(get_preview_service)
 ):
     """Auto-detect data range in CSV"""

@@ -13,7 +13,7 @@ class CSVParserPort(ABC):
     """Domain interface for CSV parsing operations"""
     
     @abstractmethod
-    def parse_csv(self, file_path: str, encoding: str = None, 
+    def parse_csv(self, file_path: str, encoding: Optional[str] = None, 
                   header_row: int = None, start_row: int = None, 
                   max_rows: int = None) -> Dict[str, Any]:
         """Parse CSV file and return structured data"""

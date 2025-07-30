@@ -2,13 +2,14 @@
 Pydantic models for API requests and responses
 Centralized definition of all data models used by the FastAPI endpoints
 """
+
 from pydantic import BaseModel
 from typing import Dict, List, Optional, Union, Any
 
 
 class PreviewRequest(BaseModel):
     file_path: str
-    encoding: str = "utf-8"
+    encoding: Optional[str] = None
 
 
 class ParseRangeRequest(BaseModel):
@@ -16,7 +17,7 @@ class ParseRangeRequest(BaseModel):
     end_row: Optional[int] = None
     start_col: int = 0
     end_col: Optional[int] = None
-    encoding: str = "utf-8"
+    encoding: Optional[str] = None
     enable_cleaning: bool = True
 
 
@@ -25,6 +26,7 @@ class CategorizationRule(BaseModel):
     category: str
     amount_threshold: Optional[float] = None
     currency: Optional[str] = None
+
 
 class TransformRequest(BaseModel):
     data: List[Dict[str, Union[str, int, float]]]
@@ -40,8 +42,9 @@ class ParseConfig(BaseModel):
     end_row: Optional[int] = None
     start_col: int = 0
     end_col: Optional[int] = None
-    encoding: str = "utf-8"
+    encoding: Optional[str] = None
     enable_cleaning: bool = True
+
 
 class MultiCSVParseRequest(BaseModel):
     file_ids: List[str]
@@ -54,6 +57,7 @@ class CSVDataItem(BaseModel):
     bank_name: str
     file_id: str
     original_name: str
+
 
 class MultiCSVTransformRequest(BaseModel):
     csv_data_list: List[CSVDataItem]
@@ -80,6 +84,7 @@ class CleaningSummary(BaseModel):
     date_columns_cleaned: int
     currency_column_added: bool
     quality_grade: str
+
 
 class ParseResponse(BaseModel):
     success: bool
@@ -108,6 +113,7 @@ class TransferMatch(BaseModel):
     outgoing: Optional[Dict[str, Union[str, int, float]]] = None
     incoming: Optional[Dict[str, Union[str, int, float]]] = None
 
+
 class TransferAnalysis(BaseModel):
     total_matches: int
     high_confidence_matches: int
@@ -122,6 +128,7 @@ class TransferAnalysis(BaseModel):
     conflicts: Optional[List[Dict[str, Any]]] = None
     flagged_transactions: Optional[List[Dict[str, Any]]] = None
 
+
 class TransformationSummary(BaseModel):
     total_files: int
     total_rows: int
@@ -131,6 +138,7 @@ class TransformationSummary(BaseModel):
     # Frontend compatibility field
     total_transactions: Optional[int] = None
 
+
 class FileResult(BaseModel):
     file_id: str
     original_name: str
@@ -138,6 +146,7 @@ class FileResult(BaseModel):
     rows_processed: int
     success: bool
     error: Optional[str] = None
+
 
 class ParsedFileResult(BaseModel):
     file_id: str
@@ -147,10 +156,12 @@ class ParsedFileResult(BaseModel):
     parse_result: Dict[str, Union[bool, List[str], List[Dict], int]]
     config: ParseConfig
 
+
 class MultiCSVParseResponse(BaseModel):
     success: bool
     parsed_csvs: List[ParsedFileResult]
     total_files: int
+
 
 class MultiCSVResponse(BaseModel):
     success: bool
@@ -193,6 +204,7 @@ class SaveConfigResponse(BaseModel):
 
 class ReloadConfigsResponse(BaseModel):
     """Response model for configuration reload operation"""
+
     success: bool
     message: str
     configurations_reloaded: int
@@ -246,6 +258,7 @@ from backend.shared.amount_formats.regional_formats import AmountFormat
 
 class FieldMappingSuggestionModel(BaseModel):
     """API model for field mapping suggestions"""
+
     field_name: str
     suggested_columns: List[str]
     confidence_scores: Dict[str, float]
@@ -254,6 +267,7 @@ class FieldMappingSuggestionModel(BaseModel):
 
 class AmountFormatModel(BaseModel):
     """API model for amount format information"""
+
     decimal_separator: str
     thousand_separator: str
     negative_style: str
@@ -263,6 +277,7 @@ class AmountFormatModel(BaseModel):
 
 class AmountFormatAnalysisModel(BaseModel):
     """API model for amount format analysis results"""
+
     detected_format: AmountFormatModel
     confidence: float
     sample_count: int
@@ -273,6 +288,7 @@ class AmountFormatAnalysisModel(BaseModel):
 
 class UnknownBankAnalysisResponse(BaseModel):
     """Response model for unknown bank CSV analysis"""
+
     success: bool
     filename: str
     encoding: str
@@ -290,6 +306,7 @@ class UnknownBankAnalysisResponse(BaseModel):
 
 class BankConfigInputModel(BaseModel):
     """Request model for bank configuration input"""
+
     bank_name: str
     display_name: str
     filename_patterns: List[str]
@@ -302,12 +319,14 @@ class BankConfigInputModel(BaseModel):
 
 class GenerateBankConfigRequest(BaseModel):
     """Request model for generating bank configuration"""
+
     analysis_id: str  # Reference to stored analysis
     config_input: BankConfigInputModel
 
 
 class GenerateBankConfigResponse(BaseModel):
     """Response model for bank configuration generation"""
+
     success: bool
     config: Dict[str, Any]
     config_preview: str  # INI format preview
@@ -316,12 +335,14 @@ class GenerateBankConfigResponse(BaseModel):
 
 class ValidateBankConfigRequest(BaseModel):
     """Request model for validating bank configuration"""
+
     config: Dict[str, Any]
     analysis_id: str  # Reference to original analysis
 
 
 class ConfigValidationResultModel(BaseModel):
     """API model for configuration validation results"""
+
     is_valid: bool
     errors: List[str]
     warnings: List[str]
@@ -331,6 +352,7 @@ class ConfigValidationResultModel(BaseModel):
 
 class ValidateBankConfigResponse(BaseModel):
     """Response model for configuration validation"""
+
     success: bool
     validation_result: ConfigValidationResultModel
     error: Optional[str] = None
@@ -338,12 +360,14 @@ class ValidateBankConfigResponse(BaseModel):
 
 class SaveBankConfigRequest(BaseModel):
     """Request model for saving bank configuration"""
+
     config: Dict[str, Any]
     force_overwrite: bool = False
 
 
 class SaveBankConfigResponse(BaseModel):
     """Response model for saving bank configuration"""
+
     success: bool
     config_file: str
     bank_name: str
@@ -354,6 +378,7 @@ class SaveBankConfigResponse(BaseModel):
 
 class UnknownBankAnalysisRequest(BaseModel):
     """Request model for analyzing unknown bank CSV"""
+
     file_id: str  # Reference to uploaded file
     encoding: Optional[str] = None
     delimiter: Optional[str] = None

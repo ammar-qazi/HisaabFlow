@@ -23,7 +23,7 @@ class UnifiedCSVParserAdapter(CSVParserPort):
     def __init__(self):
         self._parser = UnifiedCSVParser()
     
-    def parse_csv(self, file_path: str, encoding: str = None, 
+    def parse_csv(self, file_path: str, encoding: Optional[str] = None, 
                   header_row: int = None, start_row: int = None, 
                   max_rows: int = None) -> Dict[str, Any]:
         """Parse CSV file using UnifiedCSVParser infrastructure"""
