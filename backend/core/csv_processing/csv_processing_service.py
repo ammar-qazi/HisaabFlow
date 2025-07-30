@@ -495,31 +495,56 @@ class CSVProcessingService:
         
         headers = parse_result.get('headers', [])
         
-        # Check if we can reuse cached header detection from global cache
-        header_detection = None
+        # Check if we can reuse cached detection completely from global cache
         cache = get_bank_detection_cache()
-        cached_result = cache.get(filename, parse_result.get('file_path', ''))
+        file_path = parse_result.get('file_path', '')
+        print(f"      [DEBUG] Looking for cache with filename='{filename}', file_path='{file_path}'")
+        cached_result = cache.get(filename, file_path)
+        
         if cached_result and cached_result.get('headers'):
-            # Calculate header score from cached result
-            cached_header_score = self._extract_component_score(cached_result['reasons'], 'header_match')
-            if cached_header_score > 0:
-                print(f"      ✅ [CACHE] Reusing header detection from cache (header_score: {cached_header_score:.1f})")
-                header_detection = {
-                    'bank_name': cached_result['bank_name'],
-                    'confidence': cached_result['confidence'],
-                    'reasons': cached_result['reasons'],
-                    'detection_phase': 'cached_header',
-                    'components': {
-                        'filename_score': self._extract_component_score(cached_result['reasons'], 'filename_match'),
-                        'content_score': 0.0,  # Not used in header phase
-                        'header_score': cached_header_score
+            # We have a complete cached result - reuse it entirely
+            print(f"      ✅ [CACHE] Reusing complete bank detection from cache")
+            
+            # Extract all component scores from cached result
+            filename_score = self._extract_component_score(cached_result['reasons'], 'filename_match')
+            content_score = self._extract_component_score(cached_result['reasons'], 'content_signature')
+            header_score = self._extract_component_score(cached_result['reasons'], 'header_match')
+            
+            # Create final result using cached data
+            final_result = {
+                'bank_name': cached_result['bank_name'],
+                'confidence': cached_result['confidence'],
+                'reasons': cached_result['reasons'],
+                'detection_phases': {
+                    'initial': initial_detection,
+                    'header': {
+                        'bank_name': cached_result['bank_name'],
+                        'confidence': cached_result['confidence'],
+                        'reasons': cached_result['reasons'],
+                        'detection_phase': 'cached_complete',
+                        'components': {
+                            'filename_score': filename_score,
+                            'content_score': content_score,
+                            'header_score': header_score
+                        }
                     }
                 }
+            }
+            
+            print(f"      ✅ [FINAL] Bank detected: {final_result['bank_name']} (confidence={final_result['confidence']:.2f})")
+            print(f"      Component scores - Filename: {filename_score:.1f}, Content: {content_score:.1f}, Header: {header_score:.1f}")
+            
+            # Store comprehensive bank detection info
+            return {
+                **final_result,
+                'original_headers': headers,
+                'preprocessing_applied': preprocessing_info['applied'],
+                'preprocessing_info': preprocessing_info
+            }
         
-        # Fallback to fresh header detection if no cache available
-        if not header_detection:
-            print(f"      🔍 [DETECTION] Performing fresh header detection for {filename}")
-            header_detection = self._header_bank_detection(filename, headers)
+        # Fallback to fresh header detection if no cache available (should rarely happen)
+        print(f"      🔍 [DETECTION] No complete cache available, performing fresh header detection for {filename}")
+        header_detection = self._header_bank_detection(filename, headers)
         
         # Phase 3: Hybrid confidence calculation
         hybrid_result = self._calculate_hybrid_confidence(initial_detection, header_detection)
@@ -546,32 +571,33 @@ class CSVProcessingService:
             # Create bank-specific cleaning config
             bank_cleaning_config = None
             amount_format = None
-            if bank_info['detected_bank'] != 'unknown':
-                bank_column_mapping = self.config_service.get_column_mapping(bank_info['detected_bank'])
-                bank_config = self.config_service.get_bank_config(bank_info['detected_bank'])
+            if bank_info.get('bank_name', 'unknown') != 'unknown':
+                bank_name = bank_info.get('bank_name', 'unknown')
+                bank_column_mapping = self.config_service.get_column_mapping(bank_name)
+                bank_config = self.config_service.get_bank_config(bank_name)
                 if bank_config and bank_config.data_cleaning:
                     amount_format = bank_config.data_cleaning.amount_format
                     print(f"         Using bank-specific amount format: {amount_format.name if amount_format else 'None'}")
                 
                 detection_patterns = self.config_service.get_detection_patterns()
                 expected_headers = []
-                if bank_info['detected_bank'] in detection_patterns:
-                    expected_headers = detection_patterns[bank_info['detected_bank']].required_headers
+                if bank_name in detection_patterns:
+                    expected_headers = detection_patterns[bank_name].required_headers
                 
                 # Include currency_primary from bank config for proper currency handling
                 default_currency = 'PKR'  # fallback
                 if bank_config and bank_config.currency_primary:
                     default_currency = bank_config.currency_primary
-                    print(f"         Using bank-specific currency: {default_currency} from {bank_info['detected_bank']} config")
+                    print(f"         Using bank-specific currency: {default_currency} from {bank_name} config")
                 
                 bank_cleaning_config = {
                     'column_mapping': bank_column_mapping,
-                    'bank_name': bank_info['detected_bank'],
+                    'bank_name': bank_name,
                     'expected_headers': expected_headers,
                     'default_currency': default_currency,
                     'data_cleaning': bank_config.data_cleaning
                 }
-                print(f"         Using bank-specific cleaning config for {bank_info['detected_bank']}")
+                print(f"         Using bank-specific cleaning config for {bank_name}")
             
             # Create DataCleaner with bank-specific amount format
             data_cleaner = DataCleaner(amount_format=amount_format)

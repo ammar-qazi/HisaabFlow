@@ -358,18 +358,30 @@ class UnifiedCSVParser:
         """Create content sample including headers and data for bank detection"""
         content_lines = []
         
-        # Add header row
-        if header_row_idx < len(rows):
-            header_row = rows[header_row_idx]
-            content_lines.append(' '.join([str(cell) for cell in header_row if cell]))
-        
-        # Add some data rows
-        data_start = header_row_idx + 1
-        for i in range(data_start, min(data_start + 10, len(rows))):
+        # Include first 15 rows for content signature matching (covers bank info sections)
+        # This ensures we capture content signatures like "NayaPay ID", "Customer Name" etc.
+        for i in range(min(15, len(rows))):
             row = rows[i]
             if row:  # Skip empty rows
                 row_text = ' '.join([str(cell) for cell in row if cell])
-                content_lines.append(row_text)
+                if row_text.strip():  # Only add non-empty content
+                    content_lines.append(row_text)
+        
+        # Also add header row if it's beyond row 15
+        if header_row_idx >= 15 and header_row_idx < len(rows):
+            header_row = rows[header_row_idx]
+            header_text = ' '.join([str(cell) for cell in header_row if cell])
+            if header_text.strip():
+                content_lines.append(header_text)
+        
+        # Add some data rows after headers
+        data_start = header_row_idx + 1
+        for i in range(data_start, min(data_start + 5, len(rows))):
+            row = rows[i]
+            if row:  # Skip empty rows
+                row_text = ' '.join([str(cell) for cell in row if cell])
+                if row_text.strip():
+                    content_lines.append(row_text)
         
         return '\n'.join(content_lines)
 

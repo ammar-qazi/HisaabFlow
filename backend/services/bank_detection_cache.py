@@ -21,15 +21,25 @@ class BankDetectionCache:
             return f"{filename}_{content_hash}"
         except:
             # Fallback to filename-based hash
-            return f"{filename}_{hash(filename)}"
+            return f"{filename}_{hash(filename) % 100000}"
     
     def get(self, filename: str, file_path: str) -> Optional[Dict[str, Any]]:
         """Get cached bank detection result"""
         cache_key = self._generate_cache_key(filename, file_path)
+        print(f"[DEBUG] Cache lookup: key='{cache_key}', available_keys={list(self._cache.keys())}")
+        
         cached_result = self._cache.get(cache_key)
         if cached_result:
             print(f"ℹ [CACHE] Using cached bank detection for {filename}")
             return cached_result
+        
+        # Fallback: try to find cache entry by filename only (for cases where file path changes)
+        for key, result in self._cache.items():
+            if key.startswith(f"{filename}_"):
+                print(f"ℹ [CACHE] Using cached bank detection for {filename} (fallback match: {key})")
+                return result
+        
+        print(f"[DEBUG] No cache found for {filename}")
         return None
     
     def set(self, filename: str, file_path: str, detection_result: Dict[str, Any]):

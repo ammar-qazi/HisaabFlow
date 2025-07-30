@@ -111,6 +111,7 @@ class PreviewService:
                     "reasons": bank_detection.reasons,
                     "headers": structure_result["raw_headers"],
                     "encoding": structure_result["encoding"],
+                    "content_sample": structure_result["content_sample"],  # Store content for signature matching
                 },
             )
 
