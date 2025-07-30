@@ -190,7 +190,7 @@ class FormatValidator:
             # Remove currency symbols
             cleaned = self.currency_pattern.sub('', cleaned).strip()
             
-            # Handle negative styles
+            # Handle negative styles and positive signs
             is_negative = False
             if format_obj.negative_style == "parentheses":
                 if cleaned.startswith('(') and cleaned.endswith(')'):
@@ -204,6 +204,10 @@ class FormatValidator:
                 if cleaned.endswith('-'):
                     is_negative = True
                     cleaned = cleaned[:-1].strip()
+            
+            # Handle positive signs (remove them)
+            if cleaned.startswith('+'):
+                cleaned = cleaned[1:].strip()
             
             # Remove thousand separators
             if format_obj.thousand_separator:
