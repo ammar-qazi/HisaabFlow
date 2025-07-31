@@ -141,7 +141,7 @@ function ConfigureAndReviewStep({
                 fontSize: '14px',
                 color: theme.colors.text.secondary,
               }}>
-                Analyzing {uploadedFiles.length - autoParseResults.length} additional file(s)
+                Analyzing {uploadedFiles.length - autoParseResults.length} file(s)
               </div>
             </div>
           </div>

@@ -459,6 +459,11 @@ class UnknownBankService:
                     config_parser, config["description_cleaning"]
                 )
 
+            if "account_mapping" in config:
+                self._add_account_mapping_section(
+                    config_parser, config["account_mapping"]
+                )
+
             # Write to file
             with open(config_path, "w", encoding="utf-8") as f:
                 config_parser.write(f)
@@ -638,6 +643,10 @@ class UnknownBankService:
             "currency_handling",
             data_cleaning.get("currency_handling", "standard"),
         )
+        
+        # Add multi_currency flag if currency_handling is multi_currency
+        if data_cleaning.get("currency_handling") == "multi_currency":
+            config_parser.set("data_cleaning", "multi_currency", "true")
 
     def _add_categorization_section(
         self, config_parser: configparser.ConfigParser, categorization: Dict[str, str]
@@ -680,6 +689,16 @@ class UnknownBankService:
         """Add incoming_patterns section to config."""
         config_parser.add_section("incoming_patterns")
         # Empty for now - can be enhanced later
+
+    def _add_account_mapping_section(
+        self, config_parser: configparser.ConfigParser, account_mapping: Dict[str, str]
+    ):
+        """Add account_mapping section to config for multi-currency support."""
+        if account_mapping:
+            config_parser.add_section("account_mapping")
+            for currency, account_name in account_mapping.items():
+                if currency and account_name:  # Only add non-empty mappings
+                    config_parser.set("account_mapping", currency, account_name)
 
     def _detect_date_format(self, analysis: UnknownBankAnalysis) -> Optional[Dict[str, Any]]:
         """

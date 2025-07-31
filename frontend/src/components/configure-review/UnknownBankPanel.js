@@ -43,7 +43,9 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
     cashewAccount: '',
     headerRow: 1,  // 1-based indexing for user display
     columnType: 'amount',  // 'amount' or 'debit_credit'
-    dateFormat: ''  // Custom date format pattern
+    dateFormat: '',  // Custom date format pattern
+    isMultiCurrency: false,  // Toggle for multi-currency support
+    accountMappings: {}  // For multi-currency: currency -> account name
   });
   const [validationResult, setValidationResult] = useState(null);
 
@@ -76,7 +78,9 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
         cashewAccount: '',
         headerRow: 1,
         columnType: 'amount',
-        dateFormat: ''
+        dateFormat: '',
+        isMultiCurrency: false,
+        accountMappings: {}
       });
       setValidationResult(null);
       analyzeUnknownCSV(selectedFile);
@@ -95,7 +99,9 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
         cashewAccount: '',
         headerRow: 1,
         columnType: 'amount',
-        dateFormat: ''
+        dateFormat: '',
+        isMultiCurrency: false,
+        accountMappings: {}
       });
       setValidationResult(null);
     }
@@ -226,6 +232,8 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
       cashewAccount: generateBankName(file.fileName || file.name),
       columnType: 'amount',
       dateFormat: '',
+      isMultiCurrency: false,
+      accountMappings: {},
       manualMode: true
     });
     analyzeForManualConfig(file);
@@ -286,7 +294,20 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
       hasAmountFields = config.columnMappings.debit || config.columnMappings.credit;
     }
     
-    return hasBasicFields && hasAmountFields;
+    // Check account configuration based on multi-currency setting
+    let hasValidAccountConfig = false;
+    if (config.isMultiCurrency) {
+      // For multi-currency, need at least one valid currency->account mapping
+      const validMappings = Object.entries(config.accountMappings).filter(([currency, account]) => 
+        currency && currency.trim() && account && account.trim()
+      );
+      hasValidAccountConfig = validMappings.length > 0;
+    } else {
+      // For single currency, need cashew account
+      hasValidAccountConfig = config.cashewAccount && config.cashewAccount.trim();
+    }
+    
+    return hasBasicFields && hasAmountFields && hasValidAccountConfig;
   };
 
   const validateConfig = async (config, analysis) => {
@@ -358,8 +379,12 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
         data_cleaning: {
           amount_format: getAmountFormatConfig(config.amountFormat),
           auto_detect_format: false,
-          currency_handling: 'standard'
+          currency_handling: config.isMultiCurrency ? 'multi_currency' : 'standard'
         },
+        // Add account_mapping section for multi-currency support
+        ...(config.isMultiCurrency && Object.keys(config.accountMappings).length > 0 && {
+          account_mapping: config.accountMappings
+        }),
         categorization: {}
       };
 
@@ -675,6 +700,131 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
               )}
             </div>
           </div>
+
+          {/* Multi-Currency Support Toggle */}
+          <div style={{ marginTop: theme.spacing.md }}>
+            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={bankConfig.isMultiCurrency}
+                onChange={(e) => setBankConfig(prev => ({ 
+                  ...prev, 
+                  isMultiCurrency: e.target.checked,
+                  // Clear account mappings when toggling off
+                  accountMappings: e.target.checked ? prev.accountMappings : {}
+                }))}
+                style={{ marginRight: theme.spacing.sm }}
+              />
+              <span style={labelStyle}>Multi-Currency Support</span>
+            </label>
+            <div style={{
+              fontSize: '12px',
+              color: theme.colors.text.secondary,
+              marginTop: theme.spacing.xs
+            }}>
+              Enable for banks like Wise that handle multiple currencies with separate accounts
+            </div>
+          </div>
+
+          {/* Multi-Currency Account Mappings */}
+          {bankConfig.isMultiCurrency && (
+            <div style={{ marginTop: theme.spacing.md }}>
+              <label style={labelStyle}>
+                Currency to Account Mappings
+              </label>
+              <div style={{
+                border: `1px solid ${theme.colors.border}`,
+                borderRadius: theme.borderRadius.md,
+                padding: theme.spacing.md,
+                backgroundColor: theme.colors.background.elevated
+              }}>
+                {Object.entries(bankConfig.accountMappings).map(([currency, account], index) => (
+                  <div key={index} style={{ 
+                    display: 'flex', 
+                    gap: theme.spacing.sm, 
+                    marginBottom: theme.spacing.sm,
+                    alignItems: 'center'
+                  }}>
+                    <input
+                      type="text"
+                      placeholder="Currency (e.g. USD)"
+                      value={currency}
+                      onChange={(e) => {
+                        const newMappings = { ...bankConfig.accountMappings };
+                        delete newMappings[currency];
+                        newMappings[e.target.value] = account;
+                        setBankConfig(prev => ({ ...prev, accountMappings: newMappings }));
+                      }}
+                      style={{ ...inputStyle, flex: 1 }}
+                    />
+                    <span style={{ color: theme.colors.text.secondary }}>→</span>
+                    <input
+                      type="text"
+                      placeholder="Account Name (e.g. Wise USD)"
+                      value={account}
+                      onChange={(e) => {
+                        setBankConfig(prev => ({
+                          ...prev,
+                          accountMappings: {
+                            ...prev.accountMappings,
+                            [currency]: e.target.value
+                          }
+                        }));
+                      }}
+                      style={{ ...inputStyle, flex: 2 }}
+                    />
+                    <button
+                      onClick={() => {
+                        const newMappings = { ...bankConfig.accountMappings };
+                        delete newMappings[currency];
+                        setBankConfig(prev => ({ ...prev, accountMappings: newMappings }));
+                      }}
+                      style={{
+                        padding: theme.spacing.xs,
+                        backgroundColor: theme.colors.error,
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: theme.borderRadius.sm,
+                        cursor: 'pointer',
+                        fontSize: '12px'
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+                <button
+                  onClick={() => {
+                    setBankConfig(prev => ({
+                      ...prev,
+                      accountMappings: {
+                        ...prev.accountMappings,
+                        '': ''
+                      }
+                    }));
+                  }}
+                  style={{
+                    padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
+                    backgroundColor: theme.colors.primary,
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: theme.borderRadius.md,
+                    cursor: 'pointer',
+                    fontSize: '12px'
+                  }}
+                >
+                  Add Currency Mapping
+                </button>
+                <div style={{
+                  fontSize: '12px',
+                  color: theme.colors.text.secondary,
+                  marginTop: theme.spacing.sm
+                }}>
+                  Example: USD → Wise USD, EUR → Wise EUR, GBP → Wise GBP
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Sample Data Preview */}
@@ -770,7 +920,9 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
               <div>bank_name = {bankConfig.bankName || 'unknown_bank'}</div>
               <div>display_name = {bankConfig.displayName || 'Unknown Bank'}</div>
               <div>currency_primary = {bankConfig.currencyPrimary || 'USD'}</div>
-              <div>cashew_account = {bankConfig.cashewAccount || bankConfig.bankName || 'unknown_bank'}</div>
+              {!bankConfig.isMultiCurrency && (
+                <div>cashew_account = {bankConfig.cashewAccount || bankConfig.bankName || 'unknown_bank'}</div>
+              )}
               <div>content_signatures = {bankConfig.detection_content_signatures || ''}</div>
 
               <div style={{ color: theme.colors.primary, marginTop: theme.spacing.md, marginBottom: theme.spacing.sm }}>[csv_config]</div>
@@ -787,6 +939,15 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
 
               <div style={{ color: theme.colors.primary, marginTop: theme.spacing.md, marginBottom: theme.spacing.sm }}>[amount_format]</div>
               <div>format = {bankConfig.amountFormat || 'american'}</div>
+
+              {bankConfig.isMultiCurrency && Object.keys(bankConfig.accountMappings).length > 0 && (
+                <>
+                  <div style={{ color: theme.colors.primary, marginTop: theme.spacing.md, marginBottom: theme.spacing.sm }}>[account_mapping]</div>
+                  {Object.entries(bankConfig.accountMappings).filter(([currency, account]) => currency && account).map(([currency, account]) => (
+                    <div key={currency}>{currency} = {account}</div>
+                  ))}
+                </>
+              )}
             </pre>
           </div>
         </div>
