@@ -1,11 +1,11 @@
 import React, { useMemo } from 'react';
 import { useTheme } from '../../theme/ThemeProvider';
 import { Card, Button, Badge } from '../ui';
-import { 
+import {
   CheckCircle, AlertCircle, BarChart, Building, Calendar // Removed Calendar from imports
 } from '../ui/Icons';
 
-function ConfidenceDashboard({ 
+function ConfidenceDashboard({
   autoParseResults,
   uploadedFiles,
   showAdvancedConfig,
@@ -17,16 +17,16 @@ function ConfidenceDashboard({
   const confidenceMetrics = useMemo(() => {
     // Debug logging (can be removed in production)
     console.log('[DEBUG] ConfidenceDashboard calculating metrics...');
-    console.log('[DEBUG] uploadedFiles:', uploadedFiles.map(f => ({ 
-      fileName: f.fileName, 
+    console.log('[DEBUG] uploadedFiles:', uploadedFiles.map(f => ({
+      fileName: f.fileName,
       confidence: f.confidence
     })));
-    console.log('[DEBUG] autoParseResults:', autoParseResults?.map(r => ({ 
-      fileId: r.file_id, 
+    console.log('[DEBUG] autoParseResults:', autoParseResults?.map(r => ({
+      fileId: r.file_id,
       bankDetected: r.bank_info?.bank_name,
-      confidence: r.bank_info?.confidence 
+      confidence: r.bank_info?.confidence
     })));
-    
+
     if (!autoParseResults || autoParseResults.length === 0) {
       return {
         totalTransactions: 0,
@@ -39,12 +39,12 @@ function ConfidenceDashboard({
       };
     }
 
-    const totalTransactions = autoParseResults.reduce((sum, result) => 
+    const totalTransactions = autoParseResults.reduce((sum, result) =>
       sum + (result.parse_result?.row_count || 0), 0);
-    
-    const successfulFiles = autoParseResults.filter(result => 
+
+    const successfulFiles = autoParseResults.filter(result =>
       result.parse_result?.success && result.parse_result?.row_count > 0).length;
-    
+
     // CRITICAL FIX: Prioritize confidence from parse results over uploaded files
     const bankDetectionConfidence = autoParseResults.reduce((sum, result) => {
       // Use bank_info confidence if available (most up-to-date after configuration save)
@@ -52,14 +52,14 @@ function ConfidenceDashboard({
       if (bankConfidence !== undefined) {
         return sum + bankConfidence;
       }
-      
+
       // Fallback to uploaded file confidence (should be sync'd by parseAllFiles)
       const file = uploadedFiles.find(f => f.fileId === result.file_id);
       const fileConfidence = file?.confidence || 0;
       return sum + fileConfidence;
     }, 0) / autoParseResults.length;
 
-    const cleaningApplied = autoParseResults.filter(result => 
+    const cleaningApplied = autoParseResults.filter(result =>
       result.parse_result?.cleaning_applied).length;
 
     // Calculate date ranges
@@ -72,11 +72,11 @@ function ConfidenceDashboard({
         });
       }
     });
-    
+
     const dateRange = allDates.length > 0 ? {
       start: new Date(Math.min(...allDates)).toLocaleDateString(),
       end: new Date(Math.max(...allDates)).toLocaleDateString(),
-      days: Math.ceil((Math.max(...allDates) - Math.min(...allDates)) / (1000 * 60 * 60 * 24))
+      days: Math.max(1, Math.ceil((Math.max(...allDates) - Math.min(...allDates)) / (1000 * 60 * 60 * 24)))
     } : null;
 
     return {
@@ -105,7 +105,7 @@ function ConfidenceDashboard({
           borderRadius: theme.borderRadius.md,
           textAlign: 'center',
         }}>
-          <BarChart size={24} color={theme.colors.primary} style={{ marginBottom: theme.spacing.xs }} /> 
+          <BarChart size={24} color={theme.colors.primary} style={{ marginBottom: theme.spacing.xs }} />
           <div style={{ fontSize: '24px', fontWeight: '600', color: theme.colors.text.primary }}>
             {confidenceMetrics.totalTransactions.toLocaleString()}
           </div>
@@ -137,14 +137,14 @@ function ConfidenceDashboard({
         }}>
           <Calendar size={24} color={theme.colors.success} style={{ marginBottom: theme.spacing.xs }} />
           <div style={{ fontSize: '24px', fontWeight: '600', color: theme.colors.text.primary }}>
-            {confidenceMetrics.dateRange ? 
-              confidenceMetrics.dateRange.days : 
+            {confidenceMetrics.dateRange ?
+              confidenceMetrics.dateRange.days :
               0
             }
           </div>
           <div style={{ fontSize: '12px', color: theme.colors.text.secondary }}>
-            {confidenceMetrics.dateRange ? 
-              'Days of Data' : 
+            {confidenceMetrics.dateRange ?
+              'Days of Data' :
               'No Date Range'
             }
           </div>
@@ -172,10 +172,10 @@ function ConfidenceDashboard({
         alignItems: 'center',
         gap: theme.spacing.md,
         padding: theme.spacing.md,
-        backgroundColor: confidenceMetrics.successRate > 80 ? 
+        backgroundColor: confidenceMetrics.successRate > 80 ?
           theme.colors.success + '20' : theme.colors.warning + '20',
         borderRadius: theme.borderRadius.md,
-        border: `1px solid ${confidenceMetrics.successRate > 80 ? 
+        border: `1px solid ${confidenceMetrics.successRate > 80 ?
           theme.colors.success : theme.colors.warning}`,
       }}>
         {confidenceMetrics.successRate > 80 ? (
@@ -190,8 +190,8 @@ function ConfidenceDashboard({
             color: theme.colors.text.primary,
             marginBottom: '4px',
           }}>
-            {confidenceMetrics.successRate > 80 ? 
-              'Data looks great!' : 
+            {confidenceMetrics.successRate > 80 ?
+              'Data looks great!' :
               'Some files need attention'
             }
           </div>
@@ -199,8 +199,8 @@ function ConfidenceDashboard({
             fontSize: '12px',
             color: theme.colors.text.secondary,
           }}>
-            {Math.round(confidenceMetrics.successRate)}% success rate, 
-            {confidenceMetrics.cleaningApplied > 0 && 
+            {Math.round(confidenceMetrics.successRate)}% success rate,
+            {confidenceMetrics.cleaningApplied > 0 &&
               ` ${confidenceMetrics.cleaningApplied} files cleaned,`
             } ready for processing
           </div>

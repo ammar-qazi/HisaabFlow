@@ -12,7 +12,7 @@ import AdvancedConfigPanel from '../configure-review/AdvancedConfigPanel';
 import TransactionReview from '../configure-review/TransactionReview';
 import UnknownBankPanel from '../configure-review/UnknownBankPanel';
 
-function ConfigureAndReviewStep({ 
+function ConfigureAndReviewStep({
   currentStep,
   uploadedFiles,
   activeTab,
@@ -39,14 +39,18 @@ function ConfigureAndReviewStep({
   // Filter parsedResults to only include files that are currently uploaded
   // This ensures the Config & Review page stays in sync when files are removed
   const currentFileIds = new Set(uploadedFiles.map(f => f.fileId));
-  const autoParseResults = parsedResults ? parsedResults.filter(result => 
+  const autoParseResults = parsedResults ? parsedResults.filter(result =>
     currentFileIds.has(result.file_id)
   ) : [];
-  
+
+  // Check if we're in a state where files were added but parsing hasn't caught up
+  const isParsingNewFiles = uploadedFiles.length > 0 &&
+    (!autoParseResults || autoParseResults.length < uploadedFiles.length);
 
   // Check for unknown banks that need configuration
   // Only show unknown panel after parsing is complete for all files
-  const allFilesParsed = uploadedFiles.length > 0 && autoParseResults && autoParseResults.length === uploadedFiles.length;
+  const allFilesParsed = uploadedFiles.length > 0 && autoParseResults &&
+    autoParseResults.length === uploadedFiles.length && !isParsingNewFiles;
   const hasUnknownFiles = allFilesParsed && shouldTriggerUnknownBankWorkflow(uploadedFiles);
   const unknownFiles = allFilesParsed ? getUnknownBankFiles(uploadedFiles) : [];
 
@@ -55,13 +59,13 @@ function ConfigureAndReviewStep({
     if (allFilesParsed && uploadedFiles.length > 0) {
       const knownFiles = uploadedFiles.filter(file => file.detectedBank && (file.confidence || 0) >= 0.5);
       const unknownFilesList = getUnknownBankFiles(uploadedFiles);
-      
+
       if (knownFiles.length > 0) {
         toast.success(
           `Successfully applied configurations to ${knownFiles.length} file(s) based on bank detection.`
         );
       }
-      
+
       if (unknownFilesList.length > 0) {
         toast(
           `Found ${unknownFilesList.length} unknown CSV file(s) requiring manual configuration.`,
@@ -95,7 +99,7 @@ function ConfigureAndReviewStep({
       try {
         await Promise.all(previewPromises);
         toast.success('Successfully applied new configuration!', { id: 're-detect' });
-        
+
         // Re-parse all files with the new configuration to refresh data completely
         toast.loading('Re-processing data with new configuration...', { id: 'reparse' });
         try {
@@ -114,9 +118,39 @@ function ConfigureAndReviewStep({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing.lg }}>
+      {/* Show loading state when new files are being parsed */}
+      {isParsingNewFiles && (
+        <Card padding="lg" elevated>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: theme.spacing.xl,
+            textAlign: 'center',
+          }}>
+            <div>
+              <div style={{
+                fontSize: '18px',
+                fontWeight: '500',
+                color: theme.colors.text.primary,
+                marginBottom: theme.spacing.sm,
+              }}>
+                Processing new files...
+              </div>
+              <div style={{
+                fontSize: '14px',
+                color: theme.colors.text.secondary,
+              }}>
+                Analyzing {uploadedFiles.length - autoParseResults.length} additional file(s)
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* Unknown Bank Panel - Shows when files need manual configuration */}
       {hasUnknownFiles && (
-        <UnknownBankPanel 
+        <UnknownBankPanel
           unknownFiles={unknownFiles}
           onConfigCreated={handleConfigCreated}
           loading={loading}
@@ -158,8 +192,8 @@ function ConfigureAndReviewStep({
       {/* Transaction Review - Data viewing with multiple modes */}
       {autoParseResults && autoParseResults.length > 0 && (
         <TransactionReview
-        autoParseResults={autoParseResults}
-        uploadedFiles={uploadedFiles} // Add this prop
+          autoParseResults={autoParseResults}
+          uploadedFiles={uploadedFiles} // Add this prop
         />
       )}
 
@@ -180,7 +214,7 @@ function ConfigureAndReviewStep({
         >
           Back to Upload
         </Button>
-        
+
         <Button
           variant="primary"
           size="large"
