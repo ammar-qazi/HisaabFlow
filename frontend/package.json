@@ -41,6 +41,7 @@
   "build": {
     "appId": "com.hisaabflow.app",
     "productName": "HisaabFlow",
+    "icon": "assets/icon.svg",
     "publish": {
       "provider": "github"
     },
@@ -63,7 +64,6 @@
     "mac": {
       "target": "dmg",
       "category": "public.app-category.finance",
-      "icon": "assets/icon.icns",
       "extraResources": [
         {
           "from": "compiled-backend/hisaabflow-backend",
@@ -82,7 +82,6 @@
     "linux": {
       "target": "AppImage",
       "category": "Office",
-      "icon": "assets/icon.png",
       "extraResources": [
         {
           "from": "compiled-backend/hisaabflow-backend",
@@ -102,10 +101,12 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64", "ia32"]
+          "arch": [
+            "x64",
+            "ia32"
+          ]
         }
       ],
-      "icon": "assets/icon.ico",
       "compression": "normal",
       "extraResources": [
         {
