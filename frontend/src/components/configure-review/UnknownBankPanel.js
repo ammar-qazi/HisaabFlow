@@ -39,7 +39,7 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
     detection_content_signatures: '',
     columnMappings: {},
     amountFormat: 'american',
-    currencyPrimary: 'USD',
+    currencyPrimary: '',
     cashewAccount: '',
     headerRow: 1,  // 1-based indexing for user display
     columnType: 'amount',  // 'amount' or 'debit_credit'
@@ -74,7 +74,7 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
         detection_content_signatures: '',
         columnMappings: {},
         amountFormat: 'american',
-        currencyPrimary: 'USD',
+        currencyPrimary: '',
         cashewAccount: '',
         headerRow: 1,
         columnType: 'amount',
@@ -95,7 +95,7 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
         detection_content_signatures: '',
         columnMappings: {},
         amountFormat: 'american',
-        currencyPrimary: 'USD',
+        currencyPrimary: '',
         cashewAccount: '',
         headerRow: 1,
         columnType: 'amount',
@@ -207,12 +207,12 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
     const lowercaseHeaders = headers.map(h => h.toLowerCase());
     const hasDebit = lowercaseHeaders.some(h => h.includes('debit'));
     const hasCredit = lowercaseHeaders.some(h => h.includes('credit'));
-    
+
     // If both debit and credit columns exist, suggest debit_credit mode
     if (hasDebit && hasCredit) {
       return 'debit_credit';
     }
-    
+
     // Default to amount mode
     return 'amount';
   };
@@ -227,9 +227,9 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
       expected_headers: [],
       detection_content_signatures: '',
       columnMappings: {},
-      amountFormat: 'american',
-      currencyPrimary: 'USD',
-      cashewAccount: generateBankName(file.fileName || file.name),
+      amountFormat: '',
+      currencyPrimary: '',
+      cashewAccount: '',
       columnType: 'amount',
       dateFormat: '',
       isMultiCurrency: false,
@@ -284,7 +284,7 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
       config.displayName &&
       config.columnMappings.date &&
       config.columnMappings.title;
-    
+
     // Check amount fields based on column type
     let hasAmountFields = false;
     if (config.columnType === 'amount') {
@@ -293,12 +293,12 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
       // For debit/credit, at least one of them should be mapped
       hasAmountFields = config.columnMappings.debit || config.columnMappings.credit;
     }
-    
+
     // Check account configuration based on multi-currency setting
     let hasValidAccountConfig = false;
     if (config.isMultiCurrency) {
       // For multi-currency, need at least one valid currency->account mapping
-      const validMappings = Object.entries(config.accountMappings).filter(([currency, account]) => 
+      const validMappings = Object.entries(config.accountMappings).filter(([currency, account]) =>
         currency && currency.trim() && account && account.trim()
       );
       hasValidAccountConfig = validMappings.length > 0;
@@ -306,7 +306,7 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
       // For single currency, need cashew account
       hasValidAccountConfig = config.cashewAccount && config.cashewAccount.trim();
     }
-    
+
     return hasBasicFields && hasAmountFields && hasValidAccountConfig;
   };
 
@@ -332,7 +332,7 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
         if (!config.bankName) validation.errors.push('Bank name is required');
         if (!config.columnMappings.date) validation.errors.push('Date column mapping is required');
         if (!config.columnMappings.title) validation.errors.push('Title/Description column mapping is required');
-        
+
         // Validate amount fields based on column type
         if (config.columnType === 'amount') {
           if (!config.columnMappings.amount) validation.errors.push('Amount column mapping is required');
@@ -533,28 +533,32 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
                 style={inputStyle}
               />
             </div>
-            <div>
-              <label style={labelStyle}>
-                Primary Currency <span style={{ color: theme.colors.error }}>*</span>
-              </label>
-              <input
-                type="text"
-                value={bankConfig.currencyPrimary}
-                onChange={(e) => setBankConfig(prev => ({ ...prev, currencyPrimary: e.target.value }))}
-                style={inputStyle}
-              />
-            </div>
-            <div>
-              <label style={labelStyle}>
-                Cashew Account Name <span style={{ color: theme.colors.error }}>*</span>
-              </label>
-              <input
-                type="text"
-                value={bankConfig.cashewAccount}
-                onChange={(e) => setBankConfig(prev => ({ ...prev, cashewAccount: e.target.value }))}
-                style={inputStyle}
-              />
-            </div>
+            {!bankConfig.isMultiCurrency && (
+              <div>
+                <label style={labelStyle}>
+                  Primary Currency <span style={{ color: theme.colors.error }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  value={bankConfig.currencyPrimary}
+                  onChange={(e) => setBankConfig(prev => ({ ...prev, currencyPrimary: e.target.value }))}
+                  style={inputStyle}
+                />
+              </div>
+            )}
+            {!bankConfig.isMultiCurrency && (
+              <div>
+                <label style={labelStyle}>
+                  Cashew Account Name <span style={{ color: theme.colors.error }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  value={bankConfig.cashewAccount}
+                  onChange={(e) => setBankConfig(prev => ({ ...prev, cashewAccount: e.target.value }))}
+                  style={inputStyle}
+                />
+              </div>
+            )}
           </div>
           <div>
             <label style={labelStyle}>
@@ -643,7 +647,7 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
               color: theme.colors.text.secondary,
               marginTop: theme.spacing.xs
             }}>
-              {bankConfig.columnType === 'amount' 
+              {bankConfig.columnType === 'amount'
                 ? 'Use when the CSV has one column for amounts (positive/negative values)'
                 : 'Use when the CSV has separate columns for debits and credits'
               }
@@ -678,7 +682,7 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
           {/* Date Format Configuration */}
           <div style={{ marginTop: theme.spacing.md }}>
             <label style={labelStyle}>
-              Date Format (Optional)
+              Date Format
             </label>
             <input
               type="text"
@@ -692,7 +696,7 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
               color: theme.colors.text.secondary,
               marginTop: theme.spacing.xs
             }}>
-              Python strptime format (leave empty for auto-detection). Examples: %Y-%m-%d for "2024-01-15", %d/%m/%Y for "15/01/2024"
+              Leave empty for auto-detection. Examples: %Y-%m-%d for "2024-01-15", %d/%m/%Y for "15/01/2024"
               {analysis?.date_format_detection?.detected_format && (
                 <div style={{ marginTop: theme.spacing.xs, color: theme.colors.primary }}>
                   Detected: {analysis.date_format_detection.detected_format}
@@ -707,8 +711,8 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
               <input
                 type="checkbox"
                 checked={bankConfig.isMultiCurrency}
-                onChange={(e) => setBankConfig(prev => ({ 
-                  ...prev, 
+                onChange={(e) => setBankConfig(prev => ({
+                  ...prev,
                   isMultiCurrency: e.target.checked,
                   // Clear account mappings when toggling off
                   accountMappings: e.target.checked ? prev.accountMappings : {}
@@ -739,9 +743,9 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
                 backgroundColor: theme.colors.background.elevated
               }}>
                 {Object.entries(bankConfig.accountMappings).map(([currency, account], index) => (
-                  <div key={index} style={{ 
-                    display: 'flex', 
-                    gap: theme.spacing.sm, 
+                  <div key={index} style={{
+                    display: 'flex',
+                    gap: theme.spacing.sm,
                     marginBottom: theme.spacing.sm,
                     alignItems: 'center'
                   }}>
