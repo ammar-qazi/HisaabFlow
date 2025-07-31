@@ -59,7 +59,7 @@ chmod +x start_app.sh
 | **Meezan** | PKR | ✅ Full Support |
 | **Other Banks** | Single/Multiple | ✅ Full Support Via Unknown Bank Panel |
 
-**Can't parse your bank**: Open a ticket and I'll add support for it.
+**Can't parse your bank?** Open a ticket and I'll add support for it.
 
 ## How It Works
 
