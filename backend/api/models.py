@@ -287,6 +287,17 @@ class AmountFormatAnalysisModel(BaseModel):
     currency_symbols: List[str]
 
 
+class DateFormatDetectionModel(BaseModel):
+    """Model for date format detection results"""
+    
+    detected_format: Optional[str] = None
+    confidence: float = 0.0
+    samples_analyzed: int = 0
+    format_distribution: List[Dict[str, Any]] = []
+    date_column_name: Optional[str] = None
+    sample_dates: List[str] = []
+
+
 class UnknownBankAnalysisResponse(BaseModel):
     """Response model for unknown bank CSV analysis"""
 
@@ -302,6 +313,7 @@ class UnknownBankAnalysisResponse(BaseModel):
     filename_patterns: List[str]
     sample_data: List[Dict[str, str]]
     structure_confidence: float
+    date_format_detection: Optional[DateFormatDetectionModel] = None
     error: Optional[str] = None
 
 
@@ -315,6 +327,7 @@ class BankConfigInputModel(BaseModel):
     amount_format: AmountFormatModel
     currency_primary: str
     cashew_account: str
+    date_format: Optional[str] = None  # Custom date format pattern
     description_cleaning_rules: Optional[Dict[str, str]] = None
 
 
@@ -383,3 +396,31 @@ class UnknownBankAnalysisRequest(BaseModel):
     file_id: str  # Reference to uploaded file
     encoding: Optional[str] = None
     delimiter: Optional[str] = None
+
+
+class ValidateDatePatternRequest(BaseModel):
+    """Request model for validating custom date patterns"""
+    
+    pattern: str
+    sample_dates: List[str]
+
+
+class DatePatternValidationResult(BaseModel):
+    """Result of date pattern validation for a single sample"""
+    
+    sample: str
+    success: bool
+    parsed_date: Optional[str] = None
+    formatted_back: Optional[str] = None
+    error: Optional[str] = None
+
+
+class ValidateDatePatternResponse(BaseModel):
+    """Response model for date pattern validation"""
+    
+    success: bool
+    pattern: str
+    results: List[DatePatternValidationResult]
+    success_rate: float
+    is_valid: bool
+    error: Optional[str] = None

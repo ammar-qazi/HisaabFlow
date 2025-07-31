@@ -42,7 +42,8 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
     currencyPrimary: 'USD',
     cashewAccount: '',
     headerRow: 1,  // 1-based indexing for user display
-    columnType: 'amount'  // 'amount' or 'debit_credit'
+    columnType: 'amount',  // 'amount' or 'debit_credit'
+    dateFormat: ''  // Custom date format pattern
   });
   const [validationResult, setValidationResult] = useState(null);
 
@@ -74,7 +75,8 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
         currencyPrimary: 'USD',
         cashewAccount: '',
         headerRow: 1,
-        columnType: 'amount'
+        columnType: 'amount',
+        dateFormat: ''
       });
       setValidationResult(null);
       analyzeUnknownCSV(selectedFile);
@@ -92,7 +94,8 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
         currencyPrimary: 'USD',
         cashewAccount: '',
         headerRow: 1,
-        columnType: 'amount'
+        columnType: 'amount',
+        dateFormat: ''
       });
       setValidationResult(null);
     }
@@ -120,7 +123,8 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
           amountFormat: mapDetectedFormat(result.analysis.amount_format_analysis?.detected_format),
           currencyPrimary: detectCurrency(result.analysis.sample_data),
           headerRow: headerRow || result.analysis.header_row || prev.headerRow,  // Use manual override, then auto-detected, then previous value
-          columnType: detectColumnType(result.analysis.headers || [])
+          columnType: detectColumnType(result.analysis.headers || []),
+          dateFormat: result.analysis?.date_format_detection?.detected_format || ''
         }));
       } else {
         console.warn('API not available, using mock analysis:', result.error);
@@ -221,6 +225,7 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
       currencyPrimary: 'USD',
       cashewAccount: generateBankName(file.fileName || file.name),
       columnType: 'amount',
+      dateFormat: '',
       manualMode: true
     });
     analyzeForManualConfig(file);
@@ -346,7 +351,8 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
           delimiter: ',',
           header_row: config.headerRow,  // Use the configured header row (1-based)
           has_header: true,
-          skip_rows: 0
+          skip_rows: 0,
+          date_format: config.dateFormat || null
         },
         column_mapping: config.columnMappings,
         data_cleaning: {
@@ -643,6 +649,32 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
               Example: {AMOUNT_FORMATS.find(f => f.value === bankConfig.amountFormat)?.example}
             </div>
           </div>
+
+          {/* Date Format Configuration */}
+          <div style={{ marginTop: theme.spacing.md }}>
+            <label style={labelStyle}>
+              Date Format (Optional)
+            </label>
+            <input
+              type="text"
+              value={bankConfig.dateFormat}
+              onChange={(e) => setBankConfig(prev => ({ ...prev, dateFormat: e.target.value }))}
+              placeholder="e.g. %Y-%m-%d, %d/%m/%Y, %m/%d/%Y"
+              style={inputStyle}
+            />
+            <div style={{
+              fontSize: '12px',
+              color: theme.colors.text.secondary,
+              marginTop: theme.spacing.xs
+            }}>
+              Python strptime format (leave empty for auto-detection). Examples: %Y-%m-%d for "2024-01-15", %d/%m/%Y for "15/01/2024"
+              {analysis?.date_format_detection?.detected_format && (
+                <div style={{ marginTop: theme.spacing.xs, color: theme.colors.primary }}>
+                  Detected: {analysis.date_format_detection.detected_format}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Sample Data Preview */}
@@ -746,6 +778,7 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
               <div>encoding = {analysis?.encoding || 'utf-8'}</div>
               <div>delimiter = ,</div>
               <div>has_header = true</div>
+              {bankConfig.dateFormat && <div>date_format = {bankConfig.dateFormat}</div>}
 
               <div style={{ color: theme.colors.primary, marginTop: theme.spacing.md, marginBottom: theme.spacing.sm }}>[column_mapping]</div>
               {Object.entries(bankConfig.columnMappings).filter(([key, value]) => value).map(([key, value]) => (

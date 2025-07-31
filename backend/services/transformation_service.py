@@ -167,7 +167,10 @@ class TransformationService:
                             'column_mapping': bank_config.column_mapping,
                             'account_mapping': bank_config.account_mapping,
                             'categorization': bank_config.categorization_rules,
-                            'default_category_rules': bank_config.default_category_rules
+                            'default_category_rules': bank_config.default_category_rules,
+                            'csv_config': {
+                                'date_format': bank_config.csv_config.date_format
+                            }
                         }
                         configs[detected_bank] = config_dict
                         print(f"      Loaded config for {detected_bank}")

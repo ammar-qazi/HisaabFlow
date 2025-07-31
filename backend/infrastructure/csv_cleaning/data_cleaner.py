@@ -31,12 +31,12 @@ class DataCleaner:
     Coordinates modular cleaning pipeline for uniform, clean data structure
     """
     
-    def __init__(self, amount_format: Optional[AmountFormat] = None):
+    def __init__(self, amount_format: Optional[AmountFormat] = None, config_date_format: Optional[str] = None):
         # Initialize all cleaning modules
         self.bom_cleaner = BOMCleaner()
         self.column_standardizer = ColumnStandardizer()
         self.numeric_cleaner = NumericCleaner(amount_format=amount_format)
-        self.date_cleaner = DateCleaner()
+        self.date_cleaner = DateCleaner(config_date_format=config_date_format)
         self.currency_handler = CurrencyHandler()
         self.data_validator = DataValidator()
         self.quality_checker = QualityChecker()

@@ -30,6 +30,7 @@ class CSVConfig:
     has_header: bool = True
     skip_rows: int = 0
     header_row: int = 0  # 0-based indexing for internal use
+    date_format: Optional[str] = None  # Detected date format for parsing
 
 
 @dataclass
@@ -425,10 +426,11 @@ class UnifiedConfigService:
             return CSVConfig(
                 delimiter=csv_section.get('delimiter', ','),
                 quote_char=csv_section.get('quote_char', '"'),
-                encoding=csv_section.get('encoding', 'utf-8'),
+                encoding=csv_section.get('encoding', None),
                 has_header=csv_section.getboolean('has_header', fallback=True),
                 skip_rows=csv_section.getint('skip_rows', fallback=0),
-                header_row=header_row_0based
+                header_row=header_row_0based,
+                date_format=csv_section.get('date_format', None)
             )
         else:
             # Return defaults if no csv_config section

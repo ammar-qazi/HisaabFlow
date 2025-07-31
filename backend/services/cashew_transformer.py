@@ -86,13 +86,6 @@ class CashewTransformer:
                         existing_account = cashew_row.get('account', bank_name)
                         print(f"    Row {idx} Preserving existing account: Currency='{currency}', Account='{existing_account}'")
             
-            # Debug: Show available fields for Meezan rows
-            if source_bank == 'Meezan' and idx < 10:
-                print(f"    Row {idx} (Meezan) available fields: {list(row.keys())}")
-                print(f"    Row {idx} (Meezan) amount field value: '{row.get('amount', 'NOT_FOUND')}'")
-                print(f"    Row {idx} (Meezan) debit field value: '{row.get('debit', 'NOT_FOUND')}'")
-                print(f"    Row {idx} (Meezan) credit field value: '{row.get('credit', 'NOT_FOUND')}'")
-            
             # Apply column mapping (lowercase internally)
             # This now handles both raw data (using source_col) and pre-cleaned data (using cashew_col)
             for cashew_col, source_col in column_mapping.items():
@@ -104,7 +97,14 @@ class CashewTransformer:
 
                 if value_found is not None:
                     if cashew_col == 'date':
-                        cashew_row[cashew_col] = self.parse_date(str(value_found))
+                        # --- NEW LOGIC ---
+                        date_format_from_config = None
+                        if config and source_bank in config:
+                            bank_specific_config = config.get(source_bank, {})
+                            date_format_from_config = bank_specific_config.get('csv_config', {}).get('date_format')
+                        
+                        cashew_row[cashew_col] = self.parse_date(str(value_found), date_format=date_format_from_config)
+                        # --- END NEW LOGIC ---
                     elif cashew_col == 'amount':
                         source_value = value_found
                         original_amount = str(source_value)
@@ -156,7 +156,12 @@ class CashewTransformer:
                     fallback_value = self.resolve_field_with_fallback(row, cashew_field)
                     if fallback_value:
                         if cashew_field == 'date':
-                            cashew_row[cashew_field] = self.parse_date(fallback_value)
+                            # Use the same date format from config for fallback parsing
+                            date_format_from_config = None
+                            if config and source_bank in config:
+                                bank_specific_config = config.get(source_bank, {})
+                                date_format_from_config = bank_specific_config.get('csv_config', {}).get('date_format')
+                            cashew_row[cashew_field] = self.parse_date(fallback_value, date_format=date_format_from_config)
                         elif cashew_field == 'amount':
                             cashew_row[cashew_field] = self.parse_amount(fallback_value)
                         else:
@@ -249,15 +254,27 @@ class CashewTransformer:
             
         return final_row
 
-    def parse_date(self, date_str: str) -> str:
+    def parse_date(self, date_str: str, date_format: Optional[str] = None) -> str:
         """
         Parse a date string into standard Cashew format: YYYY-MM-DD HH:MM:SS
-        Uses 00:00:00 as default time when no time is provided.
         """
         if not date_str or str(date_str).strip() == '' or str(date_str).lower() == 'nan':
             return ''
             
         date_str = str(date_str).strip()
+        
+        # --- NEW LOGIC ---
+        if date_format:
+            try:
+                dt = datetime.strptime(date_str, date_format)
+                # Check if time info is present in the format string
+                if any(c in date_format for c in ['%H', '%I', '%M', '%S', '%p']):
+                    return dt.strftime('%Y-%m-%d %H:%M:%S')
+                else:
+                    return dt.strftime('%Y-%m-%d 00:00:00')
+            except (ValueError, TypeError):
+                print(f"[WARNING] Date '{date_str}' did not match configured format '{date_format}'. Falling back.")
+        # --- END NEW LOGIC ---
         
         try:
             # Handle common date formats with time
@@ -280,6 +297,7 @@ class CashewTransformer:
             date_only_formats = [
                 '%Y-%m-%d',           # 2025-04-30
                 '%Y.%m.%d',           # 2025.04.30 (Hungarian format)
+                '%d.%m.%y',           # 20.02.18 (German format)
                 '%d/%m/%Y',           # 30/04/2025
                 '%m/%d/%Y',           # 04/30/2025
                 '%d-%m-%Y',           # 30-04-2025

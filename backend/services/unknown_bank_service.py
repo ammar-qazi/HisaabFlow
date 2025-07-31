@@ -6,6 +6,8 @@ from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 import configparser
 import os
+from pandas.tseries.api import guess_datetime_format
+from collections import Counter
 from backend.infrastructure.csv_parsing.structure_analyzer import (
     StructureAnalyzer,
     UnknownBankAnalysis,
@@ -31,6 +33,7 @@ class BankConfigInput:
     amount_format: AmountFormat
     currency_primary: str
     cashew_account: str
+    date_format: Optional[str] = None  # Custom date format pattern
     description_cleaning_rules: Optional[Dict[str, str]] = None
 
 
@@ -171,6 +174,15 @@ class UnknownBankService:
                 header_row=analyzer_header_row,
             )
 
+            # Add date format detection using pandas
+            date_format_info = self._detect_date_format(analysis)
+            if date_format_info:
+                # Store the detected format information in the analysis results
+                if not hasattr(analysis, "additional_metadata"):
+                    analysis.additional_metadata = {}
+                analysis.additional_metadata["date_format_info"] = date_format_info
+                print(f"  Date format detected: {date_format_info.get('detected_format')}")
+
             print(
                 f"  DEBUG: UnknownBankService - Analysis object encoding: {analysis.encoding}"
             )
@@ -209,6 +221,24 @@ class UnknownBankService:
 
         try:
             # Build configuration structure
+            csv_config = {
+                "encoding": analysis.encoding,
+                "delimiter": analysis.delimiter,
+                "header_row": analysis.header_row
+                + 1,  # Convert to 1-based for config file
+                "has_header": True,
+                "skip_rows": 0,
+            }
+
+            # Add date format - prioritize user input over detected format
+            if user_input.date_format:
+                csv_config["date_format"] = user_input.date_format
+            elif hasattr(
+                analysis, "additional_metadata"
+            ) and analysis.additional_metadata.get("date_format_info"):
+                date_format_info = analysis.additional_metadata["date_format_info"]
+                csv_config["date_format"] = date_format_info.get("detected_format")
+
             config = {
                 "bank_info": {
                     "name": user_input.bank_name,
@@ -221,14 +251,7 @@ class UnknownBankService:
                     "currency_primary": user_input.currency_primary,
                     "cashew_account": user_input.cashew_account,
                 },
-                "csv_config": {
-                    "encoding": analysis.encoding,
-                    "delimiter": analysis.delimiter,
-                    "header_row": analysis.header_row
-                    + 1,  # Convert to 1-based for config file
-                    "has_header": True,
-                    "skip_rows": 0,
-                },
+                "csv_config": csv_config,
                 "column_mapping": user_input.column_mappings,
                 "data_cleaning": {
                     "amount_format": self._format_to_config(user_input.amount_format),
@@ -553,6 +576,12 @@ class UnknownBankService:
         else:
             config_parser.set("csv_config", "skip_rows", "0")
 
+        # Add detected date format if available
+        if "date_format" in csv_config and csv_config["date_format"]:
+            # Escape percentage signs for configparser
+            escaped_format = csv_config["date_format"].replace("%", "%%")
+            config_parser.set("csv_config", "date_format", escaped_format)
+
     def _add_column_mapping_section(
         self, config_parser: configparser.ConfigParser, column_mapping: Dict[str, str]
     ):
@@ -651,3 +680,163 @@ class UnknownBankService:
         """Add incoming_patterns section to config."""
         config_parser.add_section("incoming_patterns")
         # Empty for now - can be enhanced later
+
+    def _detect_date_format(self, analysis: UnknownBankAnalysis) -> Optional[Dict[str, Any]]:
+        """
+        Detect date format from sample data using pandas with majority vote.
+
+        Args:
+            analysis: UnknownBankAnalysis containing sample data and field mappings
+
+        Returns:
+            Dictionary with detailed date format detection results or None if detection fails
+        """
+        try:
+            # Find the date column from field mapping suggestions
+            date_column_name = None
+            for field, suggestion in analysis.field_mapping_suggestions.items():
+                if field == "date" and suggestion.best_match:
+                    date_column_name = suggestion.best_match
+                    break
+
+            # If no date field mapping found, try to find common date column names
+            if not date_column_name and analysis.sample_data and analysis.headers:
+                common_date_names = [
+                    "date",
+                    "timestamp",
+                    "created_at",
+                    "processed_at",
+                    "transaction_date",
+                    "booking_date",
+                    "value_date",
+                    "datum",
+                    "fecha",
+                    "data",
+                ]
+
+                for header in analysis.headers:
+                    header_lower = header.lower()
+                    if any(
+                        date_name in header_lower for date_name in common_date_names
+                    ):
+                        date_column_name = header
+                        print(
+                            f"  [DEBUG] Found potential date column by name matching: '{date_column_name}'"
+                        )
+                        break
+
+            if not date_column_name or not analysis.sample_data:
+                print(
+                    f"  [WARNING] Date format detection skipped: date_column='{date_column_name}', sample_data_available={bool(analysis.sample_data)}"
+                )
+                return None
+
+            # Extract up to 5 non-null date samples for robust detection
+            date_samples = []
+            for row in analysis.sample_data[
+                :10
+            ]:  # Check first 10 rows to get 5 samples
+                if date_column_name in row and row[date_column_name]:
+                    date_value = str(row[date_column_name]).strip()
+                    if date_value and date_value.lower() != "nan":
+                        date_samples.append(date_value)
+                        if len(date_samples) >= 5:
+                            break
+
+            if not date_samples:
+                print(
+                    f"  [WARNING] No valid date samples found in column '{date_column_name}'"
+                )
+                return None
+
+            print(
+                f"  [DEBUG] Date format detection using {len(date_samples)} samples from column '{date_column_name}': {date_samples}"
+            )
+
+            # Infer format for each sample
+            inferred_formats = []
+            for sample in date_samples:
+                try:
+                    format_guess = guess_datetime_format(sample)
+                    if format_guess:
+                        inferred_formats.append(format_guess)
+                        print(f"    Sample '{sample}' → format '{format_guess}'")
+                    else:
+                        # Fallback: try common date patterns when pandas fails
+                        fallback_format = self._try_common_date_patterns(sample)
+                        if fallback_format:
+                            inferred_formats.append(fallback_format)
+                            print(
+                                f"    Sample '{sample}' → format '{fallback_format}' (fallback)"
+                            )
+                        else:
+                            print(f"    Sample '{sample}' → no format detected")
+                except Exception as e:
+                    print(f"    Sample '{sample}' → failed: {e}")
+                    continue
+
+            if not inferred_formats:
+                print(f"  [WARNING] No date formats could be inferred from samples")
+                return None
+
+            # Find the most common format using majority vote
+            format_counter = Counter(inferred_formats)
+            most_common_format, count = format_counter.most_common(1)[0]
+            confidence = count / len(inferred_formats) if inferred_formats else 0.0
+
+            print(
+                f"  [SUCCESS] Date format detection: '{most_common_format}' (appeared {count}/{len(inferred_formats)} times, {confidence:.1%} confidence)"
+            )
+            
+            # Return detailed information
+            return {
+                'detected_format': most_common_format,
+                'confidence': confidence,
+                'samples_analyzed': len(date_samples),
+                'format_distribution': [{'format': fmt, 'count': cnt} for fmt, cnt in format_counter.most_common()],
+                'date_column_name': date_column_name,
+                'sample_dates': date_samples
+            }
+
+        except Exception as e:
+            print(f"  [ERROR] Date format detection failed: {e}")
+            return None
+
+    def _try_common_date_patterns(self, date_sample: str) -> Optional[str]:
+        """
+        Try common date patterns when pandas guess_datetime_format fails.
+        Particularly useful for 2-digit years and other edge cases.
+
+        Args:
+            date_sample: Date string to analyze
+
+        Returns:
+            Detected format string or None if no pattern matches
+        """
+        from datetime import datetime
+
+        # Common date patterns to try, especially for 2-digit years
+        common_patterns = [
+            "%d.%m.%y",  # 20.02.18 (German format with 2-digit year)
+            "%d/%m/%y",  # 20/02/18 (European format with 2-digit year)
+            "%m/%d/%y",  # 02/20/18 (American format with 2-digit year)
+            "%y-%m-%d",  # 18-02-20 (ISO-like with 2-digit year)
+            "%d-%m-%y",  # 20-02-18 (European format with 2-digit year)
+            "%d.%m.%Y",  # 20.02.2018 (German format with 4-digit year)
+            "%d/%m/%Y",  # 20/02/2018 (European format with 4-digit year)
+            "%m/%d/%Y",  # 02/20/2018 (American format with 4-digit year)
+            "%Y-%m-%d",  # 2018-02-20 (ISO format)
+            "%d-%m-%Y",  # 20-02-2018 (European format with 4-digit year)
+            "%Y.%m.%d",  # 2018.02.20 (Alternative ISO format)
+            "%d %b %Y",  # 20 Feb 2018 (Month name format)
+            "%b %d, %Y",  # Feb 20, 2018 (American month name format)
+        ]
+
+        for pattern in common_patterns:
+            try:
+                datetime.strptime(date_sample, pattern)
+                return pattern
+            except ValueError:
+                continue
+
+        return None

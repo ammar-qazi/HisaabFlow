@@ -6,6 +6,7 @@ Handles parsing and standardization of date columns
 from typing import List, Dict, Any
 from datetime import datetime
 import re
+import pandas as pd
 
 class DateCleaner:
     """
@@ -13,21 +14,17 @@ class DateCleaner:
     Handles various date formats and converts to ISO standard
     """
     
-    def __init__(self):
+    def __init__(self, config_date_format: str = None):
         self.date_keywords = ['date', 'timestamp', 'created_at', 'processed_at']
-        self.date_formats = [
+        self.config_date_format = config_date_format
+        
+        # Unambiguous fallback formats only
+        self.fallback_date_formats = [
             '%d %b %Y %I:%M %p',    # 02 Feb 2025 11:17 PM
             '%d %b %Y',             # 02 Feb 2025
-            '%Y-%m-%d',             # 2025-02-03
-            '%d/%m/%Y',             # 02/03/2025
-            '%m/%d/%Y',             # 03/02/2025
-            '%m-%d/%Y',             # 03-02/2025
-            '%d-%m-%Y',             # 02-03-2025
-            '%m-%d-%y',             # 05-30-25 (MM-DD-YY)
-            '%d-%m-%y',             # 02-03-25 (DD-MM-YY)
-            '%y-%m-%d',             # 25-03-02 (YY-MM-DD)
+            '%Y-%m-%d',             # 2025-02-03 (ISO standard)
             '%Y-%m-%d %H:%M:%S',    # 2025-02-03 23:17:00
-            '%Y.%m.%d',             # 2025.06.30
+            '%Y.%m.%d',             # 2025.06.30 (4-digit year)
             '%Y.%m.%d %H:%M:%S',    # 2025.06.30 12:34:56
         ]
     
@@ -131,8 +128,25 @@ class DateCleaner:
             
             value_str = str(value).strip()
             
-            # Try parsing with common date formats
-            for fmt in self.date_formats:
+            # First try the config-specified date format (authoritative)
+            if self.config_date_format:
+                try:
+                    dt = datetime.strptime(value_str, self.config_date_format)
+                    return dt.strftime('%Y-%m-%d')
+                except ValueError:
+                    pass
+            
+            # Second try pandas guess_datetime_format for automatic detection
+            try:
+                guessed_format = pd.tseries.api.guess_datetime_format(value_str)
+                if guessed_format:
+                    dt = datetime.strptime(value_str, guessed_format)
+                    return dt.strftime('%Y-%m-%d')
+            except (ValueError, TypeError):
+                pass
+            
+            # Last resort: try unambiguous fallback formats
+            for fmt in self.fallback_date_formats:
                 try:
                     dt = datetime.strptime(value_str, fmt)
                     return dt.strftime('%Y-%m-%d')

@@ -17,7 +17,8 @@ from backend.api.models import (
     ValidateBankConfigRequest, ValidateBankConfigResponse,
     SaveBankConfigRequest, SaveBankConfigResponse,
     AmountFormatAnalysisModel, AmountFormatModel, FieldMappingSuggestionModel,
-    BankConfigInputModel, ConfigValidationResultModel
+    BankConfigInputModel, ConfigValidationResultModel,
+    ValidateDatePatternRequest, ValidateDatePatternResponse, DatePatternValidationResult
 )
 
 # Router for unknown bank endpoints
@@ -102,6 +103,20 @@ async def analyze_unknown_csv(
                 best_match=suggestion.best_match
             )
         
+        # Convert date format detection information
+        date_format_detection = None
+        if hasattr(analysis, 'additional_metadata') and analysis.additional_metadata.get('date_format_info'):
+            date_info = analysis.additional_metadata['date_format_info']
+            from backend.api.models import DateFormatDetectionModel
+            date_format_detection = DateFormatDetectionModel(
+                detected_format=date_info.get('detected_format'),
+                confidence=date_info.get('confidence', 0.0),
+                samples_analyzed=date_info.get('samples_analyzed', 0),
+                format_distribution=date_info.get('format_distribution', []),
+                date_column_name=date_info.get('date_column_name'),
+                sample_dates=date_info.get('sample_dates', [])
+            )
+        
         # Create response
         print(f"  DEBUG: API - analysis.encoding being returned: {analysis.encoding}")
         response = UnknownBankAnalysisResponse(
@@ -116,7 +131,8 @@ async def analyze_unknown_csv(
             field_mapping_suggestions=field_suggestions,
             filename_patterns=analysis.filename_patterns,
             sample_data=analysis.sample_data,
-            structure_confidence=analysis.structure_confidence
+            structure_confidence=analysis.structure_confidence,
+            date_format_detection=date_format_detection
         )
         
         # Add analysis_id to response (extend model if needed)
@@ -202,6 +218,7 @@ async def generate_bank_config(
             amount_format=amount_format,
             currency_primary=request.config_input.currency_primary,
             cashew_account=request.config_input.cashew_account,
+            date_format=request.config_input.date_format,
             description_cleaning_rules=request.config_input.description_cleaning_rules
         )
         
@@ -426,6 +443,72 @@ async def validate_header_row(
         # Clean up the temporary file
         if temp_file_path and os.path.exists(temp_file_path):
             os.unlink(temp_file_path)
+
+
+@unknown_bank_router.post("/validate-date-pattern")
+async def validate_date_pattern(
+    request: ValidateDatePatternRequest
+) -> ValidateDatePatternResponse:
+    """
+    Validate a custom date pattern against sample data.
+    
+    Args:
+        request: Date pattern validation request
+        
+    Returns:
+        ValidateDatePatternResponse with validation results
+    """
+    print(f"ℹ [API] Validating date pattern: '{request.pattern}' against {len(request.sample_dates)} samples")
+    
+    try:
+        from datetime import datetime
+        
+        results = []
+        for sample in request.sample_dates:
+            try:
+                parsed_date = datetime.strptime(sample, request.pattern)
+                formatted_back = parsed_date.strftime(request.pattern)
+                
+                results.append(DatePatternValidationResult(
+                    sample=sample,
+                    success=True,
+                    parsed_date=parsed_date.isoformat(),
+                    formatted_back=formatted_back
+                ))
+                print(f"  ✅ '{sample}' → {parsed_date.strftime('%Y-%m-%d')}")
+                
+            except ValueError as e:
+                results.append(DatePatternValidationResult(
+                    sample=sample,
+                    success=False,
+                    error=str(e)
+                ))
+                print(f"  ❌ '{sample}' → {str(e)}")
+        
+        success_count = sum(1 for r in results if r.success)
+        success_rate = success_count / len(results) if results else 0
+        is_valid = success_count > 0
+        
+        print(f"  Pattern validation: {success_count}/{len(results)} samples successful ({success_rate:.1%})")
+        
+        return ValidateDatePatternResponse(
+            success=True,
+            pattern=request.pattern,
+            results=results,
+            success_rate=success_rate,
+            is_valid=is_valid
+        )
+        
+    except Exception as e:
+        print(f"[ERROR] [API] Date pattern validation failed: {str(e)}")
+        return ValidateDatePatternResponse(
+            success=False,
+            pattern=request.pattern,
+            results=[],
+            success_rate=0.0,
+            is_valid=False,
+            error=str(e)
+        )
 
 
 @unknown_bank_router.delete("/analysis/{analysis_id}")
