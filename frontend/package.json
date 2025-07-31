@@ -41,7 +41,7 @@
   "build": {
     "appId": "com.hisaabflow.app",
     "productName": "HisaabFlow",
-    "icon": "assets/icon.svg",
+    "icon": "assets/icon.png",
     "publish": {
       "provider": "github"
     },
