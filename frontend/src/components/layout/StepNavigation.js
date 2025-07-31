@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTheme } from '../../theme/ThemeProvider';
 import { Badge } from '../ui';
-import { CloudUpload, Settings, Download } from '../ui/Icons';
+import { Upload, Settings, Download } from '../ui/Icons';
 
 const StepNavigation = ({ currentStep = 1 }) => {
   const theme = useTheme();
@@ -11,7 +11,7 @@ const StepNavigation = ({ currentStep = 1 }) => {
       number: 1,
       title: 'Upload Files',
       description: 'Select CSV bank statements',
-      icon: CloudUpload,
+      icon: Upload,
     },
     {
       number: 2,

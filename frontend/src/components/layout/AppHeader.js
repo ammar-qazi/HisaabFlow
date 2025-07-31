@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTheme } from '../../theme/ThemeProvider';
 import { Button, Badge } from '../ui';
-import { Building, Sun, Moon } from '../ui/Icons';
+import { Logo, Sun, Moon } from '../ui/Icons';
 
 const AppHeader = () => {
   const theme = useTheme();
@@ -72,10 +72,10 @@ const AppHeader = () => {
       {/* Branding Section */}
       <div style={brandingStyles}>
         <div style={logoStyles}>
-          <Building size={28} color={theme.colors.primary} />
+          <Logo size={28} color={theme.colors.primary} />
           <span>HisaabFlow</span>
           <div style={versionBadgeStyles}>
-            <Badge variant="primary">v1.1.0</Badge>
+            <Badge variant="primary">v1.1.2</Badge>
           </div>
         </div>
         <span style={taglineStyles}>

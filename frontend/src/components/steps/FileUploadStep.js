@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useTheme } from '../../theme/ThemeProvider';
 import { Card, Button, Badge } from '../ui';
-import { CloudUpload, FileText, Trash2, X, ChevronRight } from '../ui/Icons';
+import { Upload, FileText, Trash2, X, ChevronRight } from '../ui/Icons';
 
 function FileUploadStep({ 
   fileInputRef, 
@@ -172,7 +172,7 @@ function FileUploadStep({
           onClick={() => fileInputRef.current?.click()}
         >
           <div className="upload-icon" style={uploadIconStyle}>
-            <CloudUpload size={48} />
+            <Upload size={48} />
           </div>
           <div style={{
             fontSize: '18px',
@@ -190,7 +190,7 @@ function FileUploadStep({
             Or click to browse files • Supports multiple file selection
           </div>
           <Button variant="outline" size="small">
-            <CloudUpload size={16} />
+            <Upload size={16} />
             Choose Files
           </Button>
         </div>

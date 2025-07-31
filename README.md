@@ -57,9 +57,9 @@ chmod +x start_app.sh
 | **Erste Bank** | HUF | ✅ Full Support |
 | **Revolut** | Multiple | ✅ Full Support |
 | **Meezan** | PKR | ✅ Full Support |
-| **Other Banks** | Multiple | ✅ Full Support Via Unknown Bank Panel* |
+| **Other Banks** | Single/Multiple | ✅ Full Support Via Unknown Bank Panel |
 
-**Can't parse your bank** Open a ticket and I'll add support for it.
+**Can't parse your bank**: Open a ticket and I'll add support for it.
 
 ## How It Works
 

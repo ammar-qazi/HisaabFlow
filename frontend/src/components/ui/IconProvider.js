@@ -22,5 +22,5 @@ export const IconProvider = ({ name, isCore = true, ...props }) => {
 };
 
 // Usage
-<IconProvider name="CloudUpload" isCore={true} />      // Uses custom SVG
+<IconProvider name="Upload" isCore={true} />      // Uses custom SVG
 <IconProvider name="Calendar" isCore={false} />        // Uses Lucide (if installed)

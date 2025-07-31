@@ -19,11 +19,11 @@ const IconWrapper = ({ children, size = 24, color = 'currentColor', className = 
 );
 
 // File & Upload Icons
-export const CloudUpload = (props) => (
+export const Upload = (props) => (
   <IconWrapper {...props}>
-    <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
-    <path d="m12 12 4-4-4-4" />
-    <path d="M16 8H8" />
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <polyline points="7,10 12,5 17,10" />
+    <line x1="12" x2="12" y1="5" y2="15" />
   </IconWrapper>
 );
 
@@ -148,7 +148,7 @@ export const Calendar = (props) => (
 );
 
 export default {
-  CloudUpload, FileText, Download,
+  Upload, FileText, Download,
   ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
   Settings, Eye, Edit, Trash2,
   Check, X, AlertCircle, CheckCircle,
