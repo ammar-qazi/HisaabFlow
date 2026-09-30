@@ -5,6 +5,7 @@ import re
 from typing import Dict, List, Optional, Set
 from backend.core.transfer_detection.amount_parser import AmountParser
 from backend.core.transfer_detection.date_parser import DateParser
+from backend.shared.utils.amount_text import parse_amount_text
 
 
 class CurrencyConverter:
@@ -116,9 +117,12 @@ class CurrencyConverter:
         for pattern_idx, pattern in enumerate(patterns):
             match = re.search(pattern, description, re.IGNORECASE)
             if match:
-                from_amount = float(match.group(1).replace(',', ''))
+                from_amount = parse_amount_text(match.group(1))
+                to_amount = parse_amount_text(match.group(3))
+                if from_amount is None or to_amount is None:
+                    continue
+                from_amount, to_amount = float(from_amount), float(to_amount)
                 from_currency = match.group(2).upper()
-                to_amount = float(match.group(3).replace(',', ''))
                 to_currency = match.group(4).upper()
                 result_dict = {
                     'from_amount': from_amount,

@@ -7,6 +7,7 @@ from datetime import datetime
 from decimal import Decimal
 import pandas as pd
 
+from backend.infrastructure.csv_cleaning.date_cleaner import DateCleaner
 from backend.shared.utils.amount_text import format_amount, parse_amount_text
 
 
@@ -258,66 +259,26 @@ class CashewTransformer:
 
     def parse_date(self, date_str: str, date_format: Optional[str] = None) -> str:
         """
-        Parse a date string into standard Cashew format: YYYY-MM-DD HH:MM:SS
+        Format a date for Cashew: YYYY-MM-DD HH:MM:SS.
+
+        Dates normally arrive already normalised to YYYY-MM-DD by DateCleaner
+        during parsing. Anything else (e.g. data that skipped cleaning) is
+        parsed by DateCleaner with the bank's configured format.
         """
-        if not date_str or str(date_str).strip() == '' or str(date_str).lower() == 'nan':
+        if date_str is None or str(date_str).strip() == '' or str(date_str).lower() == 'nan':
             return ''
-            
         date_str = str(date_str).strip()
-        
-        # --- NEW LOGIC ---
-        if date_format:
-            try:
-                dt = datetime.strptime(date_str, date_format)
-                # Check if time info is present in the format string
-                if any(c in date_format for c in ['%H', '%I', '%M', '%S', '%p']):
-                    return dt.strftime('%Y-%m-%d %H:%M:%S')
-                else:
-                    return dt.strftime('%Y-%m-%d 00:00:00')
-            except (ValueError, TypeError):
-                print(f"[WARNING] Date '{date_str}' did not match configured format '{date_format}'. Falling back.")
-        # --- END NEW LOGIC ---
-        
+
         try:
-            # Handle common date formats with time
-            datetime_formats = [
-                '%Y-%m-%d %H:%M:%S',  # 2025-04-30 15:23:00
-                '%Y.%m.%d %H:%M:%S',  # 2025.04.30 15:23:00 (Hungarian with time)
-                '%d %b %Y %I:%M %p',  # 30 Apr 2025 3:23 PM
-                '%d %b %Y %H:%M',     # 30 Apr 2025 15:23
-            ]
-            
-            # Try formats with time first
-            for fmt in datetime_formats:
-                try:
-                    dt = datetime.strptime(date_str, fmt)
-                    return dt.strftime('%Y-%m-%d %H:%M:%S')
-                except ValueError:
-                    continue
-            
-            # Handle date-only formats (add 00:00:00 time)
-            date_only_formats = [
-                '%Y-%m-%d',           # 2025-04-30
-                '%Y.%m.%d',           # 2025.04.30 (Hungarian format)
-                '%d.%m.%y',           # 20.02.18 (German format)
-                '%d/%m/%Y',           # 30/04/2025
-                '%m/%d/%Y',           # 04/30/2025
-                '%d-%m-%Y',           # 30-04-2025
-            ]
-            
-            for fmt in date_only_formats:
-                try:
-                    dt = datetime.strptime(date_str, fmt)
-                    return dt.strftime('%Y-%m-%d 00:00:00')
-                except ValueError:
-                    continue
-            
-            # If no format matches, return original
-            return date_str
-            
-        except Exception as e:
-            print(f"[WARNING]  Date parsing error for '{date_str}': {e}")
-            return date_str
+            return datetime.fromisoformat(date_str).strftime('%Y-%m-%d %H:%M:%S')
+        except ValueError:
+            pass
+
+        cleaned = DateCleaner(config_date_format=date_format).parse_date_value(date_str)
+        try:
+            return datetime.strptime(cleaned, '%Y-%m-%d').strftime('%Y-%m-%d 00:00:00')
+        except ValueError:
+            return date_str  # unreadable: keep the original text
 
     def parse_amount(self, amount_str: str) -> str:
         """

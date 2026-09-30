@@ -7,6 +7,7 @@ Enhanced with AmountFormat support for different regional number formats.
 from typing import List, Dict, Any, Optional
 import re
 from ...shared.amount_formats import AmountFormat, RegionalFormatRegistry, AmountFormatDetector, FormatValidator
+from ...shared.utils.amount_text import parse_amount_text
 
 class NumericCleaner:
     """
@@ -167,52 +168,6 @@ class NumericCleaner:
         return self.parse_numeric_value(value)
     
     def parse_numeric_value(self, value: Any) -> float:
-        """
-        Parse and clean numeric value to float
-        
-        Args:
-            value: Raw numeric value (string, int, float, etc.)
-            
-        Returns:
-            float: Cleaned numeric value
-        """
-        try:
-            if value is None or str(value).strip() == '':
-                return 0.0
-            
-            value_str = str(value).strip()
-            
-            # Handle empty strings
-            if not value_str:
-                return 0.0
-            
-            # Remove currency symbols and spaces
-            cleaned = re.sub(r'[$€£¥₹PKR USD EUR GBP\s]', '', value_str)
-            
-            # Handle parentheses (negative numbers)
-            is_negative_paren = cleaned.startswith('(') and cleaned.endswith(')')
-            if is_negative_paren:
-                cleaned = cleaned[1:-1]  # Remove parentheses
-            
-            # Remove commas
-            cleaned = cleaned.replace(',', '')
-            
-            # Handle plus/minus signs
-            is_negative_sign = cleaned.startswith('-')
-            is_positive_sign = cleaned.startswith('+')
-            
-            if is_positive_sign:
-                cleaned = cleaned[1:]
-            
-            # Parse the number
-            if cleaned:
-                number = float(cleaned)
-                if is_negative_paren or is_negative_sign:
-                    number = -abs(number)
-                return number
-            else:
-                return 0.0
-                
-        except (ValueError, TypeError):
-            print(f"      [WARNING]  Could not parse numeric value: '{value}'")
-            return 0.0
+        """Parse loosely formatted amount text; unreadable or empty values become 0.0"""
+        amount = parse_amount_text(value)
+        return float(amount) if amount is not None else 0.0

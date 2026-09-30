@@ -2,10 +2,9 @@
 Data processor for converting raw CSV rows into structured format
 Handles header detection, data row extraction, and dictionary conversion
 """
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 from .utils import normalize_column_count, sanitize_for_json, validate_csv_structure, estimate_data_types
 from .data_processing_helpers import _extract_headers, _extract_data_rows, _convert_to_dictionaries
-from datetime import date, datetime
 
 class DataProcessor:
     """Process raw CSV data into structured format"""
@@ -16,15 +15,6 @@ class DataProcessor:
             'type', 'category', 'account', 'reference', 'id', 'transaction',
             'currency', 'memo', 'payee', 'value', 'debit', 'credit'
         ]
-    
-    def parse_date(self, value: str) -> date:
-        # Multiple format support
-        for fmt in ['%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y', '%d-%b-%Y', '%d-%B-%Y']:
-            try:
-                return datetime.strptime(value, fmt).date()
-            except ValueError:
-                continue
-        raise ValueError(f"Unable to parse date: {value}")
     
     def process_raw_data(self, raw_rows: List[List[str]], header_row: Optional[int] = None) -> Dict:
         """
@@ -75,11 +65,9 @@ class DataProcessor:
             # Convert to dictionaries
             data_dicts = _convert_to_dictionaries(headers, data_rows)
             
-            # Apply type conversion to dates and amounts
-            typed_data = self._apply_type_conversion(data_dicts)
-            
-            # Apply JSON sanitization
-            sanitized_data = sanitize_for_json(typed_data)
+            # Values stay as text here: dates and amounts are parsed later by
+            # the bank-aware DateCleaner and NumericCleaner
+            sanitized_data = sanitize_for_json(data_dicts)
             
             # Validate structure
             validation = validate_csv_structure(headers, data_rows)
@@ -120,29 +108,3 @@ class DataProcessor:
                 'error': f"Data processing failed: {str(e)}"
             }
     
-    def _apply_type_conversion(self, data_dicts: List[Dict[str, str]]) -> List[Dict[str, Any]]:
-        """
-        Apply type conversion to known fields like date and amount based on header names.
-        This is a critical step for type safety, converting strings to typed objects.
-        """
-        converted_data = []
-        print(f"    Applying type conversion to {len(data_dicts)} rows...")
-        for row_dict in data_dicts:
-            new_row = row_dict.copy()
-            for key, value in row_dict.items():
-                if not isinstance(value, str) or not value.strip():
-                    continue
-
-                key_lower = key.lower()
-
-                if 'date' in key_lower:
-                    try:
-                        new_row[key] = self.parse_date(value)
-                    except ValueError:
-                        # If parsing fails, keep the original string and log a warning
-                        print(f"   [WARNING]  Could not parse date '{value}' in column '{key}'. Keeping as string.")
-                elif 'amount' in key_lower or 'balance' in key_lower or 'debit' in key_lower or 'credit' in key_lower:
-                    # We will not parse the amount here. It will be handled by the bank-specific cleaner.
-                    pass
-            converted_data.append(new_row)
-        return converted_data

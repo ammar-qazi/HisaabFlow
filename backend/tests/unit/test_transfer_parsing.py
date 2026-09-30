@@ -132,3 +132,28 @@ def test_missing_dates_fail_the_date_tolerance_check(matcher):
 ])
 def test_names_match(matcher, name1, name2, match):
     assert matcher._names_match(name1, name2) is match
+
+
+@pytest.mark.parametrize("text,fmt,expected", [
+    ("2025-02-01", None, "2025-02-01 00:00:00"),            # normal: DateCleaner output
+    ("2025-02-01 13:45:00", None, "2025-02-01 13:45:00"),
+    ("2025.06.30", "%Y.%m.%d", "2025-06-30 00:00:00"),      # uncleaned: bank format
+    ("30/04/2025", "%d/%m/%Y", "2025-04-30 00:00:00"),
+    ("garbage", None, "garbage"),
+    ("", None, ""),
+])
+def test_cashew_parse_date(text, fmt, expected):
+    with contextlib.redirect_stdout(io.StringIO()):
+        assert CashewTransformer().parse_date(text, date_format=fmt) == expected
+
+
+@pytest.mark.parametrize("text,expected", [
+    ("", 0.0),
+    ("12,50", 12.5),
+    ("(1,234.00)", -1234.0),
+    ("PKR -500", -500.0),
+])
+def test_numeric_cleaner_fallback(text, expected):
+    from backend.infrastructure.csv_cleaning.numeric_cleaner import NumericCleaner
+    with contextlib.redirect_stdout(io.StringIO()):
+        assert NumericCleaner().parse_numeric_value(text) == expected
