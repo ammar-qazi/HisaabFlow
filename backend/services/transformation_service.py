@@ -1,14 +1,11 @@
 """
 Data transformation service for orchestrating transformation workflows
 """
-from pathlib import Path
-import json
 
 from backend.core.data_transformation.cashew_transformation_service import CashewTransformationService
 from backend.core.transfer_detection.transfer_processing_service import TransferProcessingService
 from backend.core.business_cleaning.data_cleaning_service import DataCleaningService
 from backend.services.export_formatting_service import ExportFormattingService
-from backend.core.bank_detection import BankDetector
 from backend.infrastructure.config.unified_config_service import get_unified_config_service
 
 class TransformationService:
@@ -24,31 +21,6 @@ class TransformationService:
         self.export_formatting_service = ExportFormattingService()
         
         print(f"ℹ [TransformationService] Initialized with focused services")
-    
-    def transform_single_data(self, data: list, column_mapping: dict, bank_name: str = "", 
-                            categorization_rules: list = None, default_category_rules: dict = None,
-                            account_mapping: dict = None, config: dict = None):
-        """
-        Transform single dataset to Cashew format
-        
-        Args:
-            data: List of data rows
-            column_mapping: Column mapping dictionary
-            bank_name: Bank name for transformation
-            categorization_rules: Optional categorization rules
-            default_category_rules: Optional default category rules
-            account_mapping: Optional account mapping
-            config: Bank configuration for fallback logic
-            
-        Returns:
-            dict: Transformation result
-        """
-        print(f"ℹ [TransformationService] transform_single_data called for bank: {bank_name}")
-        
-        return self.cashew_transformation_service.transform_single_data(
-            data, column_mapping, bank_name, categorization_rules, 
-            default_category_rules, account_mapping, config
-        )
     
     def transform_multi_csv_data(self, raw_data: dict):
         """

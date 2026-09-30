@@ -160,13 +160,3 @@ class DateCleaner:
             print(f"      [WARNING]  Could not parse date value: '{value}' - {e}")
             return str(value) if value else ''
     
-    def add_custom_date_format(self, date_format: str):
-        """
-        Add a custom date format to the parser
-        
-        Args:
-            date_format: Python strptime format string
-        """
-        if date_format not in self.date_formats:
-            self.date_formats.append(date_format)
-            print(f"       Added custom date format: {date_format}")

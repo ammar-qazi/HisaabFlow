@@ -3,10 +3,8 @@ CSV parsing strategies with automatic fallbacks
 Handles multiple parsing approaches for different CSV formats
 """
 import csv
-import io
 import pandas as pd
 from typing import Dict, List, Optional
-from .exceptions import DataExtractionError
 
 class ParsingStrategies:
     """Multiple parsing approaches with automatic fallbacks"""

@@ -2,34 +2,15 @@
 CSV parsing endpoints with preprocessing layer - Refactored to use services
 """
 from fastapi import APIRouter, HTTPException, Query, Depends
-from pydantic import BaseModel
-from typing import List, Dict, Any, Optional
-import os
+from typing import Optional
 
-# Import services and dependencies
-from backend.services.parsing_service import ParseConfig
-from backend.api.dependencies import (
-    get_preview_service,
-    get_parsing_service,
-    get_multi_csv_service
-)
-
-# Import file helper function
-try:
-    from backend.api.file_endpoints import get_uploaded_file
-except ImportError:
-    # Fallback implementation
-    def get_uploaded_file(file_id):
-        # This will be populated by file_endpoints when it loads
-        return None
+from backend.api.dependencies import get_preview_service, get_multi_csv_service
+from backend.api.file_endpoints import get_uploaded_file
 
 # Import models from centralized location
 from backend.api.models import (
-    MultiCSVParseRequest, 
-    ParseRangeRequest, 
-    PreviewResponse, 
-    DetectRangeResponse, 
-    ParseResponse, 
+    MultiCSVParseRequest,
+    PreviewResponse,
     MultiCSVParseResponse
 )
 
@@ -58,65 +39,6 @@ async def preview_csv(
     
     # Use preview service
     result = preview_service.preview_csv_file(file_path, filename, encoding, header_row)
-    
-    if not result['success']:
-        raise HTTPException(status_code=400, detail=result['error'])
-    
-    return result
-
-
-@parse_router.get("/detect-range/{file_id}", response_model=DetectRangeResponse)
-async def detect_data_range(
-    file_id: str, 
-    encoding: Optional[str] = None,
-    preview_service = Depends(get_preview_service)
-):
-    """Auto-detect data range in CSV"""
-    print(f" Detect range request for file_id: {file_id}")
-    
-    file_info = get_uploaded_file(file_id)
-    if not file_info:
-        raise HTTPException(status_code=404, detail="File not found")
-    
-    file_path = file_info["temp_path"]
-    
-    # Use preview service for range detection
-    result = preview_service.detect_data_range(file_path, encoding)
-    
-    if not result['success']:
-        raise HTTPException(status_code=400, detail=result['error'])
-    
-    return result
-
-
-@parse_router.post("/parse-range/{file_id}", response_model=ParseResponse)
-async def parse_range(
-    file_id: str, 
-    request: ParseRangeRequest,
-    parsing_service = Depends(get_parsing_service)
-):
-    """Parse CSV with specified range and data cleaning"""
-    print(f"‍ Parse range request for file_id: {file_id}")
-    
-    file_info = get_uploaded_file(file_id)
-    if not file_info:
-        raise HTTPException(status_code=404, detail="File not found")
-    
-    file_path = file_info["temp_path"]
-    filename = file_info["original_name"]
-    
-    # Create parse config
-    config = ParseConfig(
-        start_row=request.start_row,
-        end_row=request.end_row,
-        start_col=request.start_col,
-        end_col=request.end_col,
-        encoding=request.encoding,
-        enable_cleaning=request.enable_cleaning
-    )
-    
-    # Use parsing service
-    result = parsing_service.parse_single_file(file_path, filename, config)
     
     if not result['success']:
         raise HTTPException(status_code=400, detail=result['error'])

@@ -3,7 +3,7 @@ Encoding detection utilities for CSV files
 """
 import codecs
 import os
-from typing import Dict, List, Optional
+from typing import Dict
 
 # Attempt to import chardet
 try:

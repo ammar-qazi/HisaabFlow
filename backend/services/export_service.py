@@ -3,7 +3,6 @@ Export service for generating CSV files from transformed data
 """
 import csv
 import io
-import json
 from fastapi.responses import StreamingResponse
 
 

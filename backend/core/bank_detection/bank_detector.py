@@ -2,7 +2,7 @@
 Bank detector for identifying bank type from CSV files
 """
 import re
-from typing import Any, Dict, List, Tuple
+from typing import List, Tuple
 from backend.infrastructure.config.unified_config_service import get_unified_config_service, BankDetectionInfo
 from backend.shared.models.csv_models import BankDetectionResult
 
@@ -203,34 +203,6 @@ class BankDetector:
         
         # Return percentage of required headers found
         return matches / len(required_headers)
-    
-    def detect_bank_from_data(self, filename: str, data_rows: List[Dict[str, Any]]) -> BankDetectionResult:
-        """
-        Detect bank from parsed CSV data
-        
-        Args:
-            filename: Name of the CSV file
-            data_rows: List of parsed CSV rows as dictionaries
-            
-        Returns:
-            BankDetectionResult
-        """
-        if not data_rows:
-            return BankDetectionResult(bank_name='unknown', confidence=0.0, reasons=['No data provided'])
-        
-        # Extract headers from first row
-        headers = list(data_rows[0].keys())
-        
-        # Create content string from data values for signature matching
-        content_parts = []
-        for i, row in enumerate(data_rows[:5]):  # Check first 5 rows
-            content_parts.extend(str(value) for value in row.values() if value)
-            if i >= 4:  # Limit content for performance
-                break
-        
-        content = ' '.join(content_parts)
-        
-        return self.detect_bank(filename, content, headers)
     
     def get_available_banks(self) -> List[str]:
         """Get list of available bank names"""

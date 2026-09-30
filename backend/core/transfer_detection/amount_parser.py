@@ -22,9 +22,3 @@ class AmountParser:
         """Check if two amounts match within tolerance"""
         return abs(amount1 - amount2) < tolerance
     
-    @staticmethod
-    def calculate_percentage_difference(amount1: float, amount2: float) -> float:
-        """Calculate percentage difference between two amounts"""
-        if max(amount1, amount2) == 0:
-            return 0.0
-        return abs(amount1 - amount2) / max(amount1, amount2)

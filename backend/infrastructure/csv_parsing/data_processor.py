@@ -3,10 +3,8 @@ Data processor for converting raw CSV rows into structured format
 Handles header detection, data row extraction, and dictionary conversion
 """
 from typing import Any, Dict, List, Optional
-from .utils import normalize_column_count, sanitize_for_json, validate_csv_structure, estimate_data_types, clean_header, generate_column_names
-from .exceptions import DataExtractionError
+from .utils import normalize_column_count, sanitize_for_json, validate_csv_structure, estimate_data_types
 from .data_processing_helpers import _extract_headers, _extract_data_rows, _convert_to_dictionaries
-import re
 from decimal import Decimal, InvalidOperation # Keep InvalidOperation
 from datetime import date, datetime
 
@@ -20,12 +18,6 @@ class DataProcessor:
             'currency', 'memo', 'payee', 'value', 'debit', 'credit'
         ]
     
-    def parse_amount(self, value: str) -> Decimal:
-        cleaned = re.sub(r'[,\s]', '', value)
-        if not cleaned:
-            raise ValueError("Cannot parse empty string as amount")
-        return Decimal(cleaned)
-
     def parse_date(self, value: str) -> date:
         # Multiple format support
         for fmt in ['%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y', '%d-%b-%Y', '%d-%B-%Y']:
@@ -150,7 +142,6 @@ class DataProcessor:
                     except ValueError:
                         # If parsing fails, keep the original string and log a warning
                         print(f"   [WARNING]  Could not parse date '{value}' in column '{key}'. Keeping as string.")
-                        pass
                 elif 'amount' in key_lower or 'balance' in key_lower or 'debit' in key_lower or 'credit' in key_lower:
                     # We will not parse the amount here. It will be handled by the bank-specific cleaner.
                     pass

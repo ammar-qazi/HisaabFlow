@@ -2,15 +2,13 @@
 Configuration endpoints for bank configurations
 """
 from fastapi import APIRouter, HTTPException, Depends
-from typing import Dict, List, Any, Optional
+from typing import Optional
 from backend.api.dependencies import get_config_manager
 
 # Import models from centralized location
 from backend.api.models import (
-    SaveTemplateRequest, 
     ConfigListResponse, 
     ConfigResponse, 
-    SaveConfigResponse,
     ReloadConfigsResponse
 )
 
@@ -113,28 +111,6 @@ async def load_config(
     except Exception as e:
         print(f"[ERROR]  Config load error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error loading configuration: {str(e)}")
-
-@config_router.post("/save-config", response_model=SaveConfigResponse)
-async def save_config(
-    request: SaveTemplateRequest,
-    config_manager = Depends(get_config_manager)
-):
-    """Save bank configuration"""
-    print(f" API: Saving bank configuration: {request.template_name}")
-    try:
-        config_filename = f"{request.template_name.lower().replace(' ', '_')}.conf"
-        print(f" Configuration should be saved to: ../configs/{config_filename}")
-        print(f" Config data: {request.config}")
-        
-        return {
-            "success": True,
-            "message": f"Configuration saved as {config_filename}",
-            "config_file": config_filename,
-            "suggestion": "Consider manually creating the .conf file for better control"
-        }
-    except Exception as e:
-        print(f"[ERROR]  Config save error: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error saving configuration: {str(e)}")
 
 def _find_matching_bank_name(config_name: str, config_manager) -> Optional[str]:
     """Find bank name from configuration display name or direct name"""

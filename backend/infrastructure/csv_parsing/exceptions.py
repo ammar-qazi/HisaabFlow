@@ -12,22 +12,18 @@ class CSVParsingError(Exception):
 
 class EncodingDetectionError(CSVParsingError):
     """Exception raised when file encoding cannot be detected"""
-    pass
 
 
 class DialectDetectionError(CSVParsingError):
     """Exception raised when CSV dialect cannot be determined"""
-    pass
 
 
 class StructureDetectionError(CSVParsingError):
     """Exception raised when CSV structure cannot be analyzed"""
-    pass
 
 
 class DataExtractionError(CSVParsingError):
     """Exception raised during data extraction phase"""
-    pass
 
 
 class NoHeadersFoundError(CSVParsingError):

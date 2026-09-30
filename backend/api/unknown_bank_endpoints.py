@@ -4,22 +4,21 @@ Handles unknown bank CSV analysis, configuration generation, and validation
 """
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Form
 from typing import Dict, Any, Optional
-import io
 import os
 import uuid
 from backend.services.unknown_bank_service import UnknownBankService
-from backend.services.unknown_bank_service import BankConfigInput, ConfigValidationResult
+from backend.services.unknown_bank_service import BankConfigInput
 from backend.infrastructure.csv_parsing.structure_analyzer import UnknownBankAnalysis
-from backend.shared.amount_formats.regional_formats import AmountFormat, RegionalFormatRegistry
+from backend.shared.amount_formats.regional_formats import AmountFormat
 from backend.infrastructure.config.unified_config_service import is_valid_bank_name
 from backend.api.models import (
-    UnknownBankAnalysisResponse, UnknownBankAnalysisRequest,
-    GenerateBankConfigRequest, GenerateBankConfigResponse,
-    ValidateBankConfigRequest, ValidateBankConfigResponse,
-    SaveBankConfigRequest, SaveBankConfigResponse,
-    AmountFormatAnalysisModel, AmountFormatModel, FieldMappingSuggestionModel,
-    BankConfigInputModel, ConfigValidationResultModel,
-    ValidateDatePatternRequest, ValidateDatePatternResponse, DatePatternValidationResult
+    UnknownBankAnalysisResponse, GenerateBankConfigRequest,
+    GenerateBankConfigResponse, ValidateBankConfigRequest,
+    ValidateBankConfigResponse, SaveBankConfigRequest,
+    SaveBankConfigResponse, AmountFormatAnalysisModel,
+    AmountFormatModel, FieldMappingSuggestionModel, ConfigValidationResultModel,
+    ValidateDatePatternRequest, ValidateDatePatternResponse,
+    DatePatternValidationResult
 )
 
 # Router for unknown bank endpoints

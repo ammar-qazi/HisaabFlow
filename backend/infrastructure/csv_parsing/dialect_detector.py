@@ -2,8 +2,7 @@
 CSV dialect detection utilities
 """
 import csv
-import io
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List
 from .exceptions import DialectDetectionError
 
 class DialectDetector:

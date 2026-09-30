@@ -2,12 +2,10 @@
 Data transformation endpoints - Refactored to use services
 """
 from fastapi import APIRouter, HTTPException, Request, Depends
-from typing import Dict, List, Any, Optional
 import json
 
 # Import models from centralized location
 from backend.api.models import (
-    TransformRequest, 
     TransformResponse, 
     MultiCSVResponse, 
     ExportResponse
@@ -22,32 +20,6 @@ from backend.api.dependencies import (
 transform_router = APIRouter()
 
 # Services are now injected via dependencies
-
-
-@transform_router.post("/transform", response_model=TransformResponse)
-async def transform_data(
-    request: TransformRequest,
-    transformation_service = Depends(get_transformation_service)
-):
-    """Transform data to Cashew format"""
-    try:
-        # Use transformation service
-        result = transformation_service.transform_single_data(
-            data=request.data,
-            column_mapping=request.column_mapping,
-            bank_name=request.bank_name,
-            categorization_rules=request.categorization_rules,
-            default_category_rules=request.default_category_rules,
-            account_mapping=getattr(request, 'account_mapping', None)
-        )
-        
-        if not result['success']:
-            raise HTTPException(status_code=500, detail=result['error'])
-        
-        return result
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 @transform_router.post("/multi-csv/transform", response_model=MultiCSVResponse)

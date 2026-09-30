@@ -1,7 +1,7 @@
 """
 Data cleaning service for description cleaning and categorization
 """
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 from pathlib import Path
 
 from backend.infrastructure.config.unified_config_service import get_unified_config_service

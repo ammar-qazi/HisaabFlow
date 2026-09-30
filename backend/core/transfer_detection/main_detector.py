@@ -1,9 +1,7 @@
 """
 Main transfer detector orchestrating all components
 """
-from typing import Dict, List, Any, Optional
-from backend.core.transfer_detection.amount_parser import AmountParser
-from backend.core.transfer_detection.date_parser import DateParser
+from typing import Dict, List, Any
 from backend.core.transfer_detection.cross_bank_matcher import CrossBankMatcher
 from backend.core.transfer_detection.currency_converter import CurrencyConverter
 from backend.core.transfer_detection.confidence_calculator import ConfidenceCalculator
@@ -74,9 +72,9 @@ class TransferDetector:
         # Combine all transfer pairs
         all_transfer_pairs = conversion_pairs + cross_bank_pairs
         
-        # Detect conflicts and flag manual review
-        conflicts = self._detect_conflicts(all_transfer_pairs)
-        flagged_transactions = self._flag_manual_review(all_transactions, all_transfer_pairs)
+        # Conflict detection and manual-review flagging were never implemented
+        conflicts = []
+        flagged_transactions = []
         
         print("\n TRANSFER DETECTION SUMMARY:")
         print(f"   [DATA] Total transactions: {len(all_transactions)}")
@@ -154,49 +152,3 @@ class TransferDetector:
         
         return all_transactions
     
-    def _detect_conflicts(self, transfer_pairs: List[Dict]) -> List[Dict]:
-        """Detect transactions that could match multiple partners"""
-        return []
-    
-    def _flag_manual_review(self, all_transactions: List[Dict], transfer_pairs: List[Dict]) -> List[Dict]:
-        """Flag transactions that need manual review"""
-        return []
-    
-    def apply_transfer_categorization(self, csv_data_list: List[Dict], transfer_pairs: List[Dict]) -> List[Dict]:
-        """Apply Balance Correction category to detected transfers"""
-        transfer_matches = []
-        
-        for pair in transfer_pairs:
-            outgoing = pair['outgoing']
-            incoming = pair['incoming']
-            
-            # Include exchange amount information in notes
-            exchange_note = ""
-            if pair.get('exchange_amount'):
-                exchange_note = f" | Exchange Amount: {pair['exchange_amount']}"
-            
-            transfer_matches.append({
-                'csv_index': outgoing['_csv_index'],
-                'amount': str(AmountParser.parse_amount(outgoing.get('Amount', '0'))),
-                'date': DateParser.format_date(outgoing.get('Date', '')),
-                'description': str(outgoing.get('Description', '')),
-                'category': 'Balance Correction',
-                'note': f"Transfer out - {pair['transfer_type']} - Pair ID: {pair['pair_id']}{exchange_note}",
-                'pair_id': pair['pair_id'],
-                'transfer_type': 'outgoing',
-                'match_strategy': pair.get('match_strategy', 'traditional')
-            })
-            
-            transfer_matches.append({
-                'csv_index': incoming['_csv_index'],
-                'amount': str(AmountParser.parse_amount(incoming.get('Amount', '0'))),
-                'date': DateParser.format_date(incoming.get('Date', '')),
-                'description': str(incoming.get('Description', '')),
-                'category': 'Balance Correction',
-                'note': f"Transfer in - {pair['transfer_type']} - Pair ID: {pair['pair_id']}{exchange_note}",
-                'pair_id': pair['pair_id'],
-                'transfer_type': 'incoming',
-                'match_strategy': pair.get('match_strategy', 'traditional')
-            })
-        
-        return transfer_matches

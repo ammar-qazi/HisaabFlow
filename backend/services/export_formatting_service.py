@@ -1,7 +1,7 @@
 """
 Export formatting service for API response formatting and data type validation
 """
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 from decimal import Decimal
 
 from backend.shared.models.csv_models import CSVRow

@@ -6,7 +6,6 @@ from typing import List
 
 class HeaderValidationError(ValueError):
     """Custom exception for header validation errors."""
-    pass
 
 def find_and_validate_header(
     file_path: str,

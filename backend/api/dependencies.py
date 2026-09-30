@@ -3,7 +3,6 @@ Dependency injection factory functions for FastAPI endpoints
 """
 from functools import lru_cache
 from backend.services.preview_service import PreviewService
-from backend.services.parsing_service import ParsingService
 from backend.services.multi_csv_service import MultiCSVService
 from backend.services.transformation_service import TransformationService
 from backend.services.export_service import ExportService
@@ -19,12 +18,6 @@ def get_preview_service() -> PreviewService:
     # Only reload configs on first initialization, not on every request
     # Configs will be reloaded when explicitly needed (e.g., new config creation)
     return PreviewService(config_service)
-
-
-@lru_cache()
-def get_parsing_service() -> ParsingService:
-    """Get singleton ParsingService instance"""
-    return ParsingService()
 
 
 def get_multi_csv_service() -> MultiCSVService:

@@ -379,22 +379,6 @@ class CrossBankMatcher:
         shared = {word for word in set1 & set2 if len(word) >= 3}
         return len(shared) >= 2
     
-    def detect_bank_type(self, file_name: str, transaction: Dict) -> str:
-        """Detect bank type using configuration"""
-        bank_type = self.config.detect_bank_type(file_name)
-        if not bank_type:
-            print(f"[WARNING]  Unknown bank type for file: {file_name}. Add configuration in configs/")
-            return 'unknown'
-        return bank_type
-    
-    def categorize_transaction(self, transaction: Dict) -> str:
-        """Categorize transaction using bank-specific rules"""
-        bank_type = transaction.get('_bank_type', '')
-        description = self._get_description(transaction)
-        
-        category = self.config.categorize_merchant(bank_type, description)
-        return category or 'Other'
-    
     def _check_date_tolerance(self, outgoing: Dict, incoming: Dict) -> bool:
         """Check if dates are within tolerance"""
         outgoing_date_str = self._get_date_string(outgoing)
@@ -470,7 +454,6 @@ class CrossBankMatcher:
             else:
                 print(f"DEBUG CBM _eval_strat: Strategy 1 final result: FAIL (Currency mismatch)")
                 # This path is taken if currencies do not match. The reason is already logged by the currency comparison print.
-                pass
         else: # exchange_amount or exchange_currency is None/empty
             print(f"DEBUG CBM _eval_strat: Strategy 1 (Exchange Amount) SKIPPED - Missing exchange_amount ({exchange_amount}) or exchange_currency ({exchange_currency}) on outgoing tx.")
 

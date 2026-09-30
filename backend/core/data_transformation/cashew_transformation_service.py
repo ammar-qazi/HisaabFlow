@@ -1,11 +1,9 @@
 """
 Cashew transformation service for converting parsed data to Cashew format
 """
-from pathlib import Path
 from typing import Dict, List, Any, Optional
 
 from backend.services.cashew_transformer import CashewTransformer
-from backend.core.bank_detection import BankDetector
 from backend.infrastructure.config.unified_config_service import get_unified_config_service
 
 
@@ -17,58 +15,6 @@ class CashewTransformationService:
         self.config_service = get_unified_config_service()
         
         print(f"ℹ [CashewTransformationService] Initialized with CashewTransformer")
-    
-    def transform_single_data(self, data: List[Dict[str, Any]], column_mapping: Dict[str, str], 
-                             bank_name: str = "", categorization_rules: Optional[List] = None, 
-                             default_category_rules: Optional[Dict] = None,
-                             account_mapping: Optional[Dict] = None, 
-                             config: Optional[Dict] = None) -> Dict[str, Any]:
-        """
-        Transform single dataset to Cashew format
-        
-        Args:
-            data: List of data rows
-            column_mapping: Column mapping dictionary
-            bank_name: Bank name for transformation
-            categorization_rules: Optional categorization rules
-            default_category_rules: Optional default category rules
-            account_mapping: Optional account mapping
-            config: Bank configuration for fallback logic
-            
-        Returns:
-            dict: Transformation result
-        """
-        print(f"ℹ [CashewTransformationService] transform_single_data called for bank: {bank_name}")
-        
-        try:
-            if categorization_rules or default_category_rules:
-                result = self.transformer.transform_to_cashew(
-                    data, 
-                    column_mapping, 
-                    bank_name,
-                    categorization_rules,
-                    default_category_rules,
-                    account_mapping,
-                    config=config
-                )
-            else:
-                result = self.transformer.transform_to_cashew(
-                    data, 
-                    column_mapping, 
-                    bank_name,
-                    config=config
-                )
-            
-            return {
-                "success": True,
-                "data": result,
-                "row_count": len(result)
-            }
-        except Exception as e:
-            return {
-                "success": False,
-                "error": str(e)
-            }
     
     def transform_multi_csv_data(self, csv_data_list: List[Dict[str, Any]], 
                                 categorization_rules: Optional[List] = None,

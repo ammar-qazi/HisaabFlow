@@ -6,9 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 from backend.main import app
 from backend.api.models import (
-    UploadResponse, CleanupResponse, PreviewResponse, DetectRangeResponse,
-    ParseResponse, MultiCSVResponse, ConfigListResponse, ConfigResponse,
-    SaveConfigResponse, TransformResponse, ExportResponse
+    UploadResponse, CleanupResponse, PreviewResponse, MultiCSVResponse, ConfigListResponse, ConfigResponse, TransformResponse, ExportResponse
 )
 from pydantic import ValidationError
 import tempfile
@@ -126,33 +124,6 @@ class TestConfigEndpointsContractValidation:
             except ValidationError as e:
                 pytest.fail(f"Config response validation failed: {e}")
     
-    def test_save_config_endpoint_response_model(self, client):
-        """Test /save-config endpoint returns valid SaveConfigResponse model"""
-        request_data = {
-            "template_name": "test_bank",
-            "config": {
-                "bank_name": "Test Bank",
-                "currency": "USD",
-                "account": "Test Account"
-            }
-        }
-        
-        response = client.post("/api/v1/save-config", json=request_data)
-        
-        assert response.status_code == 200
-        response_data = response.json()
-        
-        # Validate response matches SaveConfigResponse model
-        try:
-            save_config_response = SaveConfigResponse(**response_data)
-            assert save_config_response.success is True
-            assert save_config_response.message is not None
-            assert save_config_response.config_file is not None
-            assert save_config_response.suggestion is not None
-        except ValidationError as e:
-            pytest.fail(f"Save config response validation failed: {e}")
-
-
 @pytest.mark.integration
 class TestParseEndpointsContractValidation:
     """Test parse endpoints return valid response models"""
@@ -182,94 +153,10 @@ class TestParseEndpointsContractValidation:
         except ValidationError as e:
             pytest.fail(f"Preview response validation failed: {e}")
     
-    def test_detect_range_endpoint_response_model(self, client, sample_csv_file):
-        """Test /detect-range/{file_id} endpoint returns valid DetectRangeResponse model"""
-        # Upload file first
-        with open(sample_csv_file, 'rb') as f:
-            upload_response = client.post("/api/v1/upload", files={"file": f})
-        file_id = upload_response.json()["file_id"]
-        
-        response = client.get(f"/api/v1/detect-range/{file_id}")
-        
-        assert response.status_code == 200
-        response_data = response.json()
-        
-        # Validate response matches DetectRangeResponse model
-        try:
-            detect_range_response = DetectRangeResponse(**response_data)
-            assert detect_range_response.success is True
-            assert isinstance(detect_range_response.suggested_header_row, int)
-            assert isinstance(detect_range_response.total_rows, int)
-            assert isinstance(detect_range_response.confidence, float)
-        except ValidationError as e:
-            pytest.fail(f"Detect range response validation failed: {e}")
-    
-    def test_parse_range_endpoint_response_model(self, client, sample_csv_file):
-        """Test /parse-range/{file_id} endpoint returns valid ParseResponse model"""
-        # Upload file first
-        with open(sample_csv_file, 'rb') as f:
-            upload_response = client.post("/api/v1/upload", files={"file": f})
-        file_id = upload_response.json()["file_id"]
-        
-        request_data = {
-            "start_row": 1,
-            "end_row": None,
-            "start_col": 0,
-            "end_col": None,
-            "encoding": "utf-8",
-            "enable_cleaning": True
-        }
-        
-        response = client.post(f"/api/v1/parse-range/{file_id}", json=request_data)
-        
-        assert response.status_code == 200
-        response_data = response.json()
-        
-        # Validate response matches ParseResponse model
-        try:
-            parse_response = ParseResponse(**response_data)
-            assert parse_response.success is True
-            assert isinstance(parse_response.headers, list)
-            assert isinstance(parse_response.data, list)
-            assert isinstance(parse_response.row_count, int)
-        except ValidationError as e:
-            pytest.fail(f"Parse response validation failed: {e}")
-
-
 @pytest.mark.integration
 class TestTransformEndpointsContractValidation:
     """Test transform endpoints return valid response models"""
     
-    def test_transform_endpoint_response_model(self, client):
-        """Test /transform endpoint returns valid TransformResponse model"""
-        request_data = {
-            "data": [
-                {"date": "2023-01-01", "amount": 100.0, "description": "Test"},
-                {"date": "2023-01-02", "amount": -50.0, "description": "Another"}
-            ],
-            "column_mapping": {
-                "date": "Date",
-                "amount": "Amount", 
-                "description": "Description"
-            },
-            "bank_name": "test_bank"
-        }
-        
-        response = client.post("/api/v1/transform", json=request_data)
-        
-        assert response.status_code == 200
-        response_data = response.json()
-        
-        # Validate response matches TransformResponse model
-        try:
-            transform_response = TransformResponse(**response_data)
-            assert transform_response.success is True
-            assert isinstance(transform_response.data, list)
-            assert isinstance(transform_response.row_count, int)
-        except ValidationError as e:
-            pytest.fail(f"Transform response validation failed: {e}")
-
-
 @pytest.mark.integration
 class TestStrictTypeValidation:
     """Test that strict type validation catches malformed responses"""

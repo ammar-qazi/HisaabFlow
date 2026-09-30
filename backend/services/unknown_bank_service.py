@@ -5,13 +5,11 @@ Unknown Bank Service for coordinating CSV analysis and configuration generation
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 import configparser
-import os
 from pandas.tseries.api import guess_datetime_format
 from collections import Counter
 from backend.infrastructure.csv_parsing.structure_analyzer import (
     StructureAnalyzer,
     UnknownBankAnalysis,
-    FieldMappingSuggestion,
 )
 from backend.infrastructure.config.unified_config_service import (
     get_unified_config_service,

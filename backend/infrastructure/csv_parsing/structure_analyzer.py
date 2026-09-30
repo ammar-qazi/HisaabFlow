@@ -2,8 +2,8 @@
 CSV structure analyzer for detecting patterns and validating data
 Analyzes CSV structure, detects header rows, and estimates data types
 """
-from typing import Dict, List, Optional, Tuple
-from .utils import validate_csv_structure, estimate_data_types
+from typing import Dict, List, Optional
+from .utils import validate_csv_structure
 from .exceptions import StructureDetectionError
 import re
 from dataclasses import dataclass

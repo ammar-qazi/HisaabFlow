@@ -222,7 +222,6 @@ def get_nuitka_config_dir() -> Optional[str]:
 def get_user_config_dir() -> Optional[str]:
     """Get user config directory from environment variable, fallback to default"""
     import os
-    import sys
     
     # Check environment variable set by Electron launcher
     user_config_dir = os.environ.get('HISAABFLOW_CONFIG_DIR')

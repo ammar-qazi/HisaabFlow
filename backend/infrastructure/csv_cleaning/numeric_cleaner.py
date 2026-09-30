@@ -4,7 +4,7 @@ Handles parsing and cleaning of numeric columns (amounts, balances, etc.)
 Enhanced with AmountFormat support for different regional number formats.
 """
 
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional
 import re
 from ...shared.amount_formats import AmountFormat, RegionalFormatRegistry, AmountFormatDetector, FormatValidator
 
@@ -23,45 +23,6 @@ class NumericCleaner:
         
         print(f"    [INIT] NumericCleaner initialized with format: {self.amount_format.name or 'Custom'}")
         print(f"           Decimal: '{self.amount_format.decimal_separator}', Thousand: '{self.amount_format.thousand_separator}'")
-    
-    def auto_detect_and_clean(self, data: List[Dict]) -> Tuple[List[Dict], AmountFormat]:
-        """
-        Auto-detect amount format from data and clean with detected format.
-        
-        Args:
-            data: List of dictionaries with potentially dirty numeric data
-            
-        Returns:
-            Tuple of (cleaned_data, detected_format)
-        """
-        print(f"    Step 4a: Auto-detecting amount format from data")
-        
-        if not data:
-            return [], self.amount_format
-        
-        # Extract amount samples for format detection
-        amount_samples = self._extract_amount_samples(data)
-        print(f"      [DATA] Found {len(amount_samples)} amount samples for analysis")
-        
-        if amount_samples:
-            # Detect format from samples
-            detected_format, confidence = self.format_detector.detect_format(amount_samples)
-            print(f"      [DETECTED] Format: {detected_format.name or 'Custom'} (confidence: {confidence:.2f})")
-            print(f"                 Decimal: '{detected_format.decimal_separator}', Thousand: '{detected_format.thousand_separator}'")
-            
-            # Update our format if confidence is high enough
-            if confidence > 0.6:
-                self.amount_format = detected_format
-                print(f"      [UPDATE] Using detected format for cleaning")
-            else:
-                print(f"      [FALLBACK] Low confidence, using default format: {self.amount_format.name or 'Custom'}")
-        else:
-            detected_format = self.amount_format
-            print(f"      [FALLBACK] No amount samples found, using default format")
-        
-        # Clean with the determined format
-        cleaned_data = self.clean_numeric_columns(data)
-        return cleaned_data, detected_format
     
     def clean_numeric_columns(self, data: List[Dict]) -> List[Dict]:
         """
@@ -184,42 +145,6 @@ class NumericCleaner:
         ]
         
         return any(re.match(pattern, value_str) for pattern in numeric_patterns)
-    
-    def _extract_amount_samples(self, data: List[Dict]) -> List[str]:
-        """
-        Extract amount-like values from data for format detection.
-        
-        Args:
-            data: List of dictionaries to extract samples from
-            
-        Returns:
-            List of amount strings for analysis
-        """
-        samples = []
-        amount_columns = ['amount', 'balance', 'exchange_amount', 'fee', 'total']
-        
-        # Look for amount columns
-        if not data:
-            return samples
-        
-        sample_row = data[0]
-        found_amount_cols = []
-        for col in sample_row.keys():
-            if any(keyword in col.lower() for keyword in amount_columns):
-                found_amount_cols.append(col)
-        
-        # Extract samples from amount columns
-        max_samples = min(20, len(data))  # Limit sample size for performance
-        for i in range(max_samples):
-            if i >= len(data):
-                break
-            row = data[i]
-            for col in found_amount_cols:
-                value = row.get(col)
-                if value and str(value).strip():
-                    samples.append(str(value).strip())
-        
-        return samples
     
     def parse_numeric_value_with_format(self, value: Any, format_obj: AmountFormat) -> float:
         """

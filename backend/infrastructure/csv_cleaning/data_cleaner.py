@@ -6,24 +6,13 @@ Coordinates all cleaning modules for comprehensive data processing
 
 from typing import Dict, List, Optional
 from backend.shared.amount_formats import AmountFormat
-try:
-    # Package imports (when used as module)
-    from .bom_cleaner import BOMCleaner
-    from .column_standardizer import ColumnStandardizer
-    from .numeric_cleaner import NumericCleaner
-    from .date_cleaner import DateCleaner
-    from .currency_handler import CurrencyHandler
-    from .data_validator import DataValidator
-    from .quality_checker import QualityChecker
-except ImportError:
-    # Direct imports (when running as script)
-    from bom_cleaner import BOMCleaner
-    from column_standardizer import ColumnStandardizer
-    from numeric_cleaner import NumericCleaner
-    from date_cleaner import DateCleaner
-    from currency_handler import CurrencyHandler
-    from data_validator import DataValidator
-    from quality_checker import QualityChecker
+from .bom_cleaner import BOMCleaner
+from .column_standardizer import ColumnStandardizer
+from .numeric_cleaner import NumericCleaner
+from .date_cleaner import DateCleaner
+from .currency_handler import CurrencyHandler
+from .data_validator import DataValidator
+from .quality_checker import QualityChecker
 
 class DataCleaner:
     """
@@ -303,46 +292,3 @@ class DataCleaner:
 
 
 # Test the modular data cleaner
-if __name__ == "__main__":
-    cleaner = DataCleaner()
-    
-    # Test with sample NayaPay-like data
-    sample_parsed_data = {
-        'success': True,
-        'headers': ['TIMESTAMP', 'TYPE', 'DESCRIPTION', 'AMOUNT', 'BALANCE'],
-        'data': [
-            {
-                'TIMESTAMP': '02 Feb 2025 11:17 PM',
-                'TYPE': 'Raast Out',
-                'DESCRIPTION': 'Transfer to Someone',
-                'AMOUNT': '-5,000',
-                'BALANCE': '872.40'
-            },
-            {
-                'TIMESTAMP': '03 Feb 2025 12:15 PM',
-                'TYPE': 'IBFT In',
-                'DESCRIPTION': 'Transfer from Someone',
-                'AMOUNT': '+50,000',
-                'BALANCE': '50,872.40'
-            }
-        ],
-        'row_count': 2
-    }
-    
-    # Test with sample template config for NayaPay
-    template_config = {
-        'column_mapping': {
-            'Date': 'TIMESTAMP',
-            'Amount': 'AMOUNT',
-            'Title': 'DESCRIPTION',
-            'Note': 'TYPE'
-        },
-        'bank_name': 'NayaPay'
-    }
-    
-    print("🧪 Testing Modular Data Cleaner")
-    result = cleaner.clean_parsed_data(sample_parsed_data, template_config)
-    
-    print(f"\n[DATA] Cleaning Result:")
-    import json
-    print(json.dumps(result, indent=2, default=str))

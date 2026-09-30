@@ -3,7 +3,6 @@ CashewTransformer Service - Clean, standalone data transformation to Cashew form
 Handles column mapping, data parsing, and universal fallback logic.
 """
 from typing import Dict, List, Optional
-import re
 from datetime import datetime
 from decimal import Decimal
 import pandas as pd

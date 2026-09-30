@@ -8,7 +8,7 @@ from .dialect_detector import DialectDetector
 from .parsing_strategies import ParsingStrategies
 from .data_processor import DataProcessor
 from .structure_analyzer import StructureAnalyzer
-from .exceptions import CSVParsingError, NoHeadersFoundError, HeaderlessCSVDetected
+from .exceptions import CSVParsingError
 
 class UnifiedCSVParser:
     """Main API orchestrator for unified CSV parsing"""

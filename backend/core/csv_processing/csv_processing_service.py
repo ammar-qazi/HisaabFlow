@@ -6,10 +6,9 @@ dependency injection and clean architecture principles.
 """
 import os
 import configparser
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any, Tuple
 
 from .interfaces import CSVParserPort, CSVPreprocessorPort, EncodingDetectorPort
-from .exceptions import CSVProcessingError, CSVParsingError, BankDetectionError
 from backend.infrastructure.csv_cleaning.data_cleaner import DataCleaner
 from backend.core.bank_detection import BankDetector
 from backend.infrastructure.config.unified_config_service import get_unified_config_service, safe_config_path
