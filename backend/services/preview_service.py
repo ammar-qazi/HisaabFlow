@@ -99,6 +99,7 @@ class PreviewService:
                 filename=filename,
                 csv_content=structure_result["content_sample"],
                 headers=structure_result["raw_headers"],
+                min_confidence=BankDetector.MIN_CONFIDENCE,
             )
 
             # Cache the bank detection result for later use

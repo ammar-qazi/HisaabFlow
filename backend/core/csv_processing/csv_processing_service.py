@@ -91,7 +91,7 @@ class CSVProcessingService:
             
             # Step 6: Finalize bank detection using hybrid approach
             final_bank_info = self._finalize_bank_detection(
-                filename, parse_result, initial_bank_detection, preprocessing_result['info']
+                filename, file_path, parse_result, initial_bank_detection, preprocessing_result['info']
             )
             
             # Step 7: Apply data cleaning if enabled
@@ -139,8 +139,9 @@ class CSVProcessingService:
         encoding_from_config = config.encoding if hasattr(config, 'encoding') else config.get('encoding')
         effective_encoding = encoding_from_config
         
-        # If config encoding is None or generic 'utf-8', try to detect
-        if not effective_encoding or (effective_encoding.lower() == 'utf-8' and filename.startswith("11600006-")):
+        # The frontend always sends 'utf-8'. Keep it when the whole file really
+        # is UTF-8; otherwise (e.g. cp1250 exports) detect the encoding.
+        if not effective_encoding or (effective_encoding.lower() == 'utf-8' and not self._is_valid_utf8(file_path)):
             print(f"      Config encoding is '{effective_encoding}'. Detecting encoding for '{filename}'")
             detection_result = self.encoding_detector.detect_encoding(file_path)
             effective_encoding = detection_result['encoding']
@@ -148,6 +149,15 @@ class CSVProcessingService:
         
         return effective_encoding
     
+    @staticmethod
+    def _is_valid_utf8(file_path: str) -> bool:
+        try:
+            with open(file_path, 'rb') as f:
+                f.read().decode('utf-8')
+            return True
+        except (OSError, UnicodeDecodeError):
+            return False
+
     def _update_config_with_encoding(self, config: Any, effective_encoding: str) -> Any:
         """Update config with effective encoding"""
         if hasattr(config, 'encoding'):
@@ -465,6 +475,8 @@ class CSVProcessingService:
         final_bank = initial_detection['bank_name']
         if header_detection['confidence'] > initial_detection['confidence']:
             final_bank = header_detection['bank_name']
+        if hybrid_confidence < BankDetector.MIN_CONFIDENCE:
+            final_bank = 'unknown'
         
         # Check for bank mismatch between phases
         bank_mismatch = initial_detection['bank_name'] != header_detection['bank_name']
@@ -488,7 +500,7 @@ class CSVProcessingService:
             'bank_mismatch': bank_mismatch
         }
     
-    def _finalize_bank_detection(self, filename: str, parse_result: Dict[str, Any], 
+    def _finalize_bank_detection(self, filename: str, file_path: str, parse_result: Dict[str, Any],
                                 initial_detection: Dict[str, Any], preprocessing_info: Dict[str, Any]) -> Dict[str, Any]:
         """Finalize bank detection using optimized approach - reuse cached results when possible"""
         print(f"      ⚡ [OPTIMIZED] Finalizing bank detection for {filename}")
@@ -497,8 +509,6 @@ class CSVProcessingService:
         
         # Check if we can reuse cached detection completely from global cache
         cache = get_bank_detection_cache()
-        file_path = parse_result.get('file_path', '')
-        print(f"      [DEBUG] Looking for cache with filename='{filename}', file_path='{file_path}'")
         cached_result = cache.get(filename, file_path)
         
         if cached_result and cached_result.get('headers'):

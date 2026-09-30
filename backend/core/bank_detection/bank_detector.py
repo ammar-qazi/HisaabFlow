@@ -8,6 +8,11 @@ from backend.shared.models.csv_models import BankDetectionResult
 
 class BankDetector:
     """Detects bank type from CSV files using content signatures and header analysis"""
+
+    # Below this score a full detection (filename + content + headers) is a
+    # guess, not a detection. Parsing and the frontend already treat anything
+    # under 0.5 as "no config".
+    MIN_CONFIDENCE = 0.5
     
     def __init__(self, config_service=None):
         self.config_service = config_service or get_unified_config_service()
@@ -15,7 +20,8 @@ class BankDetector:
         
         print(f" BankDetector initialized with {len(self.detection_patterns)} bank patterns")
     
-    def detect_bank(self, filename: str, csv_content: str, headers: List[str]) -> BankDetectionResult:
+    def detect_bank(self, filename: str, csv_content: str, headers: List[str],
+                    min_confidence: float = 0.0) -> BankDetectionResult:
         """
         Detect bank type from filename, content, and headers
         
@@ -23,6 +29,9 @@ class BankDetector:
             filename: Name of the CSV file
             csv_content: Raw CSV content (first few lines)
             headers: List of CSV headers
+            min_confidence: Report 'unknown' if the best match scores lower.
+                Leave at 0 for partial detections (content-only or
+                headers-only) whose scores are combined later.
             
         Returns:
             BankDetectionResult with bank name and confidence score
@@ -43,10 +52,18 @@ class BankDetector:
         # Sort by confidence (highest first)
         candidates.sort(key=lambda x: x.confidence, reverse=True)
         
-        if candidates:
+        if candidates and candidates[0].confidence >= min_confidence:
             best_match = candidates[0]
             print(f"Best match: {best_match}")
             return best_match
+        elif candidates:
+            best_guess = candidates[0]
+            print(f" Best guess {best_guess.bank_name} ({best_guess.confidence:.2f}) is below {min_confidence}, using unknown")
+            return BankDetectionResult(
+                bank_name='unknown',
+                confidence=best_guess.confidence,
+                reasons=[f"best_guess:{best_guess.bank_name}"] + best_guess.reasons,
+            )
         else:
             print(f" No bank detected, using unknown")
             return BankDetectionResult(bank_name='unknown', confidence=0.0, reasons=['No patterns matched'])

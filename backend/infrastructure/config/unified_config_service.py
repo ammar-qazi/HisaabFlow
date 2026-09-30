@@ -5,7 +5,7 @@ Replaces 4 separate ConfigManager implementations with one unified interface
 """
 import os
 import configparser
-from typing import Dict, List, Optional, Any
+from typing import Any, Callable, Dict, List, Optional
 from dataclasses import dataclass, field
 from pathlib import Path
 import csv
@@ -27,6 +27,16 @@ _BANK_NAME_PATTERN = re.compile(r'^[A-Za-z0-9_-]+$')
 def is_valid_bank_name(bank_name: Any) -> bool:
     """Bank names become file names, so only allow letters, digits, '_' and '-'."""
     return isinstance(bank_name, str) and bool(_BANK_NAME_PATTERN.match(bank_name))
+
+
+# Callbacks run after configs are reloaded, so caches in other layers
+# (e.g. bank detection results) can drop entries computed with old configs.
+_reload_listeners: List[Callable[[], None]] = []
+
+
+def register_config_reload_listener(listener: Callable[[], None]) -> None:
+    if listener not in _reload_listeners:
+        _reload_listeners.append(listener)
 
 
 def safe_config_path(config_dir: str, bank_name: str) -> str:
@@ -905,6 +915,9 @@ class UnifiedConfigService:
             # Rebuild detection index
             self._build_detection_index()
             self._configs_loaded = True
+
+            for listener in _reload_listeners:
+                listener()
             
             print(f"[SUCCESS] [UnifiedConfigService] Reloaded {len(self._detection_patterns)} bank detection patterns")
             return True

@@ -2,8 +2,9 @@
 Global bank detection cache service to avoid redundant API calls
 """
 import hashlib
-import os
 from typing import Optional, Dict, Any
+
+from backend.infrastructure.config.unified_config_service import register_config_reload_listener
 
 
 class BankDetectionCache:
@@ -12,39 +13,31 @@ class BankDetectionCache:
     def __init__(self):
         self._cache = {}
     
-    def _generate_cache_key(self, filename: str, file_path: str) -> str:
-        """Generate consistent cache key based on filename and file content"""
+    def _generate_cache_key(self, filename: str, file_path: str) -> Optional[str]:
+        """Key on filename (it affects detection) plus a hash of the file content"""
         try:
-            # Use filename and file size for consistent caching
-            stat = os.stat(file_path)
-            content_hash = hashlib.md5(f"{filename}_{stat.st_size}".encode()).hexdigest()[:8]
-            return f"{filename}_{content_hash}"
-        except:
-            # Fallback to filename-based hash
-            return f"{filename}_{hash(filename) % 100000}"
+            with open(file_path, 'rb') as f:
+                content_hash = hashlib.sha256(f.read()).hexdigest()
+        except (OSError, TypeError):
+            return None
+        return f"{filename}_{content_hash}"
     
     def get(self, filename: str, file_path: str) -> Optional[Dict[str, Any]]:
         """Get cached bank detection result"""
         cache_key = self._generate_cache_key(filename, file_path)
-        print(f"[DEBUG] Cache lookup: key='{cache_key}', available_keys={list(self._cache.keys())}")
+        if cache_key is None:
+            return None
         
         cached_result = self._cache.get(cache_key)
         if cached_result:
             print(f"ℹ [CACHE] Using cached bank detection for {filename}")
-            return cached_result
-        
-        # Fallback: try to find cache entry by filename only (for cases where file path changes)
-        for key, result in self._cache.items():
-            if key.startswith(f"{filename}_"):
-                print(f"ℹ [CACHE] Using cached bank detection for {filename} (fallback match: {key})")
-                return result
-        
-        print(f"[DEBUG] No cache found for {filename}")
-        return None
+        return cached_result
     
     def set(self, filename: str, file_path: str, detection_result: Dict[str, Any]):
         """Cache bank detection result"""
         cache_key = self._generate_cache_key(filename, file_path)
+        if cache_key is None:
+            return
         self._cache[cache_key] = detection_result
         print(f"ℹ [CACHE] Cached bank detection result for {filename}")
     
@@ -60,6 +53,9 @@ class BankDetectionCache:
 
 # Global singleton instance
 _global_cache = BankDetectionCache()
+
+# Detection results depend on the configs, so drop them when configs reload
+register_config_reload_listener(_global_cache.clear)
 
 
 def get_bank_detection_cache() -> BankDetectionCache:

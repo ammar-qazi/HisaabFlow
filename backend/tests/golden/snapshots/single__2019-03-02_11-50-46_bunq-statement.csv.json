@@ -3,8 +3,9 @@
     {
       "bank_detection": {
         "confidence": 0.38,
-        "detected_bank": "Meezan",
+        "detected_bank": "unknown",
         "reasons": [
+          "best_guess:Meezan",
           "filename_match(0.9)",
           "content_signature(0.2)",
           "header_match(0.3)"
@@ -24,9 +25,10 @@
   "parse": [
     {
       "bank_info": {
-        "bank_name": "Meezan",
+        "bank_name": "unknown",
         "confidence": 0.38,
         "reasons": [
+          "best_guess:Meezan",
           "filename_match(0.9)",
           "content_signature(0.2)",
           "header_match(0.3)"
@@ -38,9 +40,9 @@
         "Account",
         "Amount",
         "Counterparty",
+        "Currency",
         "Date",
-        "Description",
-        "Name"
+        "Description"
       ],
       "row_count": 7,
       "success": true
@@ -71,9 +73,7 @@
   },
   "transform_status": 200,
   "transformation_summary": {
-    "banks_processed": [
-      "Meezan"
-    ],
+    "banks_processed": [],
     "failed_transformations": 0,
     "successful_transformations": 1,
     "total_files": 1,

@@ -3,8 +3,9 @@
     {
       "bank_detection": {
         "confidence": 0.06666666666666667,
-        "detected_bank": "Meezan",
+        "detected_bank": "unknown",
         "reasons": [
+          "best_guess:Meezan",
           "header_match(0.2)"
         ]
       },
@@ -22,41 +23,33 @@
   "parse": [
     {
       "bank_info": {
-        "bank_name": "Meezan",
+        "bank_name": "unknown",
         "confidence": 0.06666666666666667,
         "reasons": [
+          "best_guess:Meezan",
           "header_match(0.2)"
         ]
       },
       "error": null,
       "filename": "CSV_A_20180414_112204.csv",
       "headers": [
-        "BIC",
-        "BIC tegenpartij",
-        "Batch ID",
         "Bedrag",
-        "Betalingskenmerk",
-        "Code",
+        "Currency",
         "Datum",
-        "IBAN/BBAN",
-        "Incassant ID",
-        "Koers",
-        "Machtigingskenmerk",
+        "Iban/Bban",
         "Munt",
-        "Naam initiërende partij",
-        "Naam tegenpartij",
-        "Naam uiteindelijke partij",
+        "NaamInitiërendePartij",
+        "NaamTegenpartij",
+        "NaamUiteindelijkePartij",
         "Omschrijving-1",
         "Omschrijving-2",
         "Omschrijving-3",
-        "Oorspr bedrag",
-        "Oorspr munt",
-        "Reden retour",
+        "OorsprBedrag",
+        "OorsprMunt",
         "Rentedatum",
-        "Saldo na trn",
-        "Tegenrekening IBAN/BBAN",
-        "Transactiereferentie",
-        "Volgnr"
+        "SaldoNaTrn",
+        "TegenrekeningIban/Bban",
+        "Transactiereferentie"
       ],
       "row_count": 3,
       "success": true
@@ -87,9 +80,7 @@
   },
   "transform_status": 200,
   "transformation_summary": {
-    "banks_processed": [
-      "Meezan"
-    ],
+    "banks_processed": [],
     "failed_transformations": 0,
     "successful_transformations": 1,
     "total_files": 1,
