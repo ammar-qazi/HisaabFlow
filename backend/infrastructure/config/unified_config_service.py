@@ -21,6 +21,25 @@ if project_root not in sys.path:
 from backend.shared.amount_formats import AmountFormat, RegionalFormatRegistry
 
 
+_BANK_NAME_PATTERN = re.compile(r'^[A-Za-z0-9_-]+$')
+
+
+def is_valid_bank_name(bank_name: Any) -> bool:
+    """Bank names become file names, so only allow letters, digits, '_' and '-'."""
+    return isinstance(bank_name, str) and bool(_BANK_NAME_PATTERN.match(bank_name))
+
+
+def safe_config_path(config_dir: str, bank_name: str) -> str:
+    """Return <config_dir>/<bank_name>.conf, refusing names that could escape config_dir."""
+    if not is_valid_bank_name(bank_name):
+        raise ValueError(f"Invalid bank name: {bank_name!r}")
+    base = os.path.realpath(config_dir)
+    path = os.path.realpath(os.path.join(base, f"{bank_name}.conf"))
+    if os.path.dirname(path) != base:
+        raise ValueError(f"Invalid bank name: {bank_name!r}")
+    return path
+
+
 @dataclass
 class CSVConfig:
     """CSV parsing configuration"""
@@ -614,7 +633,10 @@ class UnifiedConfigService:
             return self._bank_configs[bank_name]
         
         # Cache miss - load from disk
-        config_path = os.path.join(self.config_dir, f"{bank_name}.conf")
+        try:
+            config_path = safe_config_path(self.config_dir, bank_name)
+        except ValueError:
+            return None
         
         # Verify file exists
         if not os.path.exists(config_path):
@@ -922,7 +944,7 @@ class UnifiedConfigService:
         Refresh detection index for a specific bank (useful after config file changes).
         """
         try:
-            config_path = os.path.join(self.config_dir, f"{bank_name}.conf")
+            config_path = safe_config_path(self.config_dir, bank_name)
             
             if not os.path.exists(config_path):
                 # Remove from index if file no longer exists
@@ -957,7 +979,7 @@ class UnifiedConfigService:
     def save_bank_config(self, bank_name: str, config_data: Dict[str, Any]) -> bool:
         """Save bank configuration to file"""
         try:
-            config_path = os.path.join(self.config_dir, f"{bank_name}.conf")
+            config_path = safe_config_path(self.config_dir, bank_name)
             
             # Convert config_data to ConfigParser format
             config = config_parser = configparser.ConfigParser(allow_no_value=True)

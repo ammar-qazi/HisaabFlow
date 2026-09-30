@@ -15,6 +15,7 @@ from backend.infrastructure.csv_parsing.structure_analyzer import (
 )
 from backend.infrastructure.config.unified_config_service import (
     get_unified_config_service,
+    safe_config_path,
 )
 from backend.shared.amount_formats.regional_formats import (
     AmountFormat,
@@ -419,9 +420,7 @@ class UnknownBankService:
 
         try:
             # Determine config file path
-            config_dir = self.config_service.config_dir
-            config_filename = f"{bank_name}.conf"
-            config_path = os.path.join(config_dir, config_filename)
+            config_path = safe_config_path(self.config_service.config_dir, bank_name)
 
             # Create ConfigParser object
             config_parser = config_parser = configparser.ConfigParser(

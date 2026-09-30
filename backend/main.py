@@ -46,7 +46,9 @@ app = FastAPI(
 # Setup CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    # CRA dev server, plus "null" for the Electron build, which loads the UI
+    # from file://. Same-origin requests (Docker, Phase 3) need no CORS entry.
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "null"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -97,23 +99,6 @@ async def root():
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
     return {"status": "healthy", "version": "3.0.0"}
-
-@app.post("/shutdown")
-async def shutdown_server():
-    """Graceful shutdown endpoint for desktop app cleanup"""
-    import asyncio
-    import threading
-    
-    def shutdown():
-        print("[SHUTDOWN] Graceful shutdown requested via API")
-        import os
-        os._exit(0)  # Force immediate exit
-    
-    # Schedule shutdown after response is sent
-    timer = threading.Timer(0.5, shutdown)
-    timer.start()
-    
-    return {"status": "shutting down", "message": "Server will stop in 0.5 seconds"}
 
 # All routers loaded successfully - no fallback endpoints needed
 if not ROUTERS_AVAILABLE:

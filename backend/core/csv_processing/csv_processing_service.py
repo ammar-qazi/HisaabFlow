@@ -12,7 +12,7 @@ from .interfaces import CSVParserPort, CSVPreprocessorPort, EncodingDetectorPort
 from .exceptions import CSVProcessingError, CSVParsingError, BankDetectionError
 from backend.infrastructure.csv_cleaning.data_cleaner import DataCleaner
 from backend.core.bank_detection import BankDetector
-from backend.infrastructure.config.unified_config_service import get_unified_config_service
+from backend.infrastructure.config.unified_config_service import get_unified_config_service, safe_config_path
 from backend.shared.models.csv_models import BankDetectionResult
 from backend.services.bank_detection_cache import get_bank_detection_cache
 
@@ -184,7 +184,7 @@ class CSVProcessingService:
             uses_absolute_positioning = False
             if cached_result['bank_name'] != 'unknown' and cached_result['confidence'] >= 0.5:
                 try:
-                    config_file_path = os.path.join(self.config_service.config_dir, f"{cached_result['bank_name']}.conf")
+                    config_file_path = safe_config_path(self.config_service.config_dir, cached_result['bank_name'])
                     if os.path.exists(config_file_path):
                         raw_config = configparser.ConfigParser(allow_no_value=True)
                         raw_config.read(config_file_path)
@@ -243,7 +243,7 @@ class CSVProcessingService:
         uses_absolute_positioning = False
         if initial_result.bank_name != 'unknown' and initial_result.confidence >= 0.5:
             try:
-                config_file_path = os.path.join(self.config_service.config_dir, f"{initial_result.bank_name}.conf")
+                config_file_path = safe_config_path(self.config_service.config_dir, initial_result.bank_name)
                 if os.path.exists(config_file_path):
                     raw_config = configparser.ConfigParser(allow_no_value=True)
                     raw_config.read(config_file_path)
@@ -347,7 +347,7 @@ class CSVProcessingService:
                 detection_conf = bank_config.detection_info
                 
                 # Read header_row directly from config file
-                config_file_path = os.path.join(self.config_service.config_dir, f"{detected_bank_name}.conf")
+                config_file_path = safe_config_path(self.config_service.config_dir, detected_bank_name)
                 raw_config = configparser.ConfigParser(allow_no_value=True)
                 raw_config.read(config_file_path)
                 

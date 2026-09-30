@@ -11,6 +11,7 @@ from backend.services.unknown_bank_service import UnknownBankService
 from backend.services.unknown_bank_service import BankConfigInput, ConfigValidationResult
 from backend.infrastructure.csv_parsing.structure_analyzer import UnknownBankAnalysis
 from backend.shared.amount_formats.regional_formats import AmountFormat, RegionalFormatRegistry
+from backend.infrastructure.config.unified_config_service import is_valid_bank_name
 from backend.api.models import (
     UnknownBankAnalysisResponse, UnknownBankAnalysisRequest,
     GenerateBankConfigRequest, GenerateBankConfigResponse,
@@ -319,7 +320,14 @@ async def save_bank_config(
     Returns:
         SaveBankConfigResponse with save results
     """
-    bank_name = request.config.get('bank_info', {}).get('bank_name', 'unknown')
+    # Resolve the name the same way UnknownBankService.save_bank_config does
+    bank_info = request.config.get('bank_info', {})
+    bank_name = bank_info.get('name') or bank_info.get('bank_name', '')
+    if not is_valid_bank_name(bank_name):
+        raise HTTPException(
+            status_code=400,
+            detail="Bank name may only contain letters, digits, '_' and '-'.",
+        )
     print(f"ℹ [API] Saving bank config: {bank_name}")
     
     try:
