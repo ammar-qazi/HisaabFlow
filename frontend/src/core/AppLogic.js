@@ -79,7 +79,7 @@ function AppLogic() {
     }
   };
 
-  const { previewFile, previewFileById } = usePreviewHandlers(
+  const { previewFile } = usePreviewHandlers(
     uploadedFiles, setUploadedFiles, setLoading, setError,
     applyTemplate, autoConfigHook.processDetectionResult, autoConfigHook.generateSuccessMessage
   );
@@ -87,7 +87,7 @@ function AppLogic() {
   const handlerState = {
     uploadedFiles, setUploadedFiles, setLoading, setError,
     setParsedResults, setTransformedData, setTransferAnalysis, setCurrentStep,
-    applyTemplate, previewFile, previewFileById, dynamicBankMapping: autoConfigHook.bankConfigMapping,
+    applyTemplate, previewFile, dynamicBankMapping: autoConfigHook.bankConfigMapping,
     manuallyConfirmedTransfers
   };
 

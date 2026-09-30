@@ -9,13 +9,6 @@ function ExportOptions({ transformedData, exportData }) {
   const [exportSuccess, setExportSuccess] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState('csv'); // Default to CSV
 
-  // Add debugging and handle multiple data structures
-  console.log(' ExportOptions Debug:', {
-    transformedData,
-    transformedDataType: Array.isArray(transformedData) ? 'array' : typeof transformedData,
-    transformedDataLength: Array.isArray(transformedData) ? transformedData.length : 'not array'
-  });
-
   const handleExportClick = async () => {
     setExporting(true);
     setExportSuccess(false);

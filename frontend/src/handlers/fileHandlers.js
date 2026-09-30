@@ -11,8 +11,7 @@ import { triggerAutoDetection } from './autoConfigHandlers';
 import { createConfigHandlers } from './configurationHandlers';
 import { exportData } from '../utils/exportUtils';
 
-const API_BASE = window.BACKEND_URL || 'http://127.0.0.1:8000';
-const API_V1_BASE = `${API_BASE}/api/v1`;
+import { API_V1_BASE } from '../services/api';
 
 /**
  * Creates file upload and management handlers

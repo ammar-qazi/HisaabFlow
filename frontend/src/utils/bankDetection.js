@@ -77,10 +77,3 @@ export const getUnknownBankFiles = (uploadedFiles) => {
   );
 };
 
-/**
- * Checks if a file needs manual bank configuration
- */
-export const needsManualConfiguration = (file) => {
-  const detection = file.bankDetection || detectBankFromFilename(file.fileName || file.name);
-  return detection.bankType === 'Unknown' || (detection.confidence || 0) < CONFIDENCE_THRESHOLD;
-};
