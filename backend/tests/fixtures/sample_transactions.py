@@ -11,7 +11,7 @@ def nayapay_easypaisa_transactions():
         {
             'Date': '2025-01-15',
             'Amount': -1500.0,
-            'Title': 'Outgoing fund transfer to Adnan Saleem easypaisa Bank-0804|Transaction ID 67af0a3f5a01d525b770bde4',
+            'Title': 'Outgoing fund transfer to Payee One easypaisa Bank-0001|Transaction ID 000000000000000000000002',
             'Note': 'Raast Out',
             'Account': 'NayaPay',
             'Category': 'Transfer',
@@ -20,7 +20,7 @@ def nayapay_easypaisa_transactions():
         {
             'Date': '2025-01-16', 
             'Amount': -800.0,
-            'Title': 'Outgoing fund transfer to Usman Siddique easypaisa Bank-9171|Transaction ID 67a5c88bcf6694682c772ac0',
+            'Title': 'Outgoing fund transfer to Payee Two easypaisa Bank-0002|Transaction ID 000000000000000000000003',
             'Note': 'Raast Out',
             'Account': 'NayaPay',
             'Category': 'Transfer',
@@ -29,7 +29,7 @@ def nayapay_easypaisa_transactions():
         {
             'Date': '2025-01-17',
             'Amount': -1200.0,
-            'Title': 'Outgoing fund transfer to Muhammad Riafat easypaisa Bank-3892|Transaction ID 67a60218de647334560689a8',
+            'Title': 'Outgoing fund transfer to Payee Three easypaisa Bank-0003|Transaction ID 000000000000000000000004',
             'Note': 'Raast Out',
             'Account': 'NayaPay', 
             'Category': 'Transfer',
@@ -45,7 +45,7 @@ def nayapay_non_easypaisa_transactions():
         {
             'Date': '2025-01-15',
             'Amount': -1500.0,
-            'Title': 'Outgoing fund transfer to Ammar Qazi Meezan Bank-3212|Transaction ID 67a3837b5f678d3d7da2addd',
+            'Title': 'Outgoing fund transfer to Account Owner Meezan Bank-0000|Transaction ID 000000000000000000000005',
             'Note': 'Regular Transfer',
             'Account': 'NayaPay',
             'Category': 'Transfer',
@@ -54,7 +54,7 @@ def nayapay_non_easypaisa_transactions():
         {
             'Date': '2025-01-16',
             'Amount': -500.0,
-            'Title': 'Outgoing fund transfer to Ali Abbas Khan MCB Bank-4089|Transaction ID 67a8ea770b9d0a6763870e9b', 
+            'Title': 'Outgoing fund transfer to Payee Four MCB Bank-0004|Transaction ID 000000000000000000000006', 
             'Note': 'Bank Transfer',
             'Account': 'NayaPay',
             'Category': 'Transfer',
