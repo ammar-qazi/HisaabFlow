@@ -5,7 +5,10 @@ Handles column mapping, data parsing, and universal fallback logic.
 from typing import Dict, List, Optional
 import re
 from datetime import datetime
+from decimal import Decimal
 import pandas as pd
+
+from backend.shared.utils.amount_text import format_amount, parse_amount_text
 
 
 class CashewTransformer:
@@ -141,12 +144,12 @@ class CashewTransformer:
             
             if (not amount_val or str(amount_val).strip() == '') and has_debit_credit:
                 # Check both cashew_row (from column mapping) and original row for debit/credit
-                debit_val = self.parse_amount(cashew_row.get('debit', row.get('debit', '0')))
-                credit_val = self.parse_amount(cashew_row.get('credit', row.get('credit', '0')))
+                debit_val = parse_amount_text(cashew_row.get('debit', row.get('debit', '0'))) or Decimal(0)
+                credit_val = parse_amount_text(cashew_row.get('credit', row.get('credit', '0'))) or Decimal(0)
                 
                 # Calculate final amount: credit - debit (credit is positive, debit is negative)
-                final_amount = float(credit_val) - float(debit_val)
-                cashew_row['amount'] = str(final_amount)
+                final_amount = format_amount(credit_val - debit_val)
+                cashew_row['amount'] = final_amount
                 
                 print(f"    Row {idx} ({source_bank}) Debit/Credit calculation - debit='{debit_val}', credit='{credit_val}', final_amount='{final_amount}'")
             
@@ -184,7 +187,7 @@ class CashewTransformer:
             # Enhanced debugging for amount validation
             print(f"   [DEBUG] Row {idx} ({source_bank}) final amount check - value: '{amount_val}', type: {type(amount_val)}, bool: {bool(amount_val)}")
             
-            if amount_val and amount_val != '0' and amount_val != 0:
+            if parse_amount_text(amount_val):
                 # Convert to uppercase for final Cashew format before adding to results
                 final_cashew_row = self._convert_to_final_cashew_format(cashew_row)
                 cashew_data.append(final_cashew_row)
@@ -321,47 +324,9 @@ class CashewTransformer:
         """
         Clean and parse an amount string to float format.
         """
-        try:
-            if not amount_str or str(amount_str).strip() == '' or str(amount_str).lower() == 'nan':
-                return '0'
-            
-            amount_str = str(amount_str).strip()
-            amount_str = amount_str.strip('"').strip("'")
-            
-            # Handle Hungarian format (comma as thousands separator)
-            # e.g., "-6,325" becomes "-6325"
-            if ',' in amount_str and '.' not in amount_str:
-                # Check if comma is thousands separator or decimal
-                comma_pos = amount_str.rfind(',')
-                after_comma = amount_str[comma_pos + 1:]
-                
-                # If 3 digits after comma, it's thousands separator
-                if len(after_comma) == 3 and after_comma.isdigit():
-                    amount_str = amount_str.replace(',', '')
-                # Otherwise assume it's decimal separator
-                else:
-                    amount_str = amount_str.replace(',', '.')
-            
-            # Clean up and determine sign
-            cleaned = re.sub(r'[^0-9.\-+]', '', amount_str)
-            
-            is_negative = False
-            if (amount_str.startswith('-') or amount_str.startswith('(') or 
-                amount_str.endswith(')') or '(' in amount_str):
-                is_negative = True
-            elif amount_str.startswith('+'):
-                is_negative = False
-            
-            cleaned = cleaned.lstrip('+-')
-            
-            if is_negative and not cleaned.startswith('-'):
-                cleaned = '-' + cleaned
-            
-            if cleaned:
-                return str(float(cleaned))
-            else:
-                return '0'
-                
-        except Exception as e:
-            print(f"[WARNING]  Amount parsing error for '{amount_str}': {e}")
+        amount = parse_amount_text(amount_str)
+        if amount is None:
+            if amount_str is not None and str(amount_str).strip() not in ('', 'nan'):
+                print(f"[WARNING]  Amount parsing error for '{amount_str}'")
             return '0'
+        return format_amount(amount)

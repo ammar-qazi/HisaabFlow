@@ -35,6 +35,8 @@ class CurrencyConverter:
             
             amount = AmountParser.parse_amount(transaction.get('Amount', '0'))
             date = DateParser.parse_date(transaction.get('Date', ''))
+            if date is None:
+                continue  # can't be matched to anything without a date
             conversion_info = self.extract_conversion_info(desc_for_conversion_matching, amount)
             
             if conversion_info:

@@ -1,6 +1,7 @@
 """
 Configuration-driven cross-bank transfer matching
 """
+import re
 from typing import Dict, List, Set, Optional
 from backend.core.transfer_detection.amount_parser import AmountParser
 from backend.core.transfer_detection.date_parser import DateParser
@@ -363,26 +364,20 @@ class CrossBankMatcher:
         if not name1 or not name2:
             return False
         
-        name1_clean = name1.lower().strip()
-        name2_clean = name2.lower().strip()
+        name1_parts = re.findall(r'\w+', name1.lower())
+        name2_parts = re.findall(r'\w+', name2.lower())
+        if not name1_parts or not name2_parts:
+            return False
         
-        # Exact match
-        if name1_clean == name2_clean:
+        # Same words, or one name is a shorter form of the other ("John" vs "John Smith")
+        set1, set2 = set(name1_parts), set(name2_parts)
+        if set1 <= set2 or set2 <= set1:
             return True
         
-        # Check if one name is contained in the other (e.g., "John" vs "John Smith")
-        if name1_clean in name2_clean or name2_clean in name1_clean:
-            return True
-        
-        # Check for similar names with different formatting
-        name1_parts = set(name1_clean.split())
-        name2_parts = set(name2_clean.split())
-        
-        # If they share at least one common word, consider it a match
-        if name1_parts.intersection(name2_parts):
-            return True
-        
-        return False
+        # Otherwise require two meaningful shared words. One shared word is not
+        # enough: "Muhammad Ali" and "Muhammad Khan" are different people.
+        shared = {word for word in set1 & set2 if len(word) >= 3}
+        return len(shared) >= 2
     
     def detect_bank_type(self, file_name: str, transaction: Dict) -> str:
         """Detect bank type using configuration"""

@@ -178,7 +178,7 @@ class TransferDetector:
             transfer_matches.append({
                 'csv_index': outgoing['_csv_index'],
                 'amount': str(AmountParser.parse_amount(outgoing.get('Amount', '0'))),
-                'date': DateParser.parse_date(outgoing.get('Date', '')).strftime('%Y-%m-%d'),
+                'date': DateParser.format_date(outgoing.get('Date', '')),
                 'description': str(outgoing.get('Description', '')),
                 'category': 'Balance Correction',
                 'note': f"Transfer out - {pair['transfer_type']} - Pair ID: {pair['pair_id']}{exchange_note}",
@@ -190,7 +190,7 @@ class TransferDetector:
             transfer_matches.append({
                 'csv_index': incoming['_csv_index'],
                 'amount': str(AmountParser.parse_amount(incoming.get('Amount', '0'))),
-                'date': DateParser.parse_date(incoming.get('Date', '')).strftime('%Y-%m-%d'),
+                'date': DateParser.format_date(incoming.get('Date', '')),
                 'description': str(incoming.get('Description', '')),
                 'category': 'Balance Correction',
                 'note': f"Transfer in - {pair['transfer_type']} - Pair ID: {pair['pair_id']}{exchange_note}",
