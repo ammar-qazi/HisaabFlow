@@ -98,7 +98,8 @@
       "Currency": "USD",
       "Date": "2024-11-23 00:00:00",
       "Note": "CARD_REFUND",
-      "Title": "Netflix"
+      "Title": "Netflix",
+      "_transaction_index": 0
     },
     {
       "Account": "Revolut Hungarian",
@@ -107,7 +108,8 @@
       "Currency": "USD",
       "Date": "2024-11-24 00:00:00",
       "Note": "CARD_PAYMENT",
-      "Title": "Netflix"
+      "Title": "Netflix",
+      "_transaction_index": 1
     },
     {
       "Account": "Revolut Hungarian",
@@ -116,7 +118,8 @@
       "Currency": "USD",
       "Date": "2024-11-26 00:00:00",
       "Note": "CARD_REFUND",
-      "Title": "Netflix"
+      "Title": "Netflix",
+      "_transaction_index": 2
     },
     {
       "Account": "Revolut Hungarian",
@@ -125,7 +128,8 @@
       "Currency": "USD",
       "Date": "2024-11-27 00:00:00",
       "Note": "CARD_REFUND",
-      "Title": "Netflix"
+      "Title": "Netflix",
+      "_transaction_index": 3
     },
     {
       "Account": "Revolut EUR",
@@ -134,7 +138,8 @@
       "Currency": "USD",
       "Date": "2025-05-26 00:00:00",
       "Note": "TOPUP",
-      "Title": "Google Pay Top-Up by *4250"
+      "Title": "Google Pay Top-Up by *4250",
+      "_transaction_index": 4
     },
     {
       "Account": "Revolut EUR",
@@ -143,7 +148,8 @@
       "Currency": "USD",
       "Date": "2025-05-27 00:00:00",
       "Note": "TRANSFER",
-      "Title": "University Fee"
+      "Title": "University Fee",
+      "_transaction_index": 5
     },
     {
       "Account": "Revolut EUR",
@@ -152,7 +158,8 @@
       "Currency": "USD",
       "Date": "2025-06-04 00:00:00",
       "Note": "CARD_PAYMENT",
-      "Title": "Spotify"
+      "Title": "Spotify",
+      "_transaction_index": 6
     },
     {
       "Account": "Revolut USD",
@@ -161,7 +168,8 @@
       "Currency": "USD",
       "Date": "2024-04-22 00:00:00",
       "Note": "CARD_PAYMENT",
-      "Title": "Netflix"
+      "Title": "Netflix",
+      "_transaction_index": 7
     },
     {
       "Account": "Revolut USD",
@@ -170,7 +178,8 @@
       "Currency": "USD",
       "Date": "2025-06-12 00:00:00",
       "Note": "TOPUP",
-      "Title": "Google Pay Top-Up by *1234"
+      "Title": "Google Pay Top-Up by *1234",
+      "_transaction_index": 8
     }
   ]
 }

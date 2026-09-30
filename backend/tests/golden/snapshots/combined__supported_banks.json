@@ -370,7 +370,8 @@
           "Currency": "USD",
           "Date": "2025-06-12 00:00:00",
           "Note": "TOPUP | Transfer incoming (Pair: cross_bank_0, Strategy: traditional_same_currency)",
-          "Title": "Google Pay Top-Up by *1234"
+          "Title": "Google Pay Top-Up by *1234",
+          "_transaction_index": 103
         },
         "incoming_transaction": {
           "Account": "Revolut USD",
@@ -379,7 +380,8 @@
           "Currency": "USD",
           "Date": "2025-06-12 00:00:00",
           "Note": "TOPUP | Transfer incoming (Pair: cross_bank_0, Strategy: traditional_same_currency)",
-          "Title": "Google Pay Top-Up by *1234"
+          "Title": "Google Pay Top-Up by *1234",
+          "_transaction_index": 103
         },
         "match_type": "traditional_same_currency",
         "outgoing": {
@@ -390,6 +392,7 @@
           "Date": "2025-06-12 00:00:00",
           "Note": "TRF-REV-001",
           "Title": "Revolut**1234*",
+          "_transaction_index": 78,
           "exchangetoamount": 0.0,
           "exchangetocurrency": ""
         },
@@ -401,6 +404,7 @@
           "Date": "2025-06-12 00:00:00",
           "Note": "TRF-REV-001",
           "Title": "Revolut**1234*",
+          "_transaction_index": 78,
           "exchangetoamount": 0.0,
           "exchangetocurrency": ""
         }
@@ -723,7 +727,8 @@
           "Currency": "USD",
           "Date": "2025-06-12 00:00:00",
           "Note": "TOPUP | Transfer incoming (Pair: cross_bank_0, Strategy: traditional_same_currency)",
-          "Title": "Google Pay Top-Up by *1234"
+          "Title": "Google Pay Top-Up by *1234",
+          "_transaction_index": 103
         },
         "incoming_transaction": {
           "Account": "Revolut USD",
@@ -732,7 +737,8 @@
           "Currency": "USD",
           "Date": "2025-06-12 00:00:00",
           "Note": "TOPUP | Transfer incoming (Pair: cross_bank_0, Strategy: traditional_same_currency)",
-          "Title": "Google Pay Top-Up by *1234"
+          "Title": "Google Pay Top-Up by *1234",
+          "_transaction_index": 103
         },
         "match_type": "traditional_same_currency",
         "outgoing": {
@@ -743,6 +749,7 @@
           "Date": "2025-06-12 00:00:00",
           "Note": "TRF-REV-001",
           "Title": "Revolut**1234*",
+          "_transaction_index": 78,
           "exchangetoamount": 0.0,
           "exchangetocurrency": ""
         },
@@ -754,6 +761,7 @@
           "Date": "2025-06-12 00:00:00",
           "Note": "TRF-REV-001",
           "Title": "Revolut**1234*",
+          "_transaction_index": 78,
           "exchangetoamount": 0.0,
           "exchangetocurrency": ""
         }
@@ -783,7 +791,8 @@
       "Currency": "PKR",
       "Date": "2025-02-01 00:00:00",
       "Note": "Raast In",
-      "Title": "Incoming fund transfer from Jane Doe Askari Bank-1234"
+      "Title": "Incoming fund transfer from Jane Doe Askari Bank-1234",
+      "_transaction_index": 0
     },
     {
       "Account": "NayaPay",
@@ -792,7 +801,8 @@
       "Currency": "PKR",
       "Date": "2025-02-01 00:00:00",
       "Note": "Card Payment",
-      "Title": "Cheezious"
+      "Title": "Cheezious",
+      "_transaction_index": 1
     },
     {
       "Account": "NayaPay",
@@ -801,7 +811,8 @@
       "Currency": "PKR",
       "Date": "2025-02-02 00:00:00",
       "Note": "IBFT In",
-      "Title": "Incoming fund transfer from Mike Johnson Bank AlFalah-2050"
+      "Title": "Incoming fund transfer from Mike Johnson Bank AlFalah-2050",
+      "_transaction_index": 2
     },
     {
       "Account": "NayaPay",
@@ -810,7 +821,8 @@
       "Currency": "PKR",
       "Date": "2025-02-02 00:00:00",
       "Note": "Raast Out",
-      "Title": "Outgoing fund transfer to Sarah Wilson Meezan Bank-2660"
+      "Title": "Outgoing fund transfer to Sarah Wilson Meezan Bank-2660",
+      "_transaction_index": 3
     },
     {
       "Account": "NayaPay",
@@ -819,7 +831,8 @@
       "Currency": "PKR",
       "Date": "2025-02-03 00:00:00",
       "Note": "Card Payment",
-      "Title": "SaveMart Islamabad"
+      "Title": "SaveMart Islamabad",
+      "_transaction_index": 4
     },
     {
       "Account": "NayaPay",
@@ -828,7 +841,8 @@
       "Currency": "PKR",
       "Date": "2025-02-04 00:00:00",
       "Note": "Card Payment",
-      "Title": "Shell Petrol"
+      "Title": "Shell Petrol",
+      "_transaction_index": 5
     },
     {
       "Account": "NayaPay",
@@ -837,7 +851,8 @@
       "Currency": "PKR",
       "Date": "2025-02-05 00:00:00",
       "Note": "Online Payment",
-      "Title": "Netflix Subscription"
+      "Title": "Netflix Subscription",
+      "_transaction_index": 6
     },
     {
       "Account": "NayaPay",
@@ -846,7 +861,8 @@
       "Currency": "PKR",
       "Date": "2025-02-05 00:00:00",
       "Note": "Card Payment",
-      "Title": "Ox & Grill Steakhouse"
+      "Title": "Ox & Grill Steakhouse",
+      "_transaction_index": 7
     },
     {
       "Account": "NayaPay",
@@ -855,7 +871,8 @@
       "Currency": "PKR",
       "Date": "2025-02-06 00:00:00",
       "Note": "Raast In",
-      "Title": "Incoming fund transfer from Tom Brown HBL Bank-1850"
+      "Title": "Incoming fund transfer from Tom Brown HBL Bank-1850",
+      "_transaction_index": 8
     },
     {
       "Account": "NayaPay",
@@ -864,7 +881,8 @@
       "Currency": "PKR",
       "Date": "2025-02-07 00:00:00",
       "Note": "Card Payment",
-      "Title": "Shaheen Pharmacy"
+      "Title": "Shaheen Pharmacy",
+      "_transaction_index": 9
     },
     {
       "Account": "NayaPay",
@@ -873,7 +891,8 @@
       "Currency": "PKR",
       "Date": "2025-02-08 00:00:00",
       "Note": "Card Payment",
-      "Title": "Bookstore Central"
+      "Title": "Bookstore Central",
+      "_transaction_index": 10
     },
     {
       "Account": "NayaPay",
@@ -882,7 +901,8 @@
       "Currency": "PKR",
       "Date": "2025-02-09 00:00:00",
       "Note": "IBFT In",
-      "Title": "Incoming fund transfer from Alex Kumar UBL Bank-5500"
+      "Title": "Incoming fund transfer from Alex Kumar UBL Bank-5500",
+      "_transaction_index": 11
     },
     {
       "Account": "NayaPay",
@@ -891,7 +911,8 @@
       "Currency": "PKR",
       "Date": "2025-02-10 00:00:00",
       "Note": "Card Payment",
-      "Title": "Electronics Store"
+      "Title": "Electronics Store",
+      "_transaction_index": 12
     },
     {
       "Account": "NayaPay",
@@ -900,7 +921,8 @@
       "Currency": "PKR",
       "Date": "2025-02-11 00:00:00",
       "Note": "Raast Out",
-      "Title": "Outgoing fund transfer to Lisa Davis Standard Chartered-7700"
+      "Title": "Outgoing fund transfer to Lisa Davis Standard Chartered-7700",
+      "_transaction_index": 13
     },
     {
       "Account": "NayaPay",
@@ -909,7 +931,8 @@
       "Currency": "PKR",
       "Date": "2025-02-12 00:00:00",
       "Note": "Card Payment",
-      "Title": "Taxi Service"
+      "Title": "Taxi Service",
+      "_transaction_index": 14
     },
     {
       "Account": "NayaPay",
@@ -918,7 +941,8 @@
       "Currency": "PKR",
       "Date": "2025-02-13 00:00:00",
       "Note": "Online Payment",
-      "Title": "Coursera Subscription"
+      "Title": "Coursera Subscription",
+      "_transaction_index": 15
     },
     {
       "Account": "NayaPay",
@@ -927,7 +951,8 @@
       "Currency": "PKR",
       "Date": "2025-02-14 00:00:00",
       "Note": "Card Payment",
-      "Title": "Flower Shop Valentine"
+      "Title": "Flower Shop Valentine",
+      "_transaction_index": 16
     },
     {
       "Account": "NayaPay",
@@ -936,7 +961,8 @@
       "Currency": "PKR",
       "Date": "2025-02-15 00:00:00",
       "Note": "IBFT In",
-      "Title": "Incoming fund transfer from Emma Clark MCB Bank-3300"
+      "Title": "Incoming fund transfer from Emma Clark MCB Bank-3300",
+      "_transaction_index": 17
     },
     {
       "Account": "NayaPay",
@@ -945,7 +971,8 @@
       "Currency": "PKR",
       "Date": "2025-02-16 00:00:00",
       "Note": "Card Payment",
-      "Title": "Cineplex Tickets"
+      "Title": "Cineplex Tickets",
+      "_transaction_index": 18
     },
     {
       "Account": "NayaPay",
@@ -954,7 +981,8 @@
       "Currency": "PKR",
       "Date": "2025-02-17 00:00:00",
       "Note": "Raast Out",
-      "Title": "Outgoing fund transfer to David Lee Faysal Bank-9900"
+      "Title": "Outgoing fund transfer to David Lee Faysal Bank-9900",
+      "_transaction_index": 19
     },
     {
       "Account": "NayaPay",
@@ -963,7 +991,8 @@
       "Currency": "PKR",
       "Date": "2025-02-18 00:00:00",
       "Note": "Card Payment",
-      "Title": "Sports Store"
+      "Title": "Sports Store",
+      "_transaction_index": 20
     },
     {
       "Account": "NayaPay",
@@ -972,7 +1001,8 @@
       "Currency": "PKR",
       "Date": "2025-02-19 00:00:00",
       "Note": "Raast In",
-      "Title": "Incoming fund transfer from Rachel Green NBP Bank-4400"
+      "Title": "Incoming fund transfer from Rachel Green NBP Bank-4400",
+      "_transaction_index": 21
     },
     {
       "Account": "NayaPay",
@@ -981,7 +1011,8 @@
       "Currency": "PKR",
       "Date": "2025-02-20 00:00:00",
       "Note": "Card Payment",
-      "Title": "Hair Salon"
+      "Title": "Hair Salon",
+      "_transaction_index": 22
     },
     {
       "Account": "NayaPay",
@@ -990,7 +1021,8 @@
       "Currency": "PKR",
       "Date": "2025-02-21 00:00:00",
       "Note": "Online Payment",
-      "Title": "Spotify Subscription"
+      "Title": "Spotify Subscription",
+      "_transaction_index": 23
     },
     {
       "Account": "NayaPay",
@@ -999,7 +1031,8 @@
       "Currency": "PKR",
       "Date": "2025-02-22 00:00:00",
       "Note": "Card Payment",
-      "Title": "KFC Saddar"
+      "Title": "KFC Saddar",
+      "_transaction_index": 24
     },
     {
       "Account": "NayaPay",
@@ -1008,7 +1041,8 @@
       "Currency": "PKR",
       "Date": "2025-02-23 00:00:00",
       "Note": "Raast Out",
-      "Title": "Outgoing fund transfer to Robert Wilson Habib Bank-6600"
+      "Title": "Outgoing fund transfer to Robert Wilson Habib Bank-6600",
+      "_transaction_index": 25
     },
     {
       "Account": "NayaPay",
@@ -1017,7 +1051,8 @@
       "Currency": "PKR",
       "Date": "2025-02-24 00:00:00",
       "Note": "Card Payment",
-      "Title": "Clothing Store"
+      "Title": "Clothing Store",
+      "_transaction_index": 26
     },
     {
       "Account": "NayaPay",
@@ -1026,7 +1061,8 @@
       "Currency": "PKR",
       "Date": "2025-02-25 00:00:00",
       "Note": "IBFT In",
-      "Title": "Incoming fund transfer from Sophie Davis Allied Bank-8800"
+      "Title": "Incoming fund transfer from Sophie Davis Allied Bank-8800",
+      "_transaction_index": 27
     },
     {
       "Account": "NayaPay",
@@ -1035,7 +1071,8 @@
       "Currency": "PKR",
       "Date": "2025-02-26 00:00:00",
       "Note": "Card Payment",
-      "Title": "Pet Store"
+      "Title": "Pet Store",
+      "_transaction_index": 28
     },
     {
       "Account": "NayaPay",
@@ -1044,7 +1081,8 @@
       "Currency": "PKR",
       "Date": "2025-02-27 00:00:00",
       "Note": "Online Payment",
-      "Title": "Cloud Storage Subscription"
+      "Title": "Cloud Storage Subscription",
+      "_transaction_index": 29
     },
     {
       "Account": "NayaPay",
@@ -1053,7 +1091,8 @@
       "Currency": "PKR",
       "Date": "2025-02-28 00:00:00",
       "Note": "Card Payment",
-      "Title": "D. Watson Merchants"
+      "Title": "D. Watson Merchants",
+      "_transaction_index": 30
     },
     {
       "Account": "NayaPay",
@@ -1062,7 +1101,8 @@
       "Currency": "PKR",
       "Date": "2025-06-10 00:00:00",
       "Note": "Raast In",
-      "Title": "Incoming fund transfer from Ali Khan Wise Bank-9999"
+      "Title": "Incoming fund transfer from Ali Khan Wise Bank-9999",
+      "_transaction_index": 31
     },
     {
       "Account": "NayaPay",
@@ -1071,7 +1111,8 @@
       "Currency": "PKR",
       "Date": "2025-06-11 00:00:00",
       "Note": "Raast Out",
-      "Title": "Ride Hailing Services"
+      "Title": "Ride Hailing Services",
+      "_transaction_index": 32
     },
     {
       "Account": "NayaPay",
@@ -1080,7 +1121,8 @@
       "Currency": "PKR",
       "Date": "2025-06-12 00:00:00",
       "Note": "Raast Out",
-      "Title": "Ride Hailing Services"
+      "Title": "Ride Hailing Services",
+      "_transaction_index": 33
     },
     {
       "Account": "Wise USD",
@@ -1090,6 +1132,7 @@
       "Date": "2025-01-04 00:00:00",
       "Note": "SAL-2025-001",
       "Title": "Monthly salary payment",
+      "_transaction_index": 34,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1101,6 +1144,7 @@
       "Date": "2025-01-05 00:00:00",
       "Note": "REF-001",
       "Title": "Coffee Shop",
+      "_transaction_index": 35,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1112,6 +1156,7 @@
       "Date": "2025-01-06 00:00:00",
       "Note": "REF-002",
       "Title": "Grocery Shopping",
+      "_transaction_index": 36,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1123,6 +1168,7 @@
       "Date": "2025-01-08 00:00:00",
       "Note": "PROJ-2025-001",
       "Title": "Project completion bonus",
+      "_transaction_index": 37,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1134,6 +1180,7 @@
       "Date": "2025-01-10 00:00:00",
       "Note": "REF-003",
       "Title": "Restaurant Bill",
+      "_transaction_index": 38,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1145,6 +1192,7 @@
       "Date": "2025-01-12 00:00:00",
       "Note": "REF-004",
       "Title": "Gas Station",
+      "_transaction_index": 39,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1156,6 +1204,7 @@
       "Date": "2025-01-15 00:00:00",
       "Note": "GIFT-001",
       "Title": "Birthday gift from mom",
+      "_transaction_index": 40,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1167,6 +1216,7 @@
       "Date": "2025-01-18 00:00:00",
       "Note": "REF-005",
       "Title": "Online Shopping",
+      "_transaction_index": 41,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1178,6 +1228,7 @@
       "Date": "2025-01-20 00:00:00",
       "Note": "REF-006",
       "Title": "Pharmacy",
+      "_transaction_index": 42,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1189,6 +1240,7 @@
       "Date": "2025-01-22 00:00:00",
       "Note": "GIG-2025-001",
       "Title": "Web design work",
+      "_transaction_index": 43,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1200,6 +1252,7 @@
       "Date": "2025-01-25 00:00:00",
       "Note": "UTIL-JAN",
       "Title": "Rent Utilities",
+      "_transaction_index": 44,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1211,6 +1264,7 @@
       "Date": "2025-01-28 00:00:00",
       "Note": "REF-007",
       "Title": "Transportation",
+      "_transaction_index": 45,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1222,6 +1276,7 @@
       "Date": "2025-02-01 00:00:00",
       "Note": "SAL-2025-002",
       "Title": "Monthly salary payment",
+      "_transaction_index": 46,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1233,6 +1288,7 @@
       "Date": "2025-02-03 00:00:00",
       "Note": "REF-008",
       "Title": "Bookstore",
+      "_transaction_index": 47,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1244,6 +1300,7 @@
       "Date": "2025-02-05 00:00:00",
       "Note": "GYM-FEB",
       "Title": "Gym Membership",
+      "_transaction_index": 48,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1255,6 +1312,7 @@
       "Date": "2025-02-08 00:00:00",
       "Note": "CASHBACK-001",
       "Title": "Monthly cashback",
+      "_transaction_index": 49,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1266,6 +1324,7 @@
       "Date": "2025-02-10 00:00:00",
       "Note": "REF-009",
       "Title": "Fast Food",
+      "_transaction_index": 50,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1277,6 +1336,7 @@
       "Date": "2025-02-12 00:00:00",
       "Note": "REF-010",
       "Title": "Car Maintenance",
+      "_transaction_index": 51,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1288,6 +1348,7 @@
       "Date": "2025-02-15 00:00:00",
       "Note": "TAX-REFUND-2024",
       "Title": "Federal tax refund",
+      "_transaction_index": 52,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1299,6 +1360,7 @@
       "Date": "2025-02-18 00:00:00",
       "Note": "REF-011",
       "Title": "Entertainment",
+      "_transaction_index": 53,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1310,6 +1372,7 @@
       "Date": "2025-02-20 00:00:00",
       "Note": "REF-012",
       "Title": "Clothing",
+      "_transaction_index": 54,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1321,6 +1384,7 @@
       "Date": "2025-02-22 00:00:00",
       "Note": "REFUND-001",
       "Title": "Refund",
+      "_transaction_index": 55,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1332,6 +1396,7 @@
       "Date": "2025-02-25 00:00:00",
       "Note": "REF-013",
       "Title": "Pet Supplies",
+      "_transaction_index": 56,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1343,6 +1408,7 @@
       "Date": "2025-02-28 00:00:00",
       "Note": "SUB-FEB",
       "Title": "Subscription",
+      "_transaction_index": 57,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1354,6 +1420,7 @@
       "Date": "2025-03-01 00:00:00",
       "Note": "SAL-2025-003",
       "Title": "Monthly salary payment",
+      "_transaction_index": 58,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1365,6 +1432,7 @@
       "Date": "2025-03-05 00:00:00",
       "Note": "REF-014",
       "Title": "Home Supplies",
+      "_transaction_index": 59,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1376,6 +1444,7 @@
       "Date": "2025-03-08 00:00:00",
       "Note": "BONUS-Q1",
       "Title": "Quarterly performance bonus",
+      "_transaction_index": 60,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1387,6 +1456,7 @@
       "Date": "2025-03-12 00:00:00",
       "Note": "REF-015",
       "Title": "Electronics",
+      "_transaction_index": 61,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1398,6 +1468,7 @@
       "Date": "2025-03-15 00:00:00",
       "Note": "REF-016",
       "Title": "Health & Beauty",
+      "_transaction_index": 62,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1409,6 +1480,7 @@
       "Date": "2025-03-18 00:00:00",
       "Note": "GIFT-CASHOUT",
       "Title": "Gift Card Cashout",
+      "_transaction_index": 63,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1420,6 +1492,7 @@
       "Date": "2025-03-20 00:00:00",
       "Note": "REF-017",
       "Title": "Travel Expenses",
+      "_transaction_index": 64,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1431,6 +1504,7 @@
       "Date": "2025-03-25 00:00:00",
       "Note": "REF-018",
       "Title": "Office Supplies",
+      "_transaction_index": 65,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1442,6 +1516,7 @@
       "Date": "2025-03-28 00:00:00",
       "Note": "PROJ-2025-002",
       "Title": "Project completion bonus",
+      "_transaction_index": 66,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1453,6 +1528,7 @@
       "Date": "2025-04-01 00:00:00",
       "Note": "SAL-2025-004",
       "Title": "Monthly salary payment",
+      "_transaction_index": 67,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1464,6 +1540,7 @@
       "Date": "2025-04-05 00:00:00",
       "Note": "INS-APR",
       "Title": "Insurance Payment",
+      "_transaction_index": 68,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1475,6 +1552,7 @@
       "Date": "2025-04-08 00:00:00",
       "Note": "DONATION-001",
       "Title": "Charity Donation",
+      "_transaction_index": 69,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1486,6 +1564,7 @@
       "Date": "2025-04-12 00:00:00",
       "Note": "SURVEY-Q1",
       "Title": "Survey Payments",
+      "_transaction_index": 70,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1497,6 +1576,7 @@
       "Date": "2025-04-15 00:00:00",
       "Note": "REF-019",
       "Title": "Garden Supplies",
+      "_transaction_index": 71,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1508,6 +1588,7 @@
       "Date": "2025-04-18 00:00:00",
       "Note": "REF-020",
       "Title": "Professional Services",
+      "_transaction_index": 72,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1519,6 +1600,7 @@
       "Date": "2025-04-22 00:00:00",
       "Note": "INV-DIVIDEND",
       "Title": "Investment Return",
+      "_transaction_index": 73,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1530,6 +1612,7 @@
       "Date": "2025-04-25 00:00:00",
       "Note": "REF-021",
       "Title": "Home Repair",
+      "_transaction_index": 74,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1541,6 +1624,7 @@
       "Date": "2025-04-30 00:00:00",
       "Note": "SUB-APR",
       "Title": "Monthly Subscription",
+      "_transaction_index": 75,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1552,6 +1636,7 @@
       "Date": "2025-06-02 00:00:00",
       "Note": "SAL-2025-006",
       "Title": "Monthly salary payment",
+      "_transaction_index": 76,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1563,6 +1648,7 @@
       "Date": "2025-06-10 00:00:00",
       "Note": "TRF-NP-001",
       "Title": "Sent money to Ali Khan",
+      "_transaction_index": 77,
       "exchangetoamount": 0.0,
       "exchangetocurrency": "PKR"
     },
@@ -1574,6 +1660,7 @@
       "Date": "2025-06-12 00:00:00",
       "Note": "TRF-REV-001 | Transfer outgoing (Pair: cross_bank_0, Strategy: traditional_same_currency)",
       "Title": "Revolut**1234*",
+      "_transaction_index": 78,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1585,6 +1672,7 @@
       "Date": "2025-01-15 00:00:00",
       "Note": "EXCHANGE-001",
       "Title": "Currency Exchange",
+      "_transaction_index": 79,
       "exchangetoamount": 0.0,
       "exchangetocurrency": "EUR"
     },
@@ -1596,6 +1684,7 @@
       "Date": "2025-02-20 00:00:00",
       "Note": "TRAVEL-EU-001",
       "Title": "Travel Expenses",
+      "_transaction_index": 80,
       "exchangetoamount": 0.0,
       "exchangetocurrency": ""
     },
@@ -1606,7 +1695,8 @@
       "Currency": "HUF",
       "Date": "2025-06-29 00:00:00",
       "Note": "",
-      "Title": "ALDI CEGLED"
+      "Title": "ALDI CEGLED",
+      "_transaction_index": 81
     },
     {
       "Account": "Forint Bank",
@@ -1615,7 +1705,8 @@
       "Currency": "HUF",
       "Date": "2025-06-28 00:00:00",
       "Note": "",
-      "Title": "SAMPLE TECHNOLOGIES CEGLED TEL"
+      "Title": "SAMPLE TECHNOLOGIES CEGLED TEL",
+      "_transaction_index": 82
     },
     {
       "Account": "Forint Bank",
@@ -1624,7 +1715,8 @@
       "Currency": "HUF",
       "Date": "2025-06-24 00:00:00",
       "Note": "",
-      "Title": "TESCO CEGLED"
+      "Title": "TESCO CEGLED",
+      "_transaction_index": 83
     },
     {
       "Account": "Forint Bank",
@@ -1633,7 +1725,8 @@
       "Currency": "HUF",
       "Date": "2025-06-21 00:00:00",
       "Note": "",
-      "Title": "Revolut**2984*"
+      "Title": "Revolut**2984*",
+      "_transaction_index": 84
     },
     {
       "Account": "Forint Bank",
@@ -1642,7 +1735,8 @@
       "Currency": "HUF",
       "Date": "2025-06-19 00:00:00",
       "Note": "",
-      "Title": "SINSAY CEGLED"
+      "Title": "SINSAY CEGLED",
+      "_transaction_index": 85
     },
     {
       "Account": "Forint Bank",
@@ -1651,7 +1745,8 @@
       "Currency": "HUF",
       "Date": "2025-06-17 00:00:00",
       "Note": "",
-      "Title": "SAMPLE WORKPLACE DELIREST ETT"
+      "Title": "SAMPLE WORKPLACE DELIREST ETT",
+      "_transaction_index": 86
     },
     {
       "Account": "Forint Bank",
@@ -1660,7 +1755,8 @@
       "Currency": "HUF",
       "Date": "2025-06-15 00:00:00",
       "Note": "",
-      "Title": "Sample Freelance Client"
+      "Title": "Sample Freelance Client",
+      "_transaction_index": 87
     },
     {
       "Account": "Forint Bank",
@@ -1669,7 +1765,8 @@
       "Currency": "HUF",
       "Date": "2025-06-12 00:00:00",
       "Note": "",
-      "Title": "Rent Payment"
+      "Title": "Rent Payment",
+      "_transaction_index": 88
     },
     {
       "Account": "Forint Bank",
@@ -1678,7 +1775,8 @@
       "Currency": "HUF",
       "Date": "2025-06-09 00:00:00",
       "Note": "",
-      "Title": "ING Bank N. V. Magyarországi Fióktelepe"
+      "Title": "ING Bank N. V. Magyarországi Fióktelepe",
+      "_transaction_index": 89
     },
     {
       "Account": "Forint Bank",
@@ -1687,7 +1785,8 @@
       "Currency": "HUF",
       "Date": "2025-06-07 00:00:00",
       "Note": "",
-      "Title": "PEPCO 150075 CEGLED 2"
+      "Title": "PEPCO 150075 CEGLED 2",
+      "_transaction_index": 90
     },
     {
       "Account": "Forint Bank",
@@ -1696,7 +1795,8 @@
       "Currency": "HUF",
       "Date": "2025-06-04 00:00:00",
       "Note": "",
-      "Title": "TEDi-HU 3128"
+      "Title": "TEDi-HU 3128",
+      "_transaction_index": 91
     },
     {
       "Account": "Forint Bank",
@@ -1705,7 +1805,8 @@
       "Currency": "HUF",
       "Date": "2025-06-02 00:00:00",
       "Note": "",
-      "Title": "Sample Patika Gyógyszertár"
+      "Title": "Sample Patika Gyógyszertár",
+      "_transaction_index": 92
     },
     {
       "Account": "Forint Bank",
@@ -1714,7 +1815,8 @@
       "Currency": "HUF",
       "Date": "2025-05-31 00:00:00",
       "Note": "",
-      "Title": "Starbucks"
+      "Title": "Starbucks",
+      "_transaction_index": 93
     },
     {
       "Account": "Forint Bank",
@@ -1723,7 +1825,8 @@
       "Currency": "HUF",
       "Date": "2025-05-31 00:00:00",
       "Note": "",
-      "Title": "ATM Fee"
+      "Title": "ATM Fee",
+      "_transaction_index": 94
     },
     {
       "Account": "Revolut Hungarian",
@@ -1732,7 +1835,8 @@
       "Currency": "USD",
       "Date": "2024-11-23 00:00:00",
       "Note": "CARD_REFUND",
-      "Title": "Netflix"
+      "Title": "Netflix",
+      "_transaction_index": 95
     },
     {
       "Account": "Revolut Hungarian",
@@ -1741,7 +1845,8 @@
       "Currency": "USD",
       "Date": "2024-11-24 00:00:00",
       "Note": "CARD_PAYMENT",
-      "Title": "Netflix"
+      "Title": "Netflix",
+      "_transaction_index": 96
     },
     {
       "Account": "Revolut Hungarian",
@@ -1750,7 +1855,8 @@
       "Currency": "USD",
       "Date": "2024-11-26 00:00:00",
       "Note": "CARD_REFUND",
-      "Title": "Netflix"
+      "Title": "Netflix",
+      "_transaction_index": 97
     },
     {
       "Account": "Revolut Hungarian",
@@ -1759,7 +1865,8 @@
       "Currency": "USD",
       "Date": "2024-11-27 00:00:00",
       "Note": "CARD_REFUND",
-      "Title": "Netflix"
+      "Title": "Netflix",
+      "_transaction_index": 98
     },
     {
       "Account": "Revolut EUR",
@@ -1768,7 +1875,8 @@
       "Currency": "USD",
       "Date": "2025-05-26 00:00:00",
       "Note": "TOPUP",
-      "Title": "Google Pay Top-Up by *4250"
+      "Title": "Google Pay Top-Up by *4250",
+      "_transaction_index": 99
     },
     {
       "Account": "Revolut EUR",
@@ -1777,7 +1885,8 @@
       "Currency": "USD",
       "Date": "2025-05-27 00:00:00",
       "Note": "TRANSFER",
-      "Title": "University Fee"
+      "Title": "University Fee",
+      "_transaction_index": 100
     },
     {
       "Account": "Revolut EUR",
@@ -1786,7 +1895,8 @@
       "Currency": "USD",
       "Date": "2025-06-04 00:00:00",
       "Note": "CARD_PAYMENT",
-      "Title": "Spotify"
+      "Title": "Spotify",
+      "_transaction_index": 101
     },
     {
       "Account": "Revolut USD",
@@ -1795,7 +1905,8 @@
       "Currency": "USD",
       "Date": "2024-04-22 00:00:00",
       "Note": "CARD_PAYMENT",
-      "Title": "Netflix"
+      "Title": "Netflix",
+      "_transaction_index": 102
     },
     {
       "Account": "Revolut USD",
@@ -1804,7 +1915,8 @@
       "Currency": "USD",
       "Date": "2025-06-12 00:00:00",
       "Note": "TOPUP | Transfer incoming (Pair: cross_bank_0, Strategy: traditional_same_currency)",
-      "Title": "Google Pay Top-Up by *1234"
+      "Title": "Google Pay Top-Up by *1234",
+      "_transaction_index": 103
     },
     {
       "Account": "Meezan",
@@ -1813,7 +1925,8 @@
       "Currency": "PKR",
       "Date": "2025-06-02 00:00:00",
       "Note": "",
-      "Title": "ROYAL TAG (POS)"
+      "Title": "ROYAL TAG (POS)",
+      "_transaction_index": 104
     },
     {
       "Account": "Meezan",
@@ -1822,7 +1935,8 @@
       "Currency": "PKR",
       "Date": "2025-06-02 00:00:00",
       "Note": "",
-      "Title": "CAMBRIDGE SHOP (POS)"
+      "Title": "CAMBRIDGE SHOP (POS)",
+      "_transaction_index": 105
     },
     {
       "Account": "Meezan",
@@ -1831,7 +1945,8 @@
       "Currency": "PKR",
       "Date": "2025-06-02 00:00:00",
       "Note": "",
-      "Title": "Payment of Profit   "
+      "Title": "Payment of Profit   ",
+      "_transaction_index": 106
     },
     {
       "Account": "Meezan",
@@ -1840,7 +1955,8 @@
       "Currency": "PKR",
       "Date": "2025-06-20 00:00:00",
       "Note": "",
-      "Title": "CHG:PKR68.69 FBRTax:PKR85.86"
+      "Title": "CHG:PKR68.69 FBRTax:PKR85.86",
+      "_transaction_index": 107
     },
     {
       "Account": "Meezan",
@@ -1849,7 +1965,8 @@
       "Currency": "PKR",
       "Date": "2025-06-20 00:00:00",
       "Note": "",
-      "Title": "NIXIHOST.COM (Online)"
+      "Title": "NIXIHOST.COM (Online)",
+      "_transaction_index": 108
     },
     {
       "Account": "Meezan",
@@ -1858,7 +1975,8 @@
       "Currency": "PKR",
       "Date": "2025-04-07 00:00:00",
       "Note": "",
-      "Title": "Payment of Profit   "
+      "Title": "Payment of Profit   ",
+      "_transaction_index": 109
     }
   ]
 }

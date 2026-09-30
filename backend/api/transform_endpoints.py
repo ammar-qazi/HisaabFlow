@@ -6,7 +6,7 @@ import json
 
 # Import models from centralized location
 from backend.api.models import (
-    TransformResponse, 
+    TransferCategorizationResponse,
     MultiCSVResponse, 
     ExportResponse
 )
@@ -56,7 +56,7 @@ async def transform_multi_csv_data(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@transform_router.post("/apply-transfer-categorization", response_model=TransformResponse)
+@transform_router.post("/apply-transfer-categorization", response_model=TransferCategorizationResponse)
 async def apply_transfer_categorization(
     request: Request,
     transformation_service = Depends(get_transformation_service)

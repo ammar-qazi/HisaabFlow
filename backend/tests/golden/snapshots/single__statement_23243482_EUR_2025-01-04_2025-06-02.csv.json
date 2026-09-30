@@ -96,6 +96,7 @@
       "Date": "2025-01-15 00:00:00",
       "Note": "EXCHANGE-001",
       "Title": "Currency Exchange",
+      "_transaction_index": 0,
       "exchangetoamount": "0.0",
       "exchangetocurrency": "EUR"
     },
@@ -107,6 +108,7 @@
       "Date": "2025-02-20 00:00:00",
       "Note": "TRAVEL-EU-001",
       "Title": "Travel Expenses",
+      "_transaction_index": 1,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     }

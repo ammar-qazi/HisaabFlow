@@ -6,7 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 from backend.main import app
 from backend.api.models import (
-    UploadResponse, CleanupResponse, PreviewResponse, MultiCSVResponse, ConfigListResponse, ConfigResponse, TransformResponse, ExportResponse
+    UploadResponse, CleanupResponse, PreviewResponse, MultiCSVResponse, ConfigListResponse, ConfigResponse, TransferCategorizationResponse, ExportResponse
 )
 from pydantic import ValidationError
 import tempfile
@@ -184,15 +184,16 @@ class TestStrictTypeValidation:
         
         valid_response_data = {
             "success": True,
-            "data": valid_data,
-            "row_count": 2
+            "transformed_data": valid_data,
+            "updated_transactions": 2,
+            "category_applied": "Balance Correction"
         }
         
         # Should not raise ValidationError
-        transform_response = TransformResponse(**valid_response_data)
+        transform_response = TransferCategorizationResponse(**valid_response_data)
         assert transform_response.success is True
-        assert len(transform_response.data) == 2
-        assert transform_response.row_count == 2
+        assert len(transform_response.transformed_data) == 2
+        assert transform_response.updated_transactions == 2
 
 
 if __name__ == "__main__":

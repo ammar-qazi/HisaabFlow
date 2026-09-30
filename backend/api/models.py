@@ -29,10 +29,11 @@ class UploadResponse(BaseModel):
     size: int
 
 
-class TransformResponse(BaseModel):
+class TransferCategorizationResponse(BaseModel):
     success: bool
-    data: List[Dict[str, Union[str, int, float]]]
-    row_count: int
+    transformed_data: List[Dict[str, Union[str, int, float]]] = []
+    updated_transactions: int = 0
+    category_applied: Optional[str] = None
     error: Optional[str] = None
 
 

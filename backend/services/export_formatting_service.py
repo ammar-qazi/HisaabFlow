@@ -7,6 +7,10 @@ from decimal import Decimal
 from backend.shared.models.csv_models import CSVRow
 
 
+
+# Metadata the frontend needs back: rows and transfer pairs are matched on it
+API_METADATA_FIELDS = {'_transaction_index'}
+
 class ExportFormattingService:
     """Service focused on export formatting and data validation"""
     
@@ -35,8 +39,9 @@ class ExportFormattingService:
             cleaned_row = {}
             
             for key, value in row.items():
-                # Skip metadata fields (starting with _)
-                if key.startswith('_'):
+                # Skip metadata fields (starting with _), except the index that
+                # /apply-transfer-categorization uses to match confirmed pairs
+                if key.startswith('_') and key not in API_METADATA_FIELDS:
                     if key not in metadata_fields_removed:
                         metadata_fields_removed.append(key)
                     continue
@@ -95,8 +100,8 @@ class ExportFormattingService:
         essential_fields = ['Date', 'Account', 'Amount', 'Currency', 'Title', 'Description', 'Note']
         
         for key, value in transaction.items():
-            # Skip metadata fields (starting with _)
-            if key.startswith('_'):
+            # Skip metadata fields (starting with _), except the row index
+            if key.startswith('_') and key not in API_METADATA_FIELDS:
                 continue
             
             # Special handling for essential display fields

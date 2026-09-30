@@ -180,6 +180,7 @@
       "Date": "2025-01-04 00:00:00",
       "Note": "SAL-2025-001",
       "Title": "Monthly salary payment",
+      "_transaction_index": 0,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -191,6 +192,7 @@
       "Date": "2025-01-05 00:00:00",
       "Note": "REF-001",
       "Title": "Coffee Shop",
+      "_transaction_index": 1,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -202,6 +204,7 @@
       "Date": "2025-01-06 00:00:00",
       "Note": "REF-002",
       "Title": "Grocery Shopping",
+      "_transaction_index": 2,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -213,6 +216,7 @@
       "Date": "2025-01-08 00:00:00",
       "Note": "PROJ-2025-001",
       "Title": "Project completion bonus",
+      "_transaction_index": 3,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -224,6 +228,7 @@
       "Date": "2025-01-10 00:00:00",
       "Note": "REF-003",
       "Title": "Restaurant Bill",
+      "_transaction_index": 4,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -235,6 +240,7 @@
       "Date": "2025-01-12 00:00:00",
       "Note": "REF-004",
       "Title": "Gas Station",
+      "_transaction_index": 5,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -246,6 +252,7 @@
       "Date": "2025-01-15 00:00:00",
       "Note": "GIFT-001",
       "Title": "Birthday gift from mom",
+      "_transaction_index": 6,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -257,6 +264,7 @@
       "Date": "2025-01-18 00:00:00",
       "Note": "REF-005",
       "Title": "Online Shopping",
+      "_transaction_index": 7,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -268,6 +276,7 @@
       "Date": "2025-01-20 00:00:00",
       "Note": "REF-006",
       "Title": "Pharmacy",
+      "_transaction_index": 8,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -279,6 +288,7 @@
       "Date": "2025-01-22 00:00:00",
       "Note": "GIG-2025-001",
       "Title": "Web design work",
+      "_transaction_index": 9,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -290,6 +300,7 @@
       "Date": "2025-01-25 00:00:00",
       "Note": "UTIL-JAN",
       "Title": "Rent Utilities",
+      "_transaction_index": 10,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -301,6 +312,7 @@
       "Date": "2025-01-28 00:00:00",
       "Note": "REF-007",
       "Title": "Transportation",
+      "_transaction_index": 11,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -312,6 +324,7 @@
       "Date": "2025-02-01 00:00:00",
       "Note": "SAL-2025-002",
       "Title": "Monthly salary payment",
+      "_transaction_index": 12,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -323,6 +336,7 @@
       "Date": "2025-02-03 00:00:00",
       "Note": "REF-008",
       "Title": "Bookstore",
+      "_transaction_index": 13,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -334,6 +348,7 @@
       "Date": "2025-02-05 00:00:00",
       "Note": "GYM-FEB",
       "Title": "Gym Membership",
+      "_transaction_index": 14,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -345,6 +360,7 @@
       "Date": "2025-02-08 00:00:00",
       "Note": "CASHBACK-001",
       "Title": "Monthly cashback",
+      "_transaction_index": 15,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -356,6 +372,7 @@
       "Date": "2025-02-10 00:00:00",
       "Note": "REF-009",
       "Title": "Fast Food",
+      "_transaction_index": 16,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -367,6 +384,7 @@
       "Date": "2025-02-12 00:00:00",
       "Note": "REF-010",
       "Title": "Car Maintenance",
+      "_transaction_index": 17,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -378,6 +396,7 @@
       "Date": "2025-02-15 00:00:00",
       "Note": "TAX-REFUND-2024",
       "Title": "Federal tax refund",
+      "_transaction_index": 18,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -389,6 +408,7 @@
       "Date": "2025-02-18 00:00:00",
       "Note": "REF-011",
       "Title": "Entertainment",
+      "_transaction_index": 19,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -400,6 +420,7 @@
       "Date": "2025-02-20 00:00:00",
       "Note": "REF-012",
       "Title": "Clothing",
+      "_transaction_index": 20,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -411,6 +432,7 @@
       "Date": "2025-02-22 00:00:00",
       "Note": "REFUND-001",
       "Title": "Refund",
+      "_transaction_index": 21,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -422,6 +444,7 @@
       "Date": "2025-02-25 00:00:00",
       "Note": "REF-013",
       "Title": "Pet Supplies",
+      "_transaction_index": 22,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -433,6 +456,7 @@
       "Date": "2025-02-28 00:00:00",
       "Note": "SUB-FEB",
       "Title": "Subscription",
+      "_transaction_index": 23,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -444,6 +468,7 @@
       "Date": "2025-03-01 00:00:00",
       "Note": "SAL-2025-003",
       "Title": "Monthly salary payment",
+      "_transaction_index": 24,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -455,6 +480,7 @@
       "Date": "2025-03-05 00:00:00",
       "Note": "REF-014",
       "Title": "Home Supplies",
+      "_transaction_index": 25,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -466,6 +492,7 @@
       "Date": "2025-03-08 00:00:00",
       "Note": "BONUS-Q1",
       "Title": "Quarterly performance bonus",
+      "_transaction_index": 26,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -477,6 +504,7 @@
       "Date": "2025-03-12 00:00:00",
       "Note": "REF-015",
       "Title": "Electronics",
+      "_transaction_index": 27,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -488,6 +516,7 @@
       "Date": "2025-03-15 00:00:00",
       "Note": "REF-016",
       "Title": "Health & Beauty",
+      "_transaction_index": 28,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -499,6 +528,7 @@
       "Date": "2025-03-18 00:00:00",
       "Note": "GIFT-CASHOUT",
       "Title": "Gift Card Cashout",
+      "_transaction_index": 29,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -510,6 +540,7 @@
       "Date": "2025-03-20 00:00:00",
       "Note": "REF-017",
       "Title": "Travel Expenses",
+      "_transaction_index": 30,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -521,6 +552,7 @@
       "Date": "2025-03-25 00:00:00",
       "Note": "REF-018",
       "Title": "Office Supplies",
+      "_transaction_index": 31,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -532,6 +564,7 @@
       "Date": "2025-03-28 00:00:00",
       "Note": "PROJ-2025-002",
       "Title": "Project completion bonus",
+      "_transaction_index": 32,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -543,6 +576,7 @@
       "Date": "2025-04-01 00:00:00",
       "Note": "SAL-2025-004",
       "Title": "Monthly salary payment",
+      "_transaction_index": 33,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -554,6 +588,7 @@
       "Date": "2025-04-05 00:00:00",
       "Note": "INS-APR",
       "Title": "Insurance Payment",
+      "_transaction_index": 34,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -565,6 +600,7 @@
       "Date": "2025-04-08 00:00:00",
       "Note": "DONATION-001",
       "Title": "Charity Donation",
+      "_transaction_index": 35,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -576,6 +612,7 @@
       "Date": "2025-04-12 00:00:00",
       "Note": "SURVEY-Q1",
       "Title": "Survey Payments",
+      "_transaction_index": 36,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -587,6 +624,7 @@
       "Date": "2025-04-15 00:00:00",
       "Note": "REF-019",
       "Title": "Garden Supplies",
+      "_transaction_index": 37,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -598,6 +636,7 @@
       "Date": "2025-04-18 00:00:00",
       "Note": "REF-020",
       "Title": "Professional Services",
+      "_transaction_index": 38,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -609,6 +648,7 @@
       "Date": "2025-04-22 00:00:00",
       "Note": "INV-DIVIDEND",
       "Title": "Investment Return",
+      "_transaction_index": 39,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -620,6 +660,7 @@
       "Date": "2025-04-25 00:00:00",
       "Note": "REF-021",
       "Title": "Home Repair",
+      "_transaction_index": 40,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -631,6 +672,7 @@
       "Date": "2025-04-30 00:00:00",
       "Note": "SUB-APR",
       "Title": "Monthly Subscription",
+      "_transaction_index": 41,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -642,6 +684,7 @@
       "Date": "2025-06-02 00:00:00",
       "Note": "SAL-2025-006",
       "Title": "Monthly salary payment",
+      "_transaction_index": 42,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     },
@@ -653,6 +696,7 @@
       "Date": "2025-06-10 00:00:00",
       "Note": "TRF-NP-001",
       "Title": "Sent money to Ali Khan",
+      "_transaction_index": 43,
       "exchangetoamount": "0.0",
       "exchangetocurrency": "PKR"
     },
@@ -664,6 +708,7 @@
       "Date": "2025-06-12 00:00:00",
       "Note": "TRF-REV-001",
       "Title": "Revolut**1234*",
+      "_transaction_index": 44,
       "exchangetoamount": "0.0",
       "exchangetocurrency": ""
     }
