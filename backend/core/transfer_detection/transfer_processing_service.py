@@ -6,6 +6,7 @@ from pathlib import Path
 
 from backend.core.transfer_detection.main_detector import TransferDetector
 from backend.infrastructure.config.unified_config_service import get_unified_config_service
+from backend.shared.utils.bank_lookup import bank_for_row
 
 
 class TransferProcessingService:
@@ -58,8 +59,8 @@ class TransferProcessingService:
         csv_data_for_detector = []
         
         for account, rows in accounts.items():
-            # Find the matching CSV data for this account to get bank info
-            bank_info = self._find_bank_info_for_account(account, csv_data_list)
+            bank_name = bank_for_row(rows[0], csv_data_list, self.config_service)
+            bank_info = {'bank_name': bank_name} if bank_name else {}
             
             csv_data = {
                 'data': rows,
@@ -252,19 +253,3 @@ class TransferProcessingService:
                 "error": str(e)
             }
     
-    def _find_bank_info_for_account(self, account: str, csv_data_list: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Find bank info for a specific account from CSV data list"""
-        for csv_item in csv_data_list:
-            csv_bank_info = csv_item.get('bank_info', {})
-            if csv_bank_info:
-                detected_bank = csv_bank_info.get('bank_name', csv_bank_info.get('detected_bank'))
-                if detected_bank and detected_bank != 'unknown':
-                    try:
-                        bank_config = self.config_service.get_bank_config(detected_bank)
-                        if bank_config:
-                            cashew_account = bank_config.cashew_account or ''
-                            if cashew_account == account:
-                                return csv_bank_info
-                    except:
-                        continue
-        return {}

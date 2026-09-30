@@ -669,56 +669,6 @@ class UnifiedConfigService:
         """Get all bank detection patterns"""
         return self._detection_patterns.copy()
     
-    def detect_bank(self, filename: str, content_sample: str = None) -> Optional[str]:
-        """
-        Detect bank from filename and optionally content
-        Returns bank name or None if not detected
-        """
-        import re
-        
-        filename_lower = filename.lower()
-        
-        # Collect matches with confidence scores
-        matches = []
-        
-        for bank_name, detection_info in self._detection_patterns.items():
-            confidence = 0.0
-            
-            # Check filename patterns
-            for pattern in detection_info.filename_patterns:
-                pattern_lower = pattern.lower()
-                
-                # Check if it's a regex pattern (starts with ^)
-                if pattern.startswith('^') or pattern.startswith('.*'):
-                    try:
-                        if re.match(pattern, filename) or re.match(pattern, filename_lower):
-                            confidence += 100 * detection_info.confidence_weight  # Higher score for regex match
-                    except re.error:
-                        # If regex is invalid, fall back to substring match
-                        if pattern_lower in filename_lower:
-                            confidence += len(pattern) * detection_info.confidence_weight
-                else:
-                    # Simple substring match
-                    if pattern_lower in filename_lower:
-                        confidence += len(pattern) * detection_info.confidence_weight
-            
-            # Check content signatures if content provided
-            if content_sample and detection_info.content_signatures:
-                content_lower = content_sample.lower()
-                for signature in detection_info.content_signatures:
-                    if signature.lower() in content_lower:
-                        confidence += 50 * detection_info.confidence_weight
-            
-            if confidence > 0:
-                matches.append((bank_name, confidence))
-        
-        # Return highest confidence match
-        if matches:
-            matches.sort(key=lambda x: x[1], reverse=True)
-            return matches[0][0]
-        
-        return None
-    
     def get_csv_config(self, bank_name: str) -> Optional[CSVConfig]:
         """Get CSV configuration for bank"""
         bank_config = self.get_bank_config(bank_name)
@@ -1015,10 +965,6 @@ class UnifiedConfigService:
             return False
     
     # ========== Legacy Compatibility Methods ==========
-    
-    def detect_bank_type(self, file_name: str) -> Optional[str]:
-        """Legacy method for transfer detection compatibility"""
-        return self.detect_bank(file_name)
     
     def extract_name_from_transfer_pattern(self, pattern: str, description: str) -> Optional[str]:
         """Extract name from transfer description using pattern with {name} placeholder"""

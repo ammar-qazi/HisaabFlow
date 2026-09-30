@@ -129,9 +129,9 @@ class TransferDetector:
                     if detected_bank and detected_bank != 'unknown':
                         bank_type = detected_bank
                 
-                # Fallback to filename detection if bank info not available
+                # Fall back to the row's own source bank (set during transformation)
                 if bank_type == 'unknown':
-                    bank_type = self.config.detect_bank_type(csv_data.get('file_name', ''))
+                    bank_type = transaction.get('_source_bank') or 'unknown'
                 
                 # Ensure currency is set
                 if 'Currency' not in transaction or not transaction['Currency']:
