@@ -17,24 +17,13 @@ if project_root not in sys.path:
 # Import response models after path setup
 from backend.api.models import HealthResponse
  
-# Import modular API routers directly using absolute paths
-try:
-    from backend.api.config_endpoints import config_router
-    from backend.api.file_endpoints import file_router
-    from backend.api.parse_endpoints import parse_router
-    from backend.api.transform_endpoints import transform_router
-    from backend.api.unknown_bank_endpoints import unknown_bank_router
-    from backend.api.middleware import setup_logging_middleware
-    ROUTERS_AVAILABLE = True
-except ImportError as e:
-    print(f"[WARNING]  Router import failed: {e}")
-    ROUTERS_AVAILABLE = False
-    config_router = None
-    file_router = None
-    parse_router = None
-    transform_router = None
-    unknown_bank_router = None
-    setup_logging_middleware = None
+# A failed import here should stop startup, not serve an API without routes
+from backend.api.config_endpoints import config_router
+from backend.api.file_endpoints import file_router
+from backend.api.parse_endpoints import parse_router
+from backend.api.transform_endpoints import transform_router
+from backend.api.unknown_bank_endpoints import unknown_bank_router
+from backend.api.middleware import setup_logging_middleware
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -54,30 +43,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Setup logging middleware
-if ROUTERS_AVAILABLE and setup_logging_middleware:
-    setup_logging_middleware(app)
-else:
-    # Basic logging middleware fallback
-    @app.middleware("http")
-    async def log_requests(request, call_next):
-        print(f" {request.method} {request.url}")
-        response = await call_next(request)
-        print(f"[OUT] Response: {response.status_code}")
-        return response
+setup_logging_middleware(app)
 
-# Register API routers if available
-if ROUTERS_AVAILABLE:
-    v1_router = APIRouter()
-    v1_router.include_router(file_router, tags=["files"])
-    v1_router.include_router(parse_router, tags=["parsing"])
-    v1_router.include_router(transform_router, tags=["transformation"])
-    v1_router.include_router(config_router, tags=["configs"])
-    v1_router.include_router(unknown_bank_router, tags=["unknown-bank"])
-    
-    app.include_router(v1_router, prefix="/api/v1")
-else:
-    print("[WARNING]  No API routers available - using minimal endpoints only")
+v1_router = APIRouter()
+v1_router.include_router(file_router, tags=["files"])
+v1_router.include_router(parse_router, tags=["parsing"])
+v1_router.include_router(transform_router, tags=["transformation"])
+v1_router.include_router(config_router, tags=["configs"])
+v1_router.include_router(unknown_bank_router, tags=["unknown-bank"])
+app.include_router(v1_router, prefix="/api/v1")
 
 @app.get("/")
 async def root():
@@ -90,7 +64,6 @@ async def root():
             "No template system", 
             "Clean modular architecture",
             "Under 300-line main.py",
-            f"Routers available: {ROUTERS_AVAILABLE}",
             "Strict API contract validation with Pydantic models",
             "Enhanced API documentation with response schemas"
         ]
@@ -99,12 +72,6 @@ async def root():
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
     return {"status": "healthy", "version": "3.0.0"}
-
-# All routers loaded successfully - no fallback endpoints needed
-if not ROUTERS_AVAILABLE:
-    print("[WARNING]  Routers not available - this should not happen after import fixes")
-else:
-    print("[SUCCESS] All API routers loaded successfully - complete functionality available")
 
 # Exception handler
 @app.exception_handler(Exception)

@@ -5,7 +5,6 @@ Handles header detection, data row extraction, and dictionary conversion
 from typing import Any, Dict, List, Optional
 from .utils import normalize_column_count, sanitize_for_json, validate_csv_structure, estimate_data_types
 from .data_processing_helpers import _extract_headers, _extract_data_rows, _convert_to_dictionaries
-from decimal import Decimal, InvalidOperation # Keep InvalidOperation
 from datetime import date, datetime
 
 class DataProcessor:
