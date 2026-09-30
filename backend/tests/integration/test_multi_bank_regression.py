@@ -33,7 +33,7 @@ class TestMultiBankRegressionFixes:
                 'Date': '2025-01-15',
                 'Amount': -100.0,
                 'Title': 'Test transaction',
-                'Currency': 'EUR',  # Should map to 'EURO Wise'
+                'Currency': 'EUR',  # Should map to 'Wise EUR'
                 'Account': 'Wise',
                 'Category': 'Shopping',
                 '_source_bank': 'wise'
@@ -115,7 +115,7 @@ class TestMultiBankRegressionFixes:
                 'Amount': -155.0,
                 'Title': 'Card transaction of 155.00 EUR issued by Revolut**0540* Dublin',
                 'Currency': 'EUR',
-                'Account': 'EURO Wise',
+                'Account': 'Wise EUR',
                 'Category': 'Shopping',
                 '_source_bank': 'wise'
             }
@@ -257,7 +257,7 @@ class TestMultiBankRegressionFixes:
                 'Amount': -155.0,
                 'Title': 'Card transaction of 155.00 EUR issued by Revolut**0540* Dublin',
                 'Currency': 'EUR',
-                'Account': 'EURO Wise',  # Expected final account name
+                'Account': 'Wise EUR',  # Expected final account name
                 'Category': 'Shopping',
                 '_source_bank': 'wise'
             },
@@ -317,7 +317,7 @@ class TestMultiBankRegressionFixes:
         
         # Check that all transactions have proper account names (currency mapping worked)
         account_names = [tx['Account'] for tx in enhanced_data]
-        expected_accounts = ['NayaPay', 'NayaPay', 'EURO Wise', 'Revolut Hungarian']
+        expected_accounts = ['NayaPay', 'NayaPay', 'Wise EUR', 'Revolut Hungarian']
         
         for i, expected_account in enumerate(expected_accounts):
             assert account_names[i] == expected_account, (

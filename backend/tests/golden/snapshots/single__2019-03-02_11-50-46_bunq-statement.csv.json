@@ -1,0 +1,84 @@
+{
+  "detection": [
+    {
+      "bank_detection": {
+        "confidence": 0.38,
+        "detected_bank": "Meezan",
+        "reasons": [
+          "filename_match(0.9)",
+          "content_signature(0.2)",
+          "header_match(0.3)"
+        ]
+      },
+      "file": "2019-03-02_11-50-46_bunq-statement.csv",
+      "status": 200
+    }
+  ],
+  "export_csv": [
+    "{\"detail\":\"No valid data provided for export\"}"
+  ],
+  "export_status": 500,
+  "files": [
+    "2019-03-02_11-50-46_bunq-statement.csv"
+  ],
+  "parse": [
+    {
+      "bank_info": {
+        "bank_name": "Meezan",
+        "confidence": 0.38,
+        "reasons": [
+          "filename_match(0.9)",
+          "content_signature(0.2)",
+          "header_match(0.3)"
+        ]
+      },
+      "error": null,
+      "filename": "2019-03-02_11-50-46_bunq-statement.csv",
+      "headers": [
+        "Account",
+        "Amount",
+        "Counterparty",
+        "Date",
+        "Description",
+        "Name"
+      ],
+      "row_count": 7,
+      "success": true
+    }
+  ],
+  "parse_status": 200,
+  "transfer_analysis": {
+    "conflicts": [],
+    "flagged_transactions": [],
+    "high_confidence_matches": 0,
+    "low_confidence_matches": 0,
+    "matches": [],
+    "medium_confidence_matches": 0,
+    "potential_pairs": [],
+    "potential_transfers": [],
+    "summary": {
+      "conflicts": 0,
+      "currency_conversions": 0,
+      "flagged_for_review": 0,
+      "other_transfers": 0,
+      "potential_pairs": 0,
+      "potential_transfers": 0,
+      "total_transactions": 0,
+      "transfer_pairs_found": 0
+    },
+    "total_matches": 0,
+    "transfers": []
+  },
+  "transform_status": 200,
+  "transformation_summary": {
+    "banks_processed": [
+      "Meezan"
+    ],
+    "failed_transformations": 0,
+    "successful_transformations": 1,
+    "total_files": 1,
+    "total_rows": 0,
+    "total_transactions": 0
+  },
+  "transformed_data": []
+}

@@ -160,6 +160,22 @@ Currently optimized for **Cashew** expense tracker with planned support for:
 - YNAB (You Need A Budget)
 - Generic CSV formats
 
+## Running Tests
+
+```bash
+pip install -r backend/requirements-dev.txt
+pytest
+```
+
+Tests run against a temporary copy of `configs/`, and the run fails if any test changes the real files.
+
+`backend/tests/golden/` runs every file in `sample_data/` through upload, preview, parse, transform and export, and compares the result with the snapshots in `backend/tests/golden/snapshots/`. If you change the output on purpose, regenerate the snapshots and review the diff before committing:
+
+```bash
+UPDATE_GOLDEN=1 pytest backend/tests/golden
+git diff backend/tests/golden/snapshots
+```
+
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details.

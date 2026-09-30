@@ -1,0 +1,33 @@
+{
+  "detection": [
+    {
+      "bank_detection": {
+        "confidence": 0.06666666666666667,
+        "detected_bank": "Meezan",
+        "reasons": [
+          "header_match(0.2)"
+        ]
+      },
+      "file": "umsatz-1234________1234-20180227.CSV",
+      "status": 200
+    }
+  ],
+  "files": [
+    "umsatz-1234________1234-20180227.CSV"
+  ],
+  "parse": [
+    {
+      "bank_info": {
+        "bank_name": "unknown",
+        "confidence": 0.0,
+        "reasons": []
+      },
+      "error": null,
+      "filename": "umsatz-1234________1234-20180227.CSV",
+      "headers": [],
+      "row_count": 0,
+      "success": false
+    }
+  ],
+  "parse_status": 200
+}
