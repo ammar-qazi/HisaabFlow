@@ -5,6 +5,9 @@ Handles universal CSV structural issues before parsing, regardless of bank
 from typing import Dict, List
 import re
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 class GenericCSVPreprocessor:
     """
@@ -36,8 +39,8 @@ class GenericCSVPreprocessor:
             'warnings': List[str]
         }
         """
-        print(f"\n GENERIC CSV PREPROCESSING")
-        print(f"    Input file: {file_path}")
+        logger.debug(f"\n GENERIC CSV PREPROCESSING")
+        logger.debug(f"    Input file: {file_path}")
         
         issues_fixed = []
         warnings = []
@@ -49,7 +52,7 @@ class GenericCSVPreprocessor:
             
             # For absolute positioning banks, do minimal preprocessing to preserve row numbers
             if skip_empty_row_removal:
-                print(f"    ABSOLUTE POSITIONING MODE: Minimal preprocessing to preserve row numbers")
+                logger.debug(f"    ABSOLUTE POSITIONING MODE: Minimal preprocessing to preserve row numbers")
                 
                 # Only fix critical encoding issues, skip structural changes
                 cleaned_content = self._fix_encoding_issues(raw_content, issues_fixed)
@@ -83,13 +86,13 @@ class GenericCSVPreprocessor:
             processed_file_path = self._create_temp_file(file_path, '_cleaned')
             self._write_content(processed_file_path, cleaned_content, encoding)
             
-            print(f"   [SUCCESS] Generic preprocessing complete:")
-            print(f"      [DATA] Original lines: {original_line_count}")
-            print(f"      [DATA] Processed lines: {processed_row_count}")
-            print(f"       Issues fixed: {len(issues_fixed)}")
+            logger.debug(f"   [SUCCESS] Generic preprocessing complete:")
+            logger.debug(f"      [DATA] Original lines: {original_line_count}")
+            logger.debug(f"      [DATA] Processed lines: {processed_row_count}")
+            logger.debug(f"       Issues fixed: {len(issues_fixed)}")
             
             for issue in issues_fixed:
-                print(f"         - {issue}")
+                logger.debug(f"         - {issue}")
             
             return {
                 'success': True,
@@ -101,7 +104,7 @@ class GenericCSVPreprocessor:
             }
             
         except Exception as e:
-            print(f"   [ERROR]  Generic preprocessing failed: {str(e)}")
+            logger.error(f"   [ERROR]  Generic preprocessing failed: {str(e)}")
             return {
                 'success': False,
                 'error': str(e),

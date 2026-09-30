@@ -5,6 +5,9 @@ from typing import Dict, List, Any, Optional
 
 from backend.services.cashew_transformer import CashewTransformer
 from backend.infrastructure.config.unified_config_service import get_unified_config_service
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class CashewTransformationService:
@@ -14,7 +17,7 @@ class CashewTransformationService:
         self.transformer = CashewTransformer()
         self.config_service = get_unified_config_service()
         
-        print(f"ℹ [CashewTransformationService] Initialized with CashewTransformer")
+        logger.debug(f"ℹ [CashewTransformationService] Initialized with CashewTransformer")
     
     def transform_multi_csv_data(self, csv_data_list: List[Dict[str, Any]], 
                                 categorization_rules: Optional[List] = None,
@@ -34,15 +37,15 @@ class CashewTransformationService:
         Returns:
             dict: Multi-CSV transformation result
         """
-        print(f"ℹ [CashewTransformationService] transform_multi_csv_data called")
+        logger.debug(f"ℹ [CashewTransformationService] transform_multi_csv_data called")
         
         try:
             # Extract data from frontend format using bank-agnostic detection
             data, column_mapping, bank_name = self._extract_transform_data_per_bank(csv_data_list)
             
-            print(f"   Final data length: {len(data)}")
-            print(f"   Final bank name: {bank_name}")
-            print(f"   Final column mapping: {column_mapping}")
+            logger.debug(f"   Final data length: {len(data)}")
+            logger.debug(f"   Final bank name: {bank_name}")
+            logger.debug(f"   Final column mapping: {column_mapping}")
             
             # Extract account_mapping from bank configs if not provided
             if not account_mapping and bank_configs:
@@ -50,11 +53,11 @@ class CashewTransformationService:
             
             # Show sample data for debugging
             if data:
-                print(f"   Sample data (first row): {data[0] if data else 'none'}")
+                pass
             
             # Transform data
             if categorization_rules or default_category_rules:
-                print(f"ℹ [CashewTransformationService] Using transformation with categorization rules")
+                logger.debug(f"ℹ [CashewTransformationService] Using transformation with categorization rules")
                 result = self.transformer.transform_to_cashew(
                     data, 
                     column_mapping, 
@@ -65,7 +68,7 @@ class CashewTransformationService:
                     config=bank_configs
                 )
             else:
-                print(f"ℹ [CashewTransformationService] Using basic transformation")
+                logger.debug(f"ℹ [CashewTransformationService] Using basic transformation")
                 result = self.transformer.transform_to_cashew(
                     data, 
                     column_mapping, 
@@ -74,9 +77,7 @@ class CashewTransformationService:
                     config=bank_configs
                 )
             
-            print(f"[SUCCESS] Transformation successful: {len(result)} rows transformed")
-            if result:
-                print(f"   Sample result (first row): {result[0] if result else 'none'}")
+            logger.debug(f"[SUCCESS] Transformation successful: {len(result)} rows transformed")
             
             return {
                 "success": True,
@@ -85,9 +86,9 @@ class CashewTransformationService:
             }
             
         except Exception as e:
-            print(f"[ERROR] Multi-CSV transform exception: {str(e)}")
+            logger.error(f"[ERROR] Multi-CSV transform exception: {str(e)}")
             import traceback
-            print(f"   Full traceback: {traceback.format_exc()}")
+            logger.error(f"   Full traceback: {traceback.format_exc()}")
             return {
                 "success": False,
                 "error": str(e)
@@ -95,10 +96,10 @@ class CashewTransformationService:
     
     def _extract_transform_data_per_bank(self, csv_data_list: List[Dict[str, Any]]):
         """Extract transformation data using PRE-DETECTED bank info from parse endpoints"""
-        print(f"   Processing csv_data_list with {len(csv_data_list)} items")
+        logger.debug(f"   Processing csv_data_list with {len(csv_data_list)} items")
         
         if not csv_data_list:
-            print(f"[WARNING] No CSV data found in csv_data_list")
+            logger.warning(f"[WARNING] No CSV data found in csv_data_list")
             return [], {}, ''
         
         return self._process_csv_data_list(csv_data_list)
@@ -108,7 +109,7 @@ class CashewTransformationService:
         all_transformed_data = []
         
         for csv_index, csv_data in enumerate(csv_data_list):
-            print(f"\n   Processing CSV {csv_index + 1}/{len(csv_data_list)}")
+            logger.debug(f"\n   Processing CSV {csv_index + 1}/{len(csv_data_list)}")
             
             # Get data from this CSV
             csv_file_data = csv_data.get('data', [])
@@ -116,19 +117,19 @@ class CashewTransformationService:
             bank_info = csv_data.get('bank_info', {})
             
             if not csv_file_data:
-                print(f"      [WARNING] No data in CSV {csv_index + 1}")
+                logger.warning(f"      [WARNING] No data in CSV {csv_index + 1}")
                 continue
             
-            print(f"      [DATA] CSV has {len(csv_file_data)} rows")
-            print(f"      Filename: {filename}")
+            logger.debug(f"      [DATA] CSV has {len(csv_file_data)} rows")
+            logger.debug(f"      Filename: {filename}")
             
             # Log pre-detected bank info
             detected_bank_name = self._get_detected_bank(bank_info)
             confidence = bank_info.get('confidence', 0.0)
-            print(f"      PRE-DETECTED bank: {detected_bank_name} (confidence={confidence:.2f})")
+            logger.debug(f"      PRE-DETECTED bank: {detected_bank_name} (confidence={confidence:.2f})")
             
             # Data is already cleaned and standardized
-            print(f"      [SUCCESS] Using pre-cleaned data as-is")
+            logger.debug(f"      [SUCCESS] Using pre-cleaned data as-is")
             
             # Get Account name from bank configuration
             base_account_name = self._get_account_name(bank_info, filename)
@@ -141,12 +142,12 @@ class CashewTransformationService:
                 row['Account'] = final_account_name
                 row['_source_bank'] = detected_bank_name  # For bank-specific account mapping
             
-            print(f"      [SUCCESS] Account field '{base_account_name}' set for all {len(csv_file_data)} rows")
+            logger.debug(f"      [SUCCESS] Account field '{base_account_name}' set for all {len(csv_file_data)} rows")
             
             # Add cleaned data to combined results
             all_transformed_data.extend(csv_file_data)
         
-        print(f"\n   Combined data from all CSVs: {len(all_transformed_data)} total rows")
+        logger.debug(f"\n   Combined data from all CSVs: {len(all_transformed_data)} total rows")
         
         # Use identity mapping since data is already cleaned with bank-specific configs
         combined_column_mapping = {}
@@ -157,9 +158,9 @@ class CashewTransformationService:
             # Use identity mapping to preserve all standardized fields without forcing incompatible column mappings
             sample_row = all_transformed_data[0]
             combined_column_mapping = {field: field for field in sample_row.keys() if field not in ['_source_bank']}
-            print(f"      [SUCCESS] Using identity column mapping for multi-bank data: {combined_column_mapping}")
+            logger.debug(f"      [SUCCESS] Using identity column mapping for multi-bank data: {combined_column_mapping}")
         else:
-            print(f"      [WARNING] No data available for column mapping")
+            logger.warning(f"      [WARNING] No data available for column mapping")
         
         return all_transformed_data, combined_column_mapping, combined_bank_name
     
@@ -168,7 +169,7 @@ class CashewTransformationService:
         for bank_name_config, config_dict in bank_configs.items():
             if 'account_mapping' in config_dict:
                 account_mapping = config_dict['account_mapping']
-                print(f"      [DEBUG] Using account_mapping from bank config: {account_mapping}")
+                logger.debug(f"      [DEBUG] Using account_mapping from bank config: {account_mapping}")
                 return account_mapping
         return None
     
@@ -195,25 +196,25 @@ class CashewTransformationService:
                     
                     if cashew_account:
                         account_name = cashew_account
-                        print(f"         Using cashew_account from {detected_bank} config: '{account_name}'")
+                        logger.debug(f"         Using cashew_account from {detected_bank} config: '{account_name}'")
                     elif has_account_mapping:
-                        print(f"         Multi-currency bank {detected_bank} detected, will need currency mapping")
+                        logger.debug(f"         Multi-currency bank {detected_bank} detected, will need currency mapping")
                         account_name = 'Multi-Currency'
                     else:
-                        print(f"      [WARNING] No cashew_account or account_mapping in {detected_bank} config")
+                        logger.warning(f"      [WARNING] No cashew_account or account_mapping in {detected_bank} config")
                 else:
-                    print(f"      [WARNING] Could not load config for {detected_bank}")
+                    logger.warning(f"      [WARNING] Could not load config for {detected_bank}")
             except Exception as e:
-                print(f"      [WARNING] Error loading config for {detected_bank}: {e}")
+                logger.warning(f"      [WARNING] Error loading config for {detected_bank}: {e}")
         
         # Fallback to filename if config loading failed
         if account_name == 'Unknown' or account_name == 'Multi-Currency':
             filename_fallback = filename.replace('.csv', '').replace('_', ' ').replace('-', ' ').title()
             if account_name == 'Multi-Currency':
-                print(f"         Multi-currency mapping needed, using filename fallback: '{filename_fallback}'")
+                logger.debug(f"         Multi-currency mapping needed, using filename fallback: '{filename_fallback}'")
                 account_name = filename_fallback
             else:
-                print(f"         Using filename fallback: '{filename_fallback}'")
+                logger.debug(f"         Using filename fallback: '{filename_fallback}'")
                 account_name = filename_fallback
         
         return account_name
@@ -231,20 +232,20 @@ class CashewTransformationService:
                 currency = row.get('Currency', row.get('currency', row.get('CURRENCY', '')))
                 currency = currency.strip() if currency else ''
                 
-                print(f"         [DEBUG] Currency value found: '{currency}'")
+                logger.debug(f"         [DEBUG] Currency value found: '{currency}'")
                 
                 if currency:
                     # Map currency to account name (case-insensitive lookup)
                     account_mapping = bank_config.account_mapping
                     mapped_account = account_mapping.get(currency.lower())
                     if mapped_account:
-                        print(f"         [CURRENCY MAP] {currency} → '{mapped_account}'")
+                        logger.debug(f"         [CURRENCY MAP] {currency} → '{mapped_account}'")
                         return mapped_account
                     else:
-                        print(f"         [WARNING] Currency '{currency}' not found in account_mapping for {detected_bank}")
+                        logger.warning(f"         [WARNING] Currency '{currency}' not found in account_mapping for {detected_bank}")
                 else:
-                    print(f"         [WARNING] No currency field found for multi-currency bank {detected_bank}")
+                    logger.warning(f"         [WARNING] No currency field found for multi-currency bank {detected_bank}")
         except Exception as e:
-            print(f"         [WARNING] Error mapping currency for {detected_bank}: {e}")
+            logger.warning(f"         [WARNING] Error mapping currency for {detected_bank}: {e}")
         
         return base_account_name

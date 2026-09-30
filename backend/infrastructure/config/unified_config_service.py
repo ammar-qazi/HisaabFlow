@@ -17,6 +17,9 @@ if project_root not in sys.path:
 
 # Import AmountFormat after path setup
 from backend.shared.amount_formats import AmountFormat, RegionalFormatRegistry
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 _BANK_NAME_PATTERN = re.compile(r'^[A-Za-z0-9_-]+$')
@@ -149,7 +152,7 @@ class UnifiedConfigService:
         self._build_detection_index()
         self._configs_loaded = True
         
-        print(f"[BUILD] [UnifiedConfigService] Initialized with {len(self._detection_patterns)} bank detection patterns")
+        logger.debug(f"[BUILD] [UnifiedConfigService] Initialized with {len(self._detection_patterns)} bank detection patterns")
     
     def _resolve_config_dir(self, config_dir: Optional[str]) -> str:
         """Resolve configuration directory path"""
@@ -182,7 +185,7 @@ class UnifiedConfigService:
         if os.path.exists(app_config_path):
             self._app_config.read(app_config_path, encoding='utf-8')
         else:
-            print("[WARNING] [UnifiedConfigService] app.conf not found, using defaults")
+            logger.warning("[WARNING] [UnifiedConfigService] app.conf not found, using defaults")
             # Set defaults
             self._app_config['general'] = {
                 'date_tolerance_hours': '72',
@@ -215,14 +218,14 @@ class UnifiedConfigService:
     
     def _build_detection_index(self) -> None:
         """Build lightweight detection index by reading only [bank_info] sections from .conf files"""
-        print(f"[BUILD] [UnifiedConfigService] Building detection index from: {self.config_dir}")
+        logger.debug(f"[BUILD] [UnifiedConfigService] Building detection index from: {self.config_dir}")
         
         if not os.path.exists(self.config_dir):
-            print(f"[ERROR] [UnifiedConfigService] Config directory not found: {self.config_dir}")
+            logger.error(f"[ERROR] [UnifiedConfigService] Config directory not found: {self.config_dir}")
             return
         
         config_files = [f for f in os.listdir(self.config_dir) if f.endswith('.conf')]
-        print(f"[BUILD] [UnifiedConfigService] Found .conf files: {config_files}")
+        logger.debug(f"[BUILD] [UnifiedConfigService] Found .conf files: {config_files}")
         
         for config_file in config_files:
             if config_file == 'app.conf':  # Skip app config
@@ -237,11 +240,11 @@ class UnifiedConfigService:
                 if bank_info_data:
                     detection_info = self._build_detection_info_from_partial(bank_info_data, bank_name)
                     self._detection_patterns[bank_name] = detection_info
-                    print(f"[SUCCESS] [UnifiedConfigService] Indexed detection patterns for bank: {bank_name}")
+                    logger.debug(f"[SUCCESS] [UnifiedConfigService] Indexed detection patterns for bank: {bank_name}")
                 else:
-                    print(f"[WARNING] [UnifiedConfigService] No [bank_info] section found in {config_file}")
+                    logger.warning(f"[WARNING] [UnifiedConfigService] No [bank_info] section found in {config_file}")
             except Exception as e:
-                print(f"[ERROR] [UnifiedConfigService] Failed to index {config_file}: {e}")
+                logger.error(f"[ERROR] [UnifiedConfigService] Failed to index {config_file}: {e}")
     
     def _load_bank_config(self, config_path: str, bank_name: str) -> Optional[UnifiedBankConfig]:
         """Load individual bank configuration"""
@@ -312,10 +315,10 @@ class UnifiedConfigService:
             )
             
         except KeyError as e:
-            print(f"[ERROR] [UnifiedConfigService] Missing required section in {bank_name}: {e}")
+            logger.error(f"[ERROR] [UnifiedConfigService] Missing required section in {bank_name}: {e}")
             return None
         except Exception as e:
-            print(f"[ERROR] [UnifiedConfigService] Error parsing config for {bank_name}: {e}")
+            logger.error(f"[ERROR] [UnifiedConfigService] Error parsing config for {bank_name}: {e}")
             return None
     
     def _parse_bank_info_section(self, config_path: str) -> Optional[Dict[str, str]]:
@@ -358,7 +361,7 @@ class UnifiedConfigService:
             return bank_info_data if bank_info_data else None
             
         except Exception as e:
-            print(f"[ERROR] [UnifiedConfigService] Failed to parse bank_info from {config_path}: {e}")
+            logger.error(f"[ERROR] [UnifiedConfigService] Failed to parse bank_info from {config_path}: {e}")
             return None
     
     def _build_detection_info_from_partial(self, bank_info_data: Dict[str, str], bank_name: str) -> BankDetectionInfo:
@@ -548,7 +551,7 @@ class UnifiedConfigService:
         # Check if explicit amount format is specified
         format_name = cleaning_section.get('amount_format_name', '').lower()
         if format_name and RegionalFormatRegistry.is_valid_format_name(format_name):
-            print(f"      [FORMAT] Using predefined format: {format_name}")
+            logger.debug(f"      [FORMAT] Using predefined format: {format_name}")
             return RegionalFormatRegistry.get_format_by_name(format_name)
         
         # Build custom format from config values
@@ -565,7 +568,7 @@ class UnifiedConfigService:
             else:
                 grouping_pattern = [int(grouping_str)]
         except ValueError:
-            print(f"      [WARNING] Invalid grouping pattern '{grouping_str}', using default [3]")
+            logger.warning(f"      [WARNING] Invalid grouping pattern '{grouping_str}', using default [3]")
             grouping_pattern = [3]
         
         # Create custom format
@@ -579,10 +582,10 @@ class UnifiedConfigService:
                 name="Custom",
                 example=f"{thousand_sep}1{thousand_sep}234{decimal_sep}56"
             )
-            print(f"      [FORMAT] Created custom format: decimal='{decimal_sep}', thousand='{thousand_sep}'")
+            logger.debug(f"      [FORMAT] Created custom format: decimal='{decimal_sep}', thousand='{thousand_sep}'")
             return custom_format
         except ValueError as e:
-            print(f"      [ERROR] Invalid custom format config: {e}, using default American format")
+            logger.error(f"      [ERROR] Invalid custom format config: {e}, using default American format")
             return RegionalFormatRegistry.AMERICAN
     
     def _extract_transfer_patterns(self, config: configparser.ConfigParser, section_name: str) -> List[str]:
@@ -622,7 +625,7 @@ class UnifiedConfigService:
                     
                     overrides.append(rule_dict)
                 except ValueError:
-                    print(f"[WARNING] [UnifiedConfigService] Skipping invalid conditional override rule: {rule_name}")
+                    logger.warning(f"[WARNING] [UnifiedConfigService] Skipping invalid conditional override rule: {rule_name}")
         return overrides
     
     # ========== Public API Methods ==========
@@ -656,13 +659,13 @@ class UnifiedConfigService:
             if bank_config:
                 # Cache the loaded configuration
                 self._bank_configs[bank_name] = bank_config
-                print(f"[LAZY_LOAD] [UnifiedConfigService] Loaded and cached config for bank: {bank_name}")
+                logger.debug(f"[LAZY_LOAD] [UnifiedConfigService] Loaded and cached config for bank: {bank_name}")
                 return bank_config
             else:
-                print(f"[ERROR] [UnifiedConfigService] Failed to load config for bank: {bank_name}")
+                logger.error(f"[ERROR] [UnifiedConfigService] Failed to load config for bank: {bank_name}")
                 return None
         except Exception as e:
-            print(f"[ERROR] [UnifiedConfigService] Error lazy loading config for {bank_name}: {e}")
+            logger.error(f"[ERROR] [UnifiedConfigService] Error lazy loading config for {bank_name}: {e}")
             return None
     
     def get_detection_patterns(self) -> Dict[str, BankDetectionInfo]:
@@ -814,17 +817,17 @@ class UnifiedConfigService:
                     new_description = re.sub(pattern, replacement, cleaned_description, flags=re.IGNORECASE | re.DOTALL)
                     
                     if new_description != cleaned_description:
-                        print(f"      [CLEANING] Applied rule '{rule_name}': '{cleaned_description}' -> '{new_description}'")
+                        logger.debug(f"      [CLEANING] Applied rule '{rule_name}'")
                         cleaned_description = new_description
                 else:
                     # Simple replacement (less common now)
                     if rule_name in cleaned_description:
                         new_description = cleaned_description.replace(rule_name, rule_pattern)
-                        print(f"      [CLEANING] Applied simple replacement '{rule_name}': '{cleaned_description}' -> '{new_description}'")
+                        logger.debug(f"      [CLEANING] Applied simple replacement '{rule_name}'")
                         cleaned_description = new_description
 
             except re.error as e:
-                print(f"[WARNING] [UnifiedConfigService] Invalid regex in rule '{rule_name}' for bank '{bank_name}': {e}")
+                logger.warning(f"[WARNING] [UnifiedConfigService] Invalid regex in rule '{rule_name}' for bank '{bank_name}': {e}")
                 # Fallback to simple replacement if regex is invalid
                 if '|' in rule_pattern:
                     pattern, replacement = rule_pattern.rsplit('|', 1)
@@ -850,11 +853,11 @@ class UnifiedConfigService:
         """
         # Skip reload if configs are already loaded and not forced
         if self._configs_loaded and not force:
-            print("[SKIP] [UnifiedConfigService] Configs already loaded, skipping reload (use force=True to override)")
+            logger.debug("[SKIP] [UnifiedConfigService] Configs already loaded, skipping reload (use force=True to override)")
             return True
             
         try:
-            print("[INFO] [UnifiedConfigService] Reloading all configurations...")
+            logger.debug("[INFO] [UnifiedConfigService] Reloading all configurations...")
             
             # Clear both caches
             self._bank_configs.clear()
@@ -867,11 +870,11 @@ class UnifiedConfigService:
             for listener in _reload_listeners:
                 listener()
             
-            print(f"[SUCCESS] [UnifiedConfigService] Reloaded {len(self._detection_patterns)} bank detection patterns")
+            logger.debug(f"[SUCCESS] [UnifiedConfigService] Reloaded {len(self._detection_patterns)} bank detection patterns")
             return True
             
         except Exception as e:
-            print(f"[ERROR] [UnifiedConfigService] Failed to reload configs: {e}")
+            logger.error(f"[ERROR] [UnifiedConfigService] Failed to reload configs: {e}")
             return False
     
     def add_bank_config_dynamically(self, bank_name: str, config_data: Dict[str, Any]) -> bool:
@@ -890,14 +893,14 @@ class UnifiedConfigService:
                 # Create detection info and add to index
                 detection_info = self._build_detection_info_from_partial(bank_info_data, bank_name)
                 self._detection_patterns[bank_name] = detection_info
-                print(f"[DYNAMIC_ADD] [UnifiedConfigService] Added detection patterns for new bank: {bank_name}")
+                logger.debug(f"[DYNAMIC_ADD] [UnifiedConfigService] Added detection patterns for new bank: {bank_name}")
             
             # Note: Full config will be lazy loaded when first requested via get_bank_config()
-            print(f"[SUCCESS] [UnifiedConfigService] Dynamically added bank configuration: {bank_name}")
+            logger.debug(f"[SUCCESS] [UnifiedConfigService] Dynamically added bank configuration: {bank_name}")
             return True
             
         except Exception as e:
-            print(f"[ERROR] [UnifiedConfigService] Failed to dynamically add bank config {bank_name}: {e}")
+            logger.error(f"[ERROR] [UnifiedConfigService] Failed to dynamically add bank config {bank_name}: {e}")
             return False
     
     def refresh_bank_detection_index(self, bank_name: str) -> bool:
@@ -911,7 +914,7 @@ class UnifiedConfigService:
                 # Remove from index if file no longer exists
                 if bank_name in self._detection_patterns:
                     del self._detection_patterns[bank_name]
-                    print(f"[REFRESH] [UnifiedConfigService] Removed detection patterns for deleted bank: {bank_name}")
+                    logger.debug(f"[REFRESH] [UnifiedConfigService] Removed detection patterns for deleted bank: {bank_name}")
                 return True
             
             # Parse bank_info and update detection index
@@ -919,20 +922,20 @@ class UnifiedConfigService:
             if bank_info_data:
                 detection_info = self._build_detection_info_from_partial(bank_info_data, bank_name)
                 self._detection_patterns[bank_name] = detection_info
-                print(f"[REFRESH] [UnifiedConfigService] Refreshed detection patterns for bank: {bank_name}")
+                logger.debug(f"[REFRESH] [UnifiedConfigService] Refreshed detection patterns for bank: {bank_name}")
                 
                 # Clear cached config to force reload
                 if bank_name in self._bank_configs:
                     del self._bank_configs[bank_name]
-                    print(f"[REFRESH] [UnifiedConfigService] Cleared cached config for bank: {bank_name}")
+                    logger.debug(f"[REFRESH] [UnifiedConfigService] Cleared cached config for bank: {bank_name}")
                 
                 return True
             else:
-                print(f"[WARNING] [UnifiedConfigService] No [bank_info] section found when refreshing {bank_name}")
+                logger.warning(f"[WARNING] [UnifiedConfigService] No [bank_info] section found when refreshing {bank_name}")
                 return False
                 
         except Exception as e:
-            print(f"[ERROR] [UnifiedConfigService] Failed to refresh detection index for {bank_name}: {e}")
+            logger.error(f"[ERROR] [UnifiedConfigService] Failed to refresh detection index for {bank_name}: {e}")
             return False
     
     # ========== Configuration Save/Load API ==========
@@ -957,11 +960,11 @@ class UnifiedConfigService:
             with open(config_path, 'w', encoding='utf-8') as config_file:
                 config.write(config_file)
             
-            print(f"[SUCCESS] [UnifiedConfigService] Saved configuration for {bank_name}")
+            logger.debug(f"[SUCCESS] [UnifiedConfigService] Saved configuration for {bank_name}")
             return True
             
         except Exception as e:
-            print(f"[ERROR] [UnifiedConfigService] Failed to save config for {bank_name}: {e}")
+            logger.error(f"[ERROR] [UnifiedConfigService] Failed to save config for {bank_name}: {e}")
             return False
     
     # ========== Legacy Compatibility Methods ==========
@@ -1041,7 +1044,7 @@ def get_unified_config_service(config_dir: str = None) -> UnifiedConfigService:
         _unified_config_service = UnifiedConfigService(config_dir)
     elif config_dir and os.path.realpath(config_dir) != os.path.realpath(_unified_config_service.config_dir):
         # The singleton keeps the directory it was created with
-        print(f"[WARNING] [UnifiedConfigService] Ignoring config_dir {config_dir!r}; "
+        logger.warning(f"[WARNING] [UnifiedConfigService] Ignoring config_dir {config_dir!r}; "
               f"already using {_unified_config_service.config_dir!r}")
     
     return _unified_config_service

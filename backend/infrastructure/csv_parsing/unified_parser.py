@@ -9,6 +9,9 @@ from .parsing_strategies import ParsingStrategies
 from .data_processor import DataProcessor
 from .structure_analyzer import StructureAnalyzer
 from .exceptions import CSVParsingError
+import logging
+
+logger = logging.getLogger(__name__)
 
 class UnifiedCSVParser:
     """Main API orchestrator for unified CSV parsing"""
@@ -38,20 +41,20 @@ class UnifiedCSVParser:
         Returns:
             dict: Preview result compatible with existing PreviewService
         """
-        print(f" UnifiedCSVParser preview: {file_path}")
+        logger.debug(f" UnifiedCSVParser preview: {file_path}")
         
         try:
             # Step 1: Detect encoding
             if encoding is None:
                 encoding_result = self.encoding_detector.detect_encoding(file_path)
                 encoding = encoding_result['encoding']
-                print(f"    Detected encoding: {encoding}")
+                logger.debug(f"    Detected encoding: {encoding}")
             else:
-                print(f"    Using provided encoding: {encoding}")
+                logger.debug(f"    Using provided encoding: {encoding}")
             
             # Step 2: Detect dialect
             dialect_result = self.dialect_detector.detect_dialect(file_path, encoding)
-            print(f"   Detected dialect: delimiter='{dialect_result['delimiter']}', quoting={dialect_result['quoting']}, lineterminator={repr(dialect_result.get('line_terminator', 'N/A'))}")
+            logger.debug(f"   Detected dialect: delimiter='{dialect_result['delimiter']}', quoting={dialect_result['quoting']}, lineterminator={repr(dialect_result.get('line_terminator', 'N/A'))}")
             
             # Step 3: Parse with strategies (including line terminator)
             parsing_result = self.parsing_strategies.parse_with_fallbacks(
@@ -64,7 +67,7 @@ class UnifiedCSVParser:
                     'error': parsing_result['error']
                 }
             
-            print(f"   [SUCCESS] Parsing succeeded with {parsing_result['strategy_used']} strategy")
+            logger.debug(f"   [SUCCESS] Parsing succeeded with {parsing_result['strategy_used']} strategy")
             
             # Step 4: Process data
             # If we used start_row filtering, the header is now at position 0
@@ -97,7 +100,7 @@ class UnifiedCSVParser:
             }
             
         except Exception as e:
-            print(f"[ERROR]  Preview failed: {str(e)}")
+            logger.error(f"[ERROR]  Preview failed: {str(e)}")
             return {
                 'success': False,
                 'error': str(e)
@@ -115,7 +118,7 @@ class UnifiedCSVParser:
         Returns:
             dict: Complete parsing result
         """
-        print(f"[DATA] UnifiedCSVParser full parse: {file_path}")
+        logger.debug(f"[DATA] UnifiedCSVParser full parse: {file_path}")
         
         try:
             # Extract options
@@ -151,7 +154,7 @@ class UnifiedCSVParser:
             if not processing_result['success']:
                 raise CSVParsingError(processing_result['error'], file_path)
             
-            print(f"  DEBUG: UnifiedCSVParser - Encoding result being returned: {encoding_result}")
+            logger.debug(f"  DEBUG: UnifiedCSVParser - Encoding result being returned: {encoding_result}")
             return {
                 'success': True,
                 'data': processing_result['data'],
@@ -184,7 +187,7 @@ class UnifiedCSVParser:
         Returns:
             dict: Validation result
         """
-        print(f"[SUCCESS] CSV validation: {file_path}")
+        logger.debug(f"[SUCCESS] CSV validation: {file_path}")
         
         try:
             # Get structure analysis using new global method
@@ -253,21 +256,21 @@ class UnifiedCSVParser:
                 'total_columns': 5
             }
         """
-        print(f" Global structure analysis: {file_path}")
+        logger.debug(f" Global structure analysis: {file_path}")
         
         try:
             # Step 1: Detect encoding (leveraging existing robust detection)
             if encoding is None:
                 encoding_result = self.encoding_detector.detect_encoding(file_path)
                 detected_encoding = encoding_result['encoding']
-                print(f"    Detected encoding: {detected_encoding}")
+                logger.debug(f"    Detected encoding: {detected_encoding}")
             else:
                 detected_encoding = encoding
-                print(f"    Using provided encoding: {detected_encoding}")
+                logger.debug(f"    Using provided encoding: {detected_encoding}")
             
             # Step 2: Detect dialect (supports international CSV formats)
             dialect_result = self.dialect_detector.detect_dialect(file_path, detected_encoding)
-            print(f"   Detected dialect: delimiter='{dialect_result['delimiter']}'")
+            logger.debug(f"   Detected dialect: delimiter='{dialect_result['delimiter']}'")
             
             # Step 3: Parse sample for structure analysis (50 rows to handle bank CSVs with metadata)
             parsing_result = self.parsing_strategies.parse_with_fallbacks(
@@ -281,7 +284,7 @@ class UnifiedCSVParser:
                 }
             
             sample_rows = parsing_result['raw_rows']
-            print(f"   Parsed {len(sample_rows)} sample rows for analysis")
+            logger.debug(f"   Parsed {len(sample_rows)} sample rows for analysis")
             
             # Step 4: Global header detection with multilingual support
             header_result = self.structure_analyzer.detect_header_row_global(sample_rows)
@@ -292,7 +295,7 @@ class UnifiedCSVParser:
                 total_columns = len(sample_rows[0]) if sample_rows else 0
                 suggested_columns = [f'Column_{i+1}' for i in range(total_columns)]
                 
-                print(f"   Headerless CSV detected: {total_columns} columns")
+                logger.debug(f"   Headerless CSV detected: {total_columns} columns")
                 
                 # Create content sample from first few data rows
                 content_sample = self._create_content_sample_from_rows(sample_rows[:10])
@@ -318,7 +321,6 @@ class UnifiedCSVParser:
                 data_start_row = header_row_idx + 1
                 
                 raw_headers = sample_rows[header_row_idx] if header_row_idx < len(sample_rows) else []
-                print(f"   Headers found at row {header_row_idx}: {raw_headers}")
                 
                 # Create content sample including headers and some data
                 content_sample = self._create_content_sample_with_headers(sample_rows, header_row_idx)
@@ -339,7 +341,7 @@ class UnifiedCSVParser:
                 }
                 
         except Exception as e:
-            print(f"[ERROR]  Structure analysis failed: {str(e)}")
+            logger.error(f"[ERROR]  Structure analysis failed: {str(e)}")
             return {
                 'success': False,
                 'error': f"Structure analysis failed: {str(e)}"
@@ -396,7 +398,7 @@ class UnifiedCSVParser:
         Returns:
             dict: Data range detection result
         """
-        print(f" Data range detection: {file_path}")
+        logger.debug(f" Data range detection: {file_path}")
         
         try:
             # Use structure detection to find header row

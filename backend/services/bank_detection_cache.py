@@ -5,6 +5,9 @@ import hashlib
 from typing import Optional, Dict, Any
 
 from backend.infrastructure.config.unified_config_service import register_config_reload_listener
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class BankDetectionCache:
@@ -30,7 +33,7 @@ class BankDetectionCache:
         
         cached_result = self._cache.get(cache_key)
         if cached_result:
-            print(f"ℹ [CACHE] Using cached bank detection for {filename}")
+            logger.debug(f"ℹ [CACHE] Using cached bank detection for {filename}")
         return cached_result
     
     def set(self, filename: str, file_path: str, detection_result: Dict[str, Any]):
@@ -39,12 +42,12 @@ class BankDetectionCache:
         if cache_key is None:
             return
         self._cache[cache_key] = detection_result
-        print(f"ℹ [CACHE] Cached bank detection result for {filename}")
+        logger.debug(f"ℹ [CACHE] Cached bank detection result for {filename}")
     
     def clear(self):
         """Clear all cached results"""
         self._cache.clear()
-        print("ℹ [CACHE] Bank detection cache cleared")
+        logger.debug("ℹ [CACHE] Bank detection cache cleared")
     
     def size(self) -> int:
         """Get cache size"""

@@ -3,6 +3,9 @@ Utility functions for CSV parsing operations
 """
 import re
 from typing import List, Dict, Any, Optional
+import logging
+
+logger = logging.getLogger(__name__)
 
 def clean_header(header: str) -> str:
     """Clean header text by removing BOM and extra whitespace"""
@@ -212,10 +215,10 @@ def get_nuitka_config_dir() -> Optional[str]:
         for config_path in possible_paths:
             abs_config_path = os.path.abspath(config_path)
             if os.path.exists(abs_config_path):
-                print(f"[Nuitka] Found config directory: {abs_config_path}")
+                logger.debug(f"[Nuitka] Found config directory: {abs_config_path}")
                 return abs_config_path
         
-        print(f"[WARNING] [Nuitka] Config directory not found. Checked: {possible_paths}")
+        logger.warning(f"[WARNING] [Nuitka] Config directory not found. Checked: {possible_paths}")
     
     return None
 
@@ -239,7 +242,7 @@ def get_user_config_dir() -> Optional[str]:
     if is_nuitka_executable():
         nuitka_config_dir = get_nuitka_config_dir()
         if nuitka_config_dir and os.path.exists(nuitka_config_dir):
-            print(f"[START] [HisaabFlow] Using Nuitka bundled config directory: {nuitka_config_dir}")
+            logger.debug(f"[START] [HisaabFlow] Using Nuitka bundled config directory: {nuitka_config_dir}")
             return nuitka_config_dir
     
     # Fallback to default (None means use default behavior)
@@ -249,8 +252,8 @@ def get_config_dir_for_manager() -> Optional[str]:
     """Get config directory for BankConfigManager with fallback"""
     user_config = get_user_config_dir()
     if user_config:
-        print(f"[USER] [HisaabFlow] Using user config directory: {user_config}")
+        logger.debug(f"[USER] [HisaabFlow] Using user config directory: {user_config}")
         return user_config
     
-    print("[BUILD] [HisaabFlow] Using default config directory")
+    logger.debug("[BUILD] [HisaabFlow] Using default config directory")
     return None

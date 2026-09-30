@@ -8,6 +8,9 @@ from .exceptions import StructureDetectionError
 import re
 from dataclasses import dataclass
 from backend.shared.amount_formats.amount_format_detector import AmountFormatDetector, AmountFormatAnalysis
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -115,7 +118,7 @@ class StructureAnalyzer:
     
     def analyze_structure(self, sample_rows: List[List[str]]) -> Dict:
         """Analyze CSV structure comprehensively"""
-        print(f" Analyzing structure of {len(sample_rows)} sample rows")
+        logger.debug(f" Analyzing structure of {len(sample_rows)} sample rows")
         
         try:
             if not sample_rows:
@@ -156,7 +159,7 @@ class StructureAnalyzer:
             }
             
         except Exception as e:
-            print(f"[ERROR]  Structure analysis failed: {str(e)}")
+            logger.error(f"[ERROR]  Structure analysis failed: {str(e)}")
             return {'success': False, 'error': f"Structure analysis failed: {str(e)}"}
     
     
@@ -176,7 +179,7 @@ class StructureAnalyzer:
                 'detected_languages': List[str]
             }
         """
-        print(f" Global header detection on {len(sample_rows)} sample rows")
+        logger.debug(f" Global header detection on {len(sample_rows)} sample rows")
         
         if not sample_rows:
             return {
@@ -232,7 +235,6 @@ class StructureAnalyzer:
                 'languages': row_languages
             })
             
-            print(f"  Row {row_idx}: score={score:.2f}, languages={list(row_languages)}")
         
         # Determine if file has headers
         if scores:
@@ -241,7 +243,7 @@ class StructureAnalyzer:
             # No headers threshold - if best score is too low, assume no headers
             NO_HEADERS_THRESHOLD = 3.0  # Requires at least some clear header indicators
             if best_entry['score'] < NO_HEADERS_THRESHOLD:
-                print(f"  No headers detected (best score {best_entry['score']:.2f} < {NO_HEADERS_THRESHOLD})")
+                logger.debug(f"  No headers detected (best score {best_entry['score']:.2f} < {NO_HEADERS_THRESHOLD})")
                 return {
                     'suggested_row': None,
                     'confidence': 0.0,
@@ -251,7 +253,7 @@ class StructureAnalyzer:
                 }
             
             confidence = min(best_entry['score'] / 8.0, 1.0)  # Normalize to 0-1
-            print(f"  Best header row: {best_entry['row_index']} (score={best_entry['score']:.2f}, confidence={confidence:.2f})")
+            logger.debug(f"  Best header row: {best_entry['row_index']} (score={best_entry['score']:.2f}, confidence={confidence:.2f})")
             
             return {
                 'suggested_row': best_entry['row_index'],
@@ -368,7 +370,7 @@ class StructureAnalyzer:
         Returns:
             UnknownBankAnalysis with complete analysis results
         """
-        print(f" Analyzing unknown bank CSV: {filename}")
+        logger.debug(f" Analyzing unknown bank CSV: {filename}")
         
         try:
             # Parse CSV to rows
@@ -386,12 +388,12 @@ class StructureAnalyzer:
                 header_row_idx = header_row - 1
                 if header_row_idx < 0 or header_row_idx >= len(rows):
                     raise StructureDetectionError(f"Header row {header_row} is out of range (1-{len(rows)})")
-                print(f"  Using specified header row: {header_row} (1-based)")
+                logger.debug(f"  Using specified header row: {header_row} (1-based)")
             else:
                 # Auto-detect header row using global method
                 header_detection = self.detect_header_row_global(rows)
                 header_row_idx = header_detection.get('suggested_row', 0)
-                print(f"  Auto-detected header row: {header_row_idx + 1} (1-based)")
+                logger.debug(f"  Auto-detected header row: {header_row_idx + 1} (1-based)")
             
             data_start_row = header_row_idx + 1
             
@@ -428,7 +430,7 @@ class StructureAnalyzer:
                 header_detection, amount_format_analysis, field_mapping_suggestions
             )
             
-            print(f"  DEBUG: StructureAnalyzer - Creating UnknownBankAnalysis with encoding: {encoding}")
+            logger.debug(f"  DEBUG: StructureAnalyzer - Creating UnknownBankAnalysis with encoding: {encoding}")
             return UnknownBankAnalysis(
                 filename=filename,
                 encoding=encoding,
@@ -444,7 +446,7 @@ class StructureAnalyzer:
             )
             
         except Exception as e:
-            print(f"[ERROR]  Unknown CSV analysis failed: {str(e)}")
+            logger.error(f"[ERROR]  Unknown CSV analysis failed: {str(e)}")
             raise StructureDetectionError(f"Unknown CSV analysis failed: {str(e)}")
     
     def suggest_field_mappings(self, headers: List[str], data_rows: List[List[str]]) -> Dict[str, FieldMappingSuggestion]:
@@ -458,7 +460,7 @@ class StructureAnalyzer:
         Returns:
             Dictionary mapping standard field names to suggestions
         """
-        print(f"  Suggesting field mappings for {len(headers)} headers")
+        logger.debug(f"  Suggesting field mappings for {len(headers)} headers")
         
         suggestions = {}
         

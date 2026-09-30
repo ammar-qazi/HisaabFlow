@@ -6,6 +6,9 @@ from pathlib import Path
 
 from backend.infrastructure.config.unified_config_service import get_unified_config_service
 from backend.shared.utils.bank_lookup import bank_for_row
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class DataCleaningService:
@@ -21,7 +24,7 @@ class DataCleaningService:
         # Create unified config service instance
         self.config_service = get_unified_config_service(config_dir_path_str)
         
-        print(f"ℹ [DataCleaningService] Initialized with unified config service")
+        logger.debug(f"ℹ [DataCleaningService] Initialized with unified config service")
     
     def apply_advanced_processing(self, transformed_data: List[Dict[str, Any]], 
                                  csv_data_list: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -35,7 +38,7 @@ class DataCleaningService:
         Returns:
             List of cleaned transaction data
         """
-        print(f"ℹ [DataCleaningService] Applying advanced processing pipeline...")
+        logger.debug(f"ℹ [DataCleaningService] Applying advanced processing pipeline...")
         
         # Step 1: Apply standard, config-based description cleaning
         data_after_standard_cleaning = self._apply_standard_description_cleaning(
@@ -57,14 +60,14 @@ class DataCleaningService:
     def _apply_standard_description_cleaning(self, data: List[Dict[str, Any]], 
                                            csv_data_list: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Apply bank-specific description cleaning to data"""
-        print(f"   Applying standard description cleaning...")
-        print(f"      [DATA] Data rows to clean: {len(data)}")
+        logger.debug(f"   Applying standard description cleaning...")
+        logger.debug(f"      [DATA] Data rows to clean: {len(data)}")
         
         # DEBUG: Show sample data structure
         if data:
-            print(f"         Sample row: {data[0]}")
+            pass
         
-        print(f"         CSV data list count: {len(csv_data_list)}")
+        logger.debug(f"         CSV data list count: {len(csv_data_list)}")
         
         # Track cleaning results
         cleaned_count = 0
@@ -84,24 +87,23 @@ class DataCleaningService:
                 # Apply description cleaning for this bank
                 cleaned_title = self.config_service.apply_description_cleaning(bank_name, original_title_for_row)
                 if cleaned_title != original_title_for_row:
-                    print(f"            CLEANED: '{original_title_for_row}' → '{cleaned_title}'")
                     row['Title'] = cleaned_title
                     cleaned_count += 1
                 else:
-                    print(f"            No change: '{original_title_for_row}'")
+                    pass
             else:
-                print(f"         [ERROR] No bank match for account: '{account}'")
+                logger.debug(f"         No bank match for account: '{account}'")
         
-        print(f"      [DATA] Description cleaning summary:")
-        print(f"            Total rows cleaned: {cleaned_count}")
-        print(f"            Bank matches: {bank_matches}")
+        logger.debug(f"      [DATA] Description cleaning summary:")
+        logger.debug(f"            Total rows cleaned: {cleaned_count}")
+        logger.debug(f"            Bank matches: {bank_matches}")
         
         return data
     
     def _apply_conditional_description_overrides(self, data: List[Dict[str, Any]], 
                                                csv_data_list: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Apply conditional description overrides defined in bank .conf files"""
-        print(f"   Applying conditional description overrides...")
+        logger.debug(f"   Applying conditional description overrides...")
         conditional_changes_count = 0
         
         for row_idx, row in enumerate(data):
@@ -148,21 +150,19 @@ class DataCleaningService:
                 if conditions_met:
                     new_title = rule.get('set_description')
                     if new_title and current_title != new_title:
-                        rule_name_display = rule.get('name', rule.get('set_description', 'Unnamed Rule'))
-                        print(f"            CONDITIONAL OVERRIDE (Row {row_idx + 1}, Bank: {bank_name_for_row}, Rule: {rule_name_display}): '{current_title}' → '{new_title}'")
                         row['Title'] = new_title
                         conditional_changes_count += 1
                         break
         
         if conditional_changes_count > 0:
-            print(f"      Applied {conditional_changes_count} conditional override changes")
+            logger.debug(f"      Applied {conditional_changes_count} conditional override changes")
         
         return data
     
     def _apply_keyword_categorization(self, data: List[Dict[str, Any]], 
                                     csv_data_list: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Apply keyword-based categorization from .conf files using final descriptions"""
-        print(f"   Applying keyword-based categorization (post-cleaning)...")
+        logger.debug(f"   Applying keyword-based categorization (post-cleaning)...")
         categorized_count = 0
         
         for row_idx, row in enumerate(data):
@@ -175,16 +175,12 @@ class DataCleaningService:
             
             if categorization_result:
                 category = categorization_result['category']
-                pattern = categorization_result['pattern']
-                source = categorization_result['source']
-                rule_type = categorization_result['rule_type']
                 
                 # Log only if category changes or is newly set by this step
                 if row.get('Category') != category:
-                    print(f"            CATEGORIZED (Row {row_idx + 1}, Bank: {bank_name_for_row}): Desc='{description[:50]}...' → Category='{category}' [Pattern: '{pattern}' from {source} {rule_type}]")
                     row['Category'] = category
                     categorized_count += 1
         
-        print(f"      Applied keyword categorization to {categorized_count} rows (post-cleaning)")
+        logger.debug(f"      Applied keyword categorization to {categorized_count} rows (post-cleaning)")
         return data
     

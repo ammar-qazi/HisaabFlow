@@ -15,6 +15,9 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 # Import response models after path setup
+from backend.logging_config import configure_logging
+configure_logging()
+
 from backend.api.models import HealthResponse
  
 # A failed import here should stop startup, not serve an API without routes
@@ -24,6 +27,9 @@ from backend.api.parse_endpoints import parse_router
 from backend.api.transform_endpoints import transform_router
 from backend.api.unknown_bank_endpoints import unknown_bank_router
 from backend.api.middleware import setup_logging_middleware
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -76,7 +82,7 @@ async def health_check():
 # Exception handler
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
-    print(f"[ERROR]  Unhandled exception: {str(exc)}")
+    logger.exception("Unhandled exception")
     return JSONResponse(
         status_code=500,
         content={"detail": f"Internal server error: {str(exc)}"}
@@ -85,14 +91,14 @@ async def global_exception_handler(request, exc):
 if __name__ == "__main__":
     import uvicorn
     
-    print("\n Starting HisaabFlow Configuration-Based FastAPI Server...")
-    print("    Backend: http://127.0.0.1:8000")
-    print("    API docs: http://127.0.0.1:8000/docs")
-    print("     Architecture: Modular API routers")
-    print("    Main file: Under 300 lines")
-    print("   Mode: Nuitka compiled executable")
-    print("   ⏹  Press Ctrl+C to stop")
-    print("")
+    logger.debug("\n Starting HisaabFlow Configuration-Based FastAPI Server...")
+    logger.debug("    Backend: http://127.0.0.1:8000")
+    logger.debug("    API docs: http://127.0.0.1:8000/docs")
+    logger.debug("     Architecture: Modular API routers")
+    logger.debug("    Main file: Under 300 lines")
+    logger.debug("   Mode: Nuitka compiled executable")
+    logger.debug("   ⏹  Press Ctrl+C to stop")
+    logger.debug("")
     
     # Parse command line arguments for executable compatibility
     host = "127.0.0.1"
@@ -113,5 +119,5 @@ if __name__ == "__main__":
             log_level="info"
         )
     except Exception as e:
-        print(f"[ERROR]  Failed to start server: {e}")
+        logger.error(f"[ERROR]  Failed to start server: {e}")
         sys.exit(1)

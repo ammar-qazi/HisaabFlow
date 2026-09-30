@@ -1,14 +1,18 @@
 """
-Middleware setup for logging and request handling
+Request logging middleware
 """
+import logging
+
 from fastapi import Request
 
+logger = logging.getLogger(__name__)
+
+
 def setup_logging_middleware(app):
-    """Setup logging middleware for the FastAPI app"""
-    
+    """Log method, path and status code for each request"""
+
     @app.middleware("http")
     async def log_requests(request: Request, call_next):
-        print(f" {request.method} {request.url} - Origin: {request.headers.get('origin', 'None')}")
         response = await call_next(request)
-        print(f"Response: {response.status_code}")
+        logger.info("%s %s -> %s", request.method, request.url.path, response.status_code)
         return response

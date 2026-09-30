@@ -9,6 +9,9 @@ import pandas as pd
 
 from backend.infrastructure.csv_cleaning.date_cleaner import DateCleaner
 from backend.shared.utils.amount_text import format_amount, parse_amount_text
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class CashewTransformer:
@@ -18,7 +21,7 @@ class CashewTransformer:
     """
 
     def __init__(self):
-        print("[START] [CashewTransformer] Initializing clean standalone transformer...")
+        logger.debug("[START] [CashewTransformer] Initializing clean standalone transformer...")
 
     def transform_to_cashew(self, data: List[Dict], column_mapping: Dict[str, str],
                            bank_name: str = "", categorization_rules: List[Dict] = None,
@@ -36,9 +39,9 @@ class CashewTransformer:
         Returns:
             List of transformed Cashew format rows
         """
-        print(f" [CashewTransformer] Starting clean transformation for bank: '{bank_name}'")
-        print(f"   [DATA] Input rows: {len(data)}, Column mapping: {column_mapping}")
-        print(f"   [DEBUG] Account mapping: {account_mapping}")
+        logger.debug(f" [CashewTransformer] Starting clean transformation for bank: '{bank_name}'")
+        logger.debug(f"   [DATA] Input rows: {len(data)}, Column mapping: {column_mapping}")
+        logger.debug(f"   [DEBUG] Account mapping: {account_mapping}")
         
         cashew_data = []
         
@@ -79,7 +82,7 @@ class CashewTransformer:
                             mapped_account = bank_account_mapping[currency]
                             cashew_row['account'] = mapped_account
                             if idx < 3:
-                                print(f"    Row {idx} Auto Account mapping: Currency='{currency}' → Account='{mapped_account}'")
+                                logger.debug(f"    Row {idx} Auto Account mapping: Currency='{currency}' → Account='{mapped_account}'")
                 
                 # If no bank-specific account mapping found, preserve existing account value
                 # (which should be the cashew_account for single-currency banks)
@@ -87,7 +90,7 @@ class CashewTransformer:
                     # Keep the existing account value (set during multi-CSV processing)
                     if idx < 3:
                         existing_account = cashew_row.get('account', bank_name)
-                        print(f"    Row {idx} Preserving existing account: Currency='{currency}', Account='{existing_account}'")
+                        logger.debug(f"    Row {idx} Preserving existing account: Currency='{currency}', Account='{existing_account}'")
             
             # Apply column mapping (lowercase internally)
             # This now handles both raw data (using source_col) and pre-cleaned data (using cashew_col)
@@ -114,18 +117,18 @@ class CashewTransformer:
                         parsed_amount = self.parse_amount(original_amount)
                         cashew_row[cashew_col] = parsed_amount
                         if idx < 3: 
-                            print(f"    Row {idx} Amount mapping - source_col='{source_col}', raw_value='{source_value}' (type: {type(source_value)}), str_value='{original_amount}', parsed='{parsed_amount}'")
+                            pass
                     elif cashew_col in ['debit', 'credit']:
                         # Store debit/credit values for later calculation
                         cashew_row[cashew_col] = str(value_found)
                         if idx < 3:
-                            print(f"    Row {idx} {cashew_col.title()} mapping - source_col='{source_col}', raw_value='{value_found}'")
+                            pass
                     elif cashew_col == 'account' and account_mapping:
                         currency = str(value_found)
                         mapped_account = account_mapping.get(currency, bank_name)
                         cashew_row[cashew_col] = mapped_account
                         if idx < 3:
-                            print(f"    Row {idx} Account mapping: source_col='{source_col}', Currency='{currency}' → Account='{mapped_account}'")
+                            logger.debug(f"    Row {idx} Account mapping: source_col='{source_col}', Currency='{currency}' → Account='{mapped_account}'")
                     else:
                         cashew_row[cashew_col] = str(value_found)
             
@@ -135,7 +138,7 @@ class CashewTransformer:
                     if source_col not in cashew_row:  # Don't override mapped fields
                         cashew_row[source_col] = row[source_col]
                         if idx < 3:
-                            print(f"    Row {idx} Preserving exchange field: {source_col} = {row[source_col]}")
+                            pass
             
             # Calculate amount from debit/credit if no direct amount mapping exists or amount is empty
             amount_val = cashew_row.get('amount', '')
@@ -151,7 +154,6 @@ class CashewTransformer:
                 final_amount = format_amount(credit_val - debit_val)
                 cashew_row['amount'] = final_amount
                 
-                print(f"    Row {idx} ({source_bank}) Debit/Credit calculation - debit='{debit_val}', credit='{credit_val}', final_amount='{final_amount}'")
             
             # Apply universal fallback logic for any empty field (lowercase internally)
             for cashew_field in ['date', 'title', 'amount', 'currency']:
@@ -171,35 +173,32 @@ class CashewTransformer:
                             cashew_row[cashew_field] = str(fallback_value)
                         
                         if idx < 3:
-                            print(f"    Row {idx} Used fallback for {cashew_field}: '{fallback_value}' → '{cashew_row[cashew_field]}'")
+                            pass
             
             # Apply basic categorization
             self.apply_basic_categorization(cashew_row)
             
             # Debug output for first few rows
             if idx < 3:
-                print(f"    Row {idx}: date='{cashew_row['date']}', amount='{cashew_row['amount']}', title='{cashew_row['title'][:50]}...'")
+                pass
             
             # Only include rows with valid amounts
             amount_val = cashew_row['amount']
             source_bank = cashew_row.get('_source_bank', 'unknown')
             
             # Enhanced debugging for amount validation
-            print(f"   [DEBUG] Row {idx} ({source_bank}) final amount check - value: '{amount_val}', type: {type(amount_val)}, bool: {bool(amount_val)}")
             
             if parse_amount_text(amount_val):
                 # Convert to uppercase for final Cashew format before adding to results
                 final_cashew_row = self._convert_to_final_cashew_format(cashew_row)
                 cashew_data.append(final_cashew_row)
                 if source_bank == 'Meezan':
-                    print(f"   [SUCCESS] Meezan row {idx} INCLUDED with amount '{amount_val}'")
+                    pass
             else:
-                print(f"   [WARNING] FILTERING OUT row {idx} ({source_bank}): Invalid/zero amount '{amount_val}' (type: {type(amount_val)})")
                 if source_bank == 'Meezan':
-                    print(f"   [CRITICAL] MEEZAN ROW FILTERED! Row data: {cashew_row}")
-                    print(f"   [DEBUG] Original row data from input: {data[idx] if idx < len(data) else 'Index out of range'}")
+                    pass
         
-        print(f"   [SUCCESS] Clean transformation complete: {len(cashew_data)} valid rows")
+        logger.debug(f"   [SUCCESS] Clean transformation complete: {len(cashew_data)} valid rows")
         return cashew_data
 
     def resolve_field_with_fallback(self, row, primary_field):
@@ -287,6 +286,6 @@ class CashewTransformer:
         amount = parse_amount_text(amount_str)
         if amount is None:
             if amount_str is not None and str(amount_str).strip() not in ('', 'nan'):
-                print(f"[WARNING]  Amount parsing error for '{amount_str}'")
+                pass
             return '0'
         return format_amount(amount)

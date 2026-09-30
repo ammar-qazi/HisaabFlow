@@ -13,6 +13,9 @@ from backend.api.models import (
     PreviewResponse,
     MultiCSVParseResponse
 )
+import logging
+
+logger = logging.getLogger(__name__)
 
 parse_router = APIRouter()
 
@@ -27,11 +30,11 @@ async def preview_csv(
     preview_service = Depends(get_preview_service)
 ):
     """Preview uploaded CSV file with bank-aware header detection"""
-    print(f"‍ Preview request for file_id: {file_id}, header_row: {header_row}")
+    logger.debug(f"‍ Preview request for file_id: {file_id}, header_row: {header_row}")
     
     file_info = get_uploaded_file(file_id)
     if not file_info:
-        print(f"[ERROR]  File {file_id} not found")
+        logger.error(f"[ERROR]  File {file_id} not found")
         raise HTTPException(status_code=404, detail="File not found")
     
     file_path = file_info["temp_path"]
@@ -53,7 +56,7 @@ async def parse_multiple_csvs(
     multi_csv_service = Depends(get_multi_csv_service)
 ):
     """Parse multiple CSV files"""
-    print(f"[START] Multi-CSV parse request for {len(request.file_ids)} files")
+    logger.debug(f"[START] Multi-CSV parse request for {len(request.file_ids)} files")
     
     try:
         # Validate all file IDs exist and add file_id to file_info
@@ -86,7 +89,7 @@ async def parse_multiple_csvs(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"[ERROR]  Multi-CSV parse exception: {str(e)}")
+        logger.error(f"[ERROR]  Multi-CSV parse exception: {str(e)}")
         import traceback
-        print(f" Full traceback: {traceback.format_exc()}")
+        logger.error(f" Full traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e))

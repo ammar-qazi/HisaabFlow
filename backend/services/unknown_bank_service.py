@@ -19,6 +19,9 @@ from backend.shared.amount_formats.regional_formats import (
     AmountFormat,
     RegionalFormatRegistry,
 )
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -54,7 +57,7 @@ class UnknownBankService:
         self.structure_analyzer = StructureAnalyzer()
         self.config_service = get_unified_config_service()
         self.format_registry = RegionalFormatRegistry()
-        print(f"ℹ [UnknownBankService] Initialized with enhanced structure analyzer")
+        logger.debug(f"ℹ [UnknownBankService] Initialized with enhanced structure analyzer")
 
     def analyze_unknown_bank_csv(
         self, file_path: str, filename: str, header_row: Optional[int] = None
@@ -69,10 +72,8 @@ class UnknownBankService:
         Returns:
             UnknownBankAnalysis with comprehensive results
         """
-        print(
-            f"ℹ [UnknownBankService] Starting analysis for unknown bank CSV: {filename}"
-        )
-        print(f"ℹ [UnknownBankService] Header row parameter: {header_row}")
+        logger.debug(f"ℹ [UnknownBankService] Starting analysis for unknown bank CSV: {filename}")
+        logger.debug(f"ℹ [UnknownBankService] Header row parameter: {header_row}")
 
         try:
             # Use the UnifiedCSVParser to handle all file operations
@@ -87,9 +88,7 @@ class UnknownBankService:
             # and get all raw rows to let StructureAnalyzer do proper header detection
             if header_row is None:
                 # Initial upload - get all raw rows without header processing
-                print(
-                    f"🔍 [DEBUG] Getting all raw rows for StructureAnalyzer to analyze"
-                )
+                logger.debug(f"🔍 [DEBUG] Getting all raw rows for StructureAnalyzer to analyze")
                 parsing_result = parser.parse_csv(
                     file_path, encoding=None, header_row=None, start_row=None
                 )
@@ -97,16 +96,14 @@ class UnknownBankService:
                 # Re-analysis with specific header row - use our calculations
                 parser_header_row = header_row - 1  # Convert 1-based to 0-based
                 start_row = parser_header_row + 1
-                print(
-                    f"🔍 [DEBUG] Using specific header_row: {header_row} -> parser_header_row={parser_header_row} -> start_row={start_row}"
-                )
+                logger.debug(f"🔍 [DEBUG] Using specific header_row: {header_row} -> parser_header_row={parser_header_row} -> start_row={start_row}")
                 parsing_result = parser.parse_csv(
                     file_path,
                     encoding=None,
                     header_row=parser_header_row,
                     start_row=start_row,
                 )
-            print(f"🔍 [DEBUG] Parsing result success: {parsing_result.get('success')}")
+            logger.debug(f"🔍 [DEBUG] Parsing result success: {parsing_result.get('success')}")
 
             if not parsing_result.get("success"):
                 raise Exception(f"Parsing failed: {parsing_result.get('error')}")
@@ -117,13 +114,8 @@ class UnknownBankService:
             metadata = parsing_result.get("metadata", {})
             encoding_detection = metadata.get("encoding_detection", {})
             detected_encoding = encoding_detection.get("encoding", "utf-8")
-            print(f"  DEBUG: UnknownBankService - Metadata: {metadata}")
-            print(
-                f"  DEBUG: UnknownBankService - Encoding detection: {encoding_detection}"
-            )
-            print(
-                f"  DEBUG: UnknownBankService - Detected encoding: {detected_encoding}"
-            )
+            logger.debug(f"  DEBUG: UnknownBankService - Encoding detection: {encoding_detection}")
+            logger.debug(f"  DEBUG: UnknownBankService - Detected encoding: {detected_encoding}")
             # Get delimiter from metadata
             dialect_detection = metadata.get("dialect_detection", {})
             detected_delimiter = dialect_detection.get("delimiter", ",")
@@ -145,7 +137,7 @@ class UnknownBankService:
             # For unknown bank analysis, read the file directly to avoid parsing issues
             # that can occur with complex line terminators in UnifiedCSVParser
             if header_row is None:
-                print(f"🔍 [DEBUG] Reading file directly for unknown bank analysis")
+                logger.debug(f"🔍 [DEBUG] Reading file directly for unknown bank analysis")
                 with open(file_path, "r", encoding=detected_encoding) as f:
                     csv_data = f.read()
                 # Pass header_row for auto-detection
@@ -153,16 +145,12 @@ class UnknownBankService:
             else:
                 # When user specifies header_row, read file directly and pass the user's choice
                 # This ensures the user's header row selection is respected
-                print(
-                    f"🔍 [DEBUG] Reading file directly to respect user's header row choice: {header_row}"
-                )
+                logger.debug(f"🔍 [DEBUG] Reading file directly to respect user's header row choice: {header_row}")
                 with open(file_path, "r", encoding=detected_encoding) as f:
                     csv_data = f.read()
                 # Pass 1-based header_row directly to analyzer (it will convert to 0-based internally)
                 analyzer_header_row = header_row
-                print(
-                    f"🔍 [DEBUG] Passing header_row {header_row} (1-based) to analyzer"
-                )
+                logger.debug(f"🔍 [DEBUG] Passing header_row {header_row} (1-based) to analyzer")
 
             # Now, use the parsed data to perform the analysis
             analysis = self.structure_analyzer.analyze_unknown_csv(
@@ -180,25 +168,17 @@ class UnknownBankService:
                 if not hasattr(analysis, "additional_metadata"):
                     analysis.additional_metadata = {}
                 analysis.additional_metadata["date_format_info"] = date_format_info
-                print(f"  Date format detected: {date_format_info.get('detected_format')}")
+                logger.debug(f"  Date format detected: {date_format_info.get('detected_format')}")
 
-            print(
-                f"  DEBUG: UnknownBankService - Analysis object encoding: {analysis.encoding}"
-            )
-            print(
-                f"  Analysis complete. Structure confidence: {analysis.structure_confidence:.2f}"
-            )
-            print(
-                f"  Amount format detected: {analysis.amount_format_analysis.detected_format} (confidence: {analysis.amount_format_analysis.confidence:.2f})"
-            )
-            print(
-                f"  Field mappings suggested for {len(analysis.field_mapping_suggestions)} fields"
-            )
+            logger.debug(f"  DEBUG: UnknownBankService - Analysis object encoding: {analysis.encoding}")
+            logger.debug(f"  Analysis complete. Structure confidence: {analysis.structure_confidence:.2f}")
+            logger.debug(f"  Amount format detected: {analysis.amount_format_analysis.detected_format} (confidence: {analysis.amount_format_analysis.confidence:.2f})")
+            logger.debug(f"  Field mappings suggested for {len(analysis.field_mapping_suggestions)} fields")
 
             return analysis
 
         except Exception as e:
-            print(f"[ERROR] [UnknownBankService] Analysis failed: {str(e)}")
+            logger.error(f"[ERROR] [UnknownBankService] Analysis failed: {str(e)}")
             raise
 
     def generate_bank_config(
@@ -214,9 +194,7 @@ class UnknownBankService:
         Returns:
             Complete bank configuration dictionary
         """
-        print(
-            f"ℹ [UnknownBankService] Generating bank config for: {user_input.bank_name}"
-        )
+        logger.debug(f"ℹ [UnknownBankService] Generating bank config for: {user_input.bank_name}")
 
         try:
             # Build configuration structure
@@ -267,13 +245,11 @@ class UnknownBankService:
             if user_input.description_cleaning_rules:
                 config["description_cleaning"] = user_input.description_cleaning_rules
 
-            print(
-                f"  Generated config with {len(user_input.column_mappings)} column mappings"
-            )
+            logger.debug(f"  Generated config with {len(user_input.column_mappings)} column mappings")
             return config
 
         except Exception as e:
-            print(f"[ERROR] [UnknownBankService] Config generation failed: {str(e)}")
+            logger.error(f"[ERROR] [UnknownBankService] Config generation failed: {str(e)}")
             raise
 
     def validate_generated_config(
@@ -289,7 +265,7 @@ class UnknownBankService:
         Returns:
             ConfigValidationResult with validation details
         """
-        print(f"ℹ [UnknownBankService] Validating generated config")
+        logger.debug(f"ℹ [UnknownBankService] Validating generated config")
 
         errors = []
         warnings = []
@@ -349,9 +325,7 @@ class UnknownBankService:
                 if analysis.sample_data and not errors:
                     parsed_count = len(analysis.sample_data)
                     sample_parse_success = True
-                    print(
-                        f"  Sample parsing validation: {parsed_count} rows would parse successfully"
-                    )
+                    logger.debug(f"  Sample parsing validation: {parsed_count} rows would parse successfully")
             except Exception as e:
                 warnings.append(f"Sample parsing test failed: {str(e)}")
 
@@ -386,13 +360,11 @@ class UnknownBankService:
                 parsed_sample_count=parsed_count,
             )
 
-            print(
-                f"  Validation complete. Valid: {is_valid}, Errors: {len(errors)}, Warnings: {len(warnings)}"
-            )
+            logger.debug(f"  Validation complete. Valid: {is_valid}, Errors: {len(errors)}, Warnings: {len(warnings)}")
             return result
 
         except Exception as e:
-            print(f"[ERROR] [UnknownBankService] Validation failed: {str(e)}")
+            logger.error(f"[ERROR] [UnknownBankService] Validation failed: {str(e)}")
             return ConfigValidationResult(
                 is_valid=False,
                 errors=[f"Validation error: {str(e)}"],
@@ -414,7 +386,7 @@ class UnknownBankService:
         # Handle both old (bank_name) and new (name) field formats
         bank_info = config.get("bank_info", {})
         bank_name = bank_info.get("name") or bank_info.get("bank_name", "")
-        print(f"ℹ [UnknownBankService] Saving config for bank: {bank_name}")
+        logger.debug(f"ℹ [UnknownBankService] Saving config for bank: {bank_name}")
 
         try:
             # Determine config file path
@@ -465,23 +437,19 @@ class UnknownBankService:
             with open(config_path, "w", encoding="utf-8") as f:
                 config_parser.write(f)
 
-            print(f"  Config saved to: {config_path}")
+            logger.debug(f"  Config saved to: {config_path}")
 
             # Reload all configurations to pick up the new one
             reload_success = self.config_service.reload_all_configs(force=True)
             if reload_success:
-                print(
-                    f"  Configs reloaded successfully. Bank '{bank_name}' is now available."
-                )
+                logger.debug(f"  Configs reloaded successfully. Bank '{bank_name}' is now available.")
             else:
-                print(
-                    f"[WARNING] Config saved but reload failed. Restart may be required."
-                )
+                logger.warning(f"[WARNING] Config saved but reload failed. Restart may be required.")
 
             return True
 
         except Exception as e:
-            print(f"[ERROR] [UnknownBankService] Failed to save config: {str(e)}")
+            logger.error(f"[ERROR] [UnknownBankService] Failed to save config: {str(e)}")
             return False
 
     def _generate_content_signatures(self, analysis: UnknownBankAnalysis) -> List[str]:
@@ -736,15 +704,11 @@ class UnknownBankService:
                         date_name in header_lower for date_name in common_date_names
                     ):
                         date_column_name = header
-                        print(
-                            f"  [DEBUG] Found potential date column by name matching: '{date_column_name}'"
-                        )
+                        logger.debug(f"  [DEBUG] Found potential date column by name matching: '{date_column_name}'")
                         break
 
             if not date_column_name or not analysis.sample_data:
-                print(
-                    f"  [WARNING] Date format detection skipped: date_column='{date_column_name}', sample_data_available={bool(analysis.sample_data)}"
-                )
+                logger.warning(f"  [WARNING] Date format detection skipped: date_column='{date_column_name}', sample_data_available={bool(analysis.sample_data)}")
                 return None
 
             # Extract up to 5 non-null date samples for robust detection
@@ -760,14 +724,10 @@ class UnknownBankService:
                             break
 
             if not date_samples:
-                print(
-                    f"  [WARNING] No valid date samples found in column '{date_column_name}'"
-                )
+                logger.warning(f"  [WARNING] No valid date samples found in column '{date_column_name}'")
                 return None
 
-            print(
-                f"  [DEBUG] Date format detection using {len(date_samples)} samples from column '{date_column_name}': {date_samples}"
-            )
+            logger.debug(f"  [DEBUG] Date format detection using {len(date_samples)} samples from column '{date_column_name}': {date_samples}")
 
             # Infer format for each sample
             inferred_formats = []
@@ -776,23 +736,18 @@ class UnknownBankService:
                     format_guess = guess_datetime_format(sample)
                     if format_guess:
                         inferred_formats.append(format_guess)
-                        print(f"    Sample '{sample}' → format '{format_guess}'")
                     else:
                         # Fallback: try common date patterns when pandas fails
                         fallback_format = self._try_common_date_patterns(sample)
                         if fallback_format:
                             inferred_formats.append(fallback_format)
-                            print(
-                                f"    Sample '{sample}' → format '{fallback_format}' (fallback)"
-                            )
                         else:
-                            print(f"    Sample '{sample}' → no format detected")
-                except Exception as e:
-                    print(f"    Sample '{sample}' → failed: {e}")
+                            pass
+                except Exception:
                     continue
 
             if not inferred_formats:
-                print(f"  [WARNING] No date formats could be inferred from samples")
+                logger.warning(f"  [WARNING] No date formats could be inferred from samples")
                 return None
 
             # Find the most common format using majority vote
@@ -800,9 +755,7 @@ class UnknownBankService:
             most_common_format, count = format_counter.most_common(1)[0]
             confidence = count / len(inferred_formats) if inferred_formats else 0.0
 
-            print(
-                f"  [SUCCESS] Date format detection: '{most_common_format}' (appeared {count}/{len(inferred_formats)} times, {confidence:.1%} confidence)"
-            )
+            logger.debug(f"  [SUCCESS] Date format detection: '{most_common_format}' (appeared {count}/{len(inferred_formats)} times, {confidence:.1%} confidence)")
             
             # Return detailed information
             return {
@@ -815,7 +768,7 @@ class UnknownBankService:
             }
 
         except Exception as e:
-            print(f"  [ERROR] Date format detection failed: {e}")
+            logger.error(f"  [ERROR] Date format detection failed: {e}")
             return None
 
     def _try_common_date_patterns(self, date_sample: str) -> Optional[str]:

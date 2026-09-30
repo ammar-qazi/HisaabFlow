@@ -16,6 +16,9 @@ from backend.api.dependencies import (
     get_transformation_service,
     get_export_service
 )
+import logging
+
+logger = logging.getLogger(__name__)
 
 transform_router = APIRouter()
 
@@ -28,12 +31,12 @@ async def transform_multi_csv_data(
     transformation_service = Depends(get_transformation_service)
 ):
     """Transform multi-CSV data to Cashew format"""
-    print(f" Multi-CSV transform request received")
+    logger.debug(f" Multi-CSV transform request received")
     
     try:
         # Get raw request body for debugging
         body = await request.body()
-        print(f" Raw request body size: {len(body)} bytes")
+        logger.debug(f" Raw request body size: {len(body)} bytes")
         
         # Parse JSON manually for debugging
         raw_data = json.loads(body)
@@ -47,12 +50,12 @@ async def transform_multi_csv_data(
         return result
         
     except json.JSONDecodeError as e:
-        print(f"[ERROR]  JSON decode error: {str(e)}")
+        logger.error(f"[ERROR]  JSON decode error: {str(e)}")
         raise HTTPException(status_code=422, detail=f"Invalid JSON: {str(e)}")
     except Exception as e:
-        print(f"[ERROR]  Multi-CSV transform exception: {str(e)}")
+        logger.error(f"[ERROR]  Multi-CSV transform exception: {str(e)}")
         import traceback
-        print(f" Full traceback: {traceback.format_exc()}")
+        logger.error(f" Full traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -62,12 +65,12 @@ async def apply_transfer_categorization(
     transformation_service = Depends(get_transformation_service)
 ):
     """Apply transfer categorization to existing transformed data"""
-    print(f" Transfer categorization request received")
+    logger.debug(f" Transfer categorization request received")
     
     try:
         # Get raw request body
         body = await request.body()
-        print(f" Raw request body size: {len(body)} bytes")
+        logger.debug(f" Raw request body size: {len(body)} bytes")
         
         # Parse JSON
         request_data = json.loads(body)
@@ -81,12 +84,12 @@ async def apply_transfer_categorization(
         return result
         
     except json.JSONDecodeError as e:
-        print(f"[ERROR]  JSON decode error: {str(e)}")
+        logger.error(f"[ERROR]  JSON decode error: {str(e)}")
         raise HTTPException(status_code=422, detail=f"Invalid JSON: {str(e)}")
     except Exception as e:
-        print(f"[ERROR]  Transfer categorization exception: {str(e)}")
+        logger.error(f"[ERROR]  Transfer categorization exception: {str(e)}")
         import traceback
-        print(f" Full traceback: {traceback.format_exc()}")
+        logger.error(f" Full traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -96,7 +99,7 @@ async def export_csv_data(
     export_service = Depends(get_export_service)
 ):
     """Export transformed data as CSV file"""
-    print(f"[IN] Export request received")
+    logger.debug(f"[IN] Export request received")
     
     try:
         # Parse the request body
@@ -107,10 +110,10 @@ async def export_csv_data(
         return export_service.export_to_csv(data)
         
     except json.JSONDecodeError as e:
-        print(f"[ERROR]  JSON decode error: {str(e)}")
+        logger.error(f"[ERROR]  JSON decode error: {str(e)}")
         raise HTTPException(status_code=400, detail=f"Invalid JSON: {str(e)}")
     except Exception as e:
-        print(f"[ERROR]  Export error: {str(e)}")
+        logger.error(f"[ERROR]  Export error: {str(e)}")
         import traceback
-        print(f" Full traceback: {traceback.format_exc()}")
+        logger.error(f" Full traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e))

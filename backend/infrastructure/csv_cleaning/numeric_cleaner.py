@@ -8,6 +8,9 @@ from typing import List, Dict, Any, Optional
 import re
 from ...shared.amount_formats import AmountFormat, RegionalFormatRegistry, AmountFormatDetector, FormatValidator
 from ...shared.utils.amount_text import parse_amount_text
+import logging
+
+logger = logging.getLogger(__name__)
 
 class NumericCleaner:
     """
@@ -22,8 +25,8 @@ class NumericCleaner:
         self.format_detector = AmountFormatDetector()
         self.format_validator = FormatValidator()
         
-        print(f"    [INIT] NumericCleaner initialized with format: {self.amount_format.name or 'Custom'}")
-        print(f"           Decimal: '{self.amount_format.decimal_separator}', Thousand: '{self.amount_format.thousand_separator}'")
+        logger.debug(f"    [INIT] NumericCleaner initialized with format: {self.amount_format.name or 'Custom'}")
+        logger.debug(f"           Decimal: '{self.amount_format.decimal_separator}', Thousand: '{self.amount_format.thousand_separator}'")
     
     def clean_numeric_columns(self, data: List[Dict]) -> List[Dict]:
         """
@@ -35,14 +38,14 @@ class NumericCleaner:
         Returns:
             List[Dict]: Data with cleaned numeric values
         """
-        print(f"    Step 4: Cleaning numeric columns with format: {self.amount_format.name or 'Custom'}")
+        logger.debug(f"    Step 4: Cleaning numeric columns with format: {self.amount_format.name or 'Custom'}")
         
         if not data:
             return []
         
         # Identify numeric columns
         numeric_cols = self._identify_numeric_columns(data)
-        print(f"      [DATA] Numeric columns found: {numeric_cols}")
+        logger.debug(f"      [DATA] Numeric columns found: {numeric_cols}")
         
         cleaned_data = []
         for row_idx, row in enumerate(data):
@@ -54,13 +57,13 @@ class NumericCleaner:
                     
                     # Debug first few rows
                     if row_idx < 3:
-                        print(f"       Row {row_idx} {col}: '{value}' → {cleaned_value}")
+                        pass
                 else:
                     cleaned_row[col] = value
             
             cleaned_data.append(cleaned_row)
         
-        print(f"      [SUCCESS] Numeric cleaning complete")
+        logger.debug(f"      [SUCCESS] Numeric cleaning complete")
         return cleaned_data
     
     def _identify_numeric_columns(self, data: List[Dict]) -> List[str]:
@@ -164,7 +167,6 @@ class NumericCleaner:
             return parsed
         
         # Fallback to legacy parsing if format-aware parsing fails
-        print(f"      [FALLBACK] Format-aware parsing failed for '{value}', using legacy method")
         return self.parse_numeric_value(value)
     
     def parse_numeric_value(self, value: Any) -> float:

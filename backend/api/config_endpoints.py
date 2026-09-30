@@ -11,6 +11,9 @@ from backend.api.models import (
     ConfigResponse, 
     ReloadConfigsResponse
 )
+import logging
+
+logger = logging.getLogger(__name__)
 
 config_router = APIRouter()
 
@@ -19,7 +22,7 @@ config_router = APIRouter()
 @config_router.get("/configs", response_model=ConfigListResponse)
 async def list_configs(config_manager = Depends(get_config_manager)):
     """List available bank configurations using lightweight detection patterns"""
-    print(f" API: Listing available bank configurations...")
+    logger.debug(f" API: Listing available bank configurations...")
     try:
         # Use detection patterns instead of loading full configs
         detection_patterns = config_manager.unified_service.get_detection_patterns()
@@ -32,9 +35,9 @@ async def list_configs(config_manager = Depends(get_config_manager)):
             display_name = f"{detection_info.display_name} Configuration"
             config_display_names.append(display_name)
             available_configs.append(bank_name)
-            print(f" Available: {display_name} (from {bank_name}.conf)")
+            logger.debug(f" Available: {display_name} (from {bank_name}.conf)")
         
-        print(f" Total configurations found: {len(config_display_names)} (lightweight)")
+        logger.debug(f" Total configurations found: {len(config_display_names)} (lightweight)")
         
         return {
             "configurations": config_display_names,
@@ -42,7 +45,7 @@ async def list_configs(config_manager = Depends(get_config_manager)):
             "count": len(config_display_names)
         }
     except Exception as e:
-        print(f"[ERROR]  Config list error: {str(e)}")
+        logger.error(f"[ERROR]  Config list error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @config_router.get("/config/{config_name}", response_model=ConfigResponse)
@@ -51,11 +54,11 @@ async def load_config(
     config_manager = Depends(get_config_manager)
 ):
     """Load bank configuration by display name or bank name"""
-    print(f" API: Loading bank configuration '{config_name}'")
+    logger.debug(f" API: Loading bank configuration '{config_name}'")
     try:
         # Find matching bank name
         bank_name = _find_matching_bank_name(config_name, config_manager)
-        print(f" Matched bank name: '{bank_name}'")
+        logger.debug(f" Matched bank name: '{bank_name}'")
         
         if not bank_name:
             available = config_manager.list_configured_banks()
@@ -103,18 +106,18 @@ async def load_config(
             "source": f"{bank_name}.conf"
         }
         
-        print(f"[SUCCESS] Configuration loaded successfully: {result['display_name']}")
+        logger.debug(f"[SUCCESS] Configuration loaded successfully: {result['display_name']}")
         return result
         
     except HTTPException:
         raise
     except Exception as e:
-        print(f"[ERROR]  Config load error: {str(e)}")
+        logger.error(f"[ERROR]  Config load error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error loading configuration: {str(e)}")
 
 def _find_matching_bank_name(config_name: str, config_manager) -> Optional[str]:
     """Find bank name from configuration display name or direct name"""
-    print(f" Finding bank name for: '{config_name}'")
+    logger.debug(f" Finding bank name for: '{config_name}'")
     
     config_name_lower = config_name.lower()
     available_banks = config_manager.list_configured_banks()
@@ -123,24 +126,24 @@ def _find_matching_bank_name(config_name: str, config_manager) -> Optional[str]:
     if config_name_lower in [bank.lower() for bank in available_banks]:
         for bank in available_banks:
             if bank.lower() == config_name_lower:
-                print(f"[SUCCESS] Direct match: {bank}")
+                logger.debug(f"[SUCCESS] Direct match: {bank}")
                 return bank
     
     # Display name match (e.g., "NayaPay Configuration" -> "nayapay")
     for bank_name in available_banks:
         display_name = f"{bank_name.title()} Configuration".lower()
         if config_name_lower == display_name:
-            print(f"[SUCCESS] Display name match: {bank_name}")
+            logger.debug(f"[SUCCESS] Display name match: {bank_name}")
             return bank_name
     
-    print(f"[ERROR]  No match found for: '{config_name}'")
+    logger.error(f"[ERROR]  No match found for: '{config_name}'")
     return None
 
 
 @config_router.post("/reload", response_model=ReloadConfigsResponse)
 async def reload_configurations(config_manager = Depends(get_config_manager)):
     """Reload all bank configurations from disk"""
-    print("ℹ [API] Reloading all bank configurations...")
+    logger.debug("ℹ [API] Reloading all bank configurations...")
     try:
         # Call the reload method on the underlying unified service
         success = config_manager.unified_service.reload_all_configs(force=True)
@@ -155,7 +158,7 @@ async def reload_configurations(config_manager = Depends(get_config_manager)):
         available_configs = config_manager.list_configured_banks()
         count = len(available_configs)
         
-        print(f"[SUCCESS] Reloaded {count} bank configurations")
+        logger.debug(f"[SUCCESS] Reloaded {count} bank configurations")
         
         return {
             "success": True,
@@ -164,7 +167,7 @@ async def reload_configurations(config_manager = Depends(get_config_manager)):
         }
         
     except Exception as e:
-        print(f"[ERROR] Configuration reload failed: {str(e)}")
+        logger.error(f"[ERROR] Configuration reload failed: {str(e)}")
         raise HTTPException(
             status_code=500, 
             detail=f"Failed to reload configurations: {str(e)}"

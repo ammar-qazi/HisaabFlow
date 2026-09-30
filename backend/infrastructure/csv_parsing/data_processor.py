@@ -5,6 +5,9 @@ Handles header detection, data row extraction, and dictionary conversion
 from typing import Dict, List, Optional
 from .utils import normalize_column_count, sanitize_for_json, validate_csv_structure, estimate_data_types
 from .data_processing_helpers import _extract_headers, _extract_data_rows, _convert_to_dictionaries
+import logging
+
+logger = logging.getLogger(__name__)
 
 class DataProcessor:
     """Process raw CSV data into structured format"""
@@ -33,7 +36,7 @@ class DataProcessor:
                 'processing_info': dict
             }
         """
-        print(f"[DATA] Processing {len(raw_rows)} raw rows")
+        logger.debug(f"[DATA] Processing {len(raw_rows)} raw rows")
         
         try:
             if not raw_rows:
@@ -47,20 +50,20 @@ class DataProcessor:
             
             # Normalize column counts across all rows and clean headers
             normalized_rows = normalize_column_count(raw_rows)
-            print(f"    Normalized to {len(normalized_rows[0]) if normalized_rows else 0} columns per row")
+            logger.debug(f"    Normalized to {len(normalized_rows[0]) if normalized_rows else 0} columns per row")
             
             # Extract headers using helper
             headers_result = _extract_headers(normalized_rows, header_row, self.header_indicators)
             headers = headers_result['headers']
             actual_header_row = headers_result['header_row_used']
             
-            print(f"    Extracted {len(headers)} headers from row {actual_header_row}")
+            logger.debug(f"    Extracted {len(headers)} headers from row {actual_header_row}")
             
             # Extract data rows
             data_rows_result = _extract_data_rows(normalized_rows, actual_header_row)
             data_rows = data_rows_result['data_rows']
             
-            print(f"   [DATA] Extracted {len(data_rows)} data rows")
+            logger.debug(f"   [DATA] Extracted {len(data_rows)} data rows")
             
             # Convert to dictionaries
             data_dicts = _convert_to_dictionaries(headers, data_rows)
@@ -99,7 +102,7 @@ class DataProcessor:
             }
             
         except Exception as e:
-            print(f"[ERROR]  Data processing failed: {str(e)}")
+            logger.error(f"[ERROR]  Data processing failed: {str(e)}")
             return {
                 'success': False,
                 'headers': [],

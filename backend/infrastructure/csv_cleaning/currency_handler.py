@@ -4,6 +4,9 @@ Manages currency column detection and addition for bank data
 """
 
 from typing import List, Dict
+import logging
+
+logger = logging.getLogger(__name__)
 
 class CurrencyHandler:
     """
@@ -43,7 +46,7 @@ class CurrencyHandler:
         Returns:
             List[Dict]: Data with currency column added if needed
         """
-        print(f"    Step 3: Adding currency column if needed")
+        logger.debug(f"    Step 3: Adding currency column if needed")
         
         if not data:
             return []
@@ -61,17 +64,17 @@ class CurrencyHandler:
                 enable_currency_addition = data_cleaning_config.get('enable_currency_addition', True)
             
             if not enable_currency_addition:
-                print(f"      [SUCCESS] Currency addition disabled in config, skipping...")
+                logger.debug(f"      [SUCCESS] Currency addition disabled in config, skipping...")
                 return data
         
         # Check if currency column already exists
         if self._has_currency_column(data):
-            print(f"      [SUCCESS] Currency column already exists, skipping...")
+            logger.debug(f"      [SUCCESS] Currency column already exists, skipping...")
             return data
         
         # Determine default currency
         default_currency = self._determine_default_currency(template_config)
-        print(f"       Adding currency column with default: {default_currency}")
+        logger.debug(f"       Adding currency column with default: {default_currency}")
         
         # Add currency column to all rows
         currency_added_data = []
@@ -80,7 +83,7 @@ class CurrencyHandler:
             new_row['Currency'] = default_currency  # Use Title case for consistency
             currency_added_data.append(new_row)
         
-        print(f"      [SUCCESS] Currency column added: {default_currency}")
+        logger.debug(f"      [SUCCESS] Currency column added: {default_currency}")
         return currency_added_data
     
     def _has_currency_column(self, data: List[Dict]) -> bool:
@@ -144,4 +147,4 @@ class CurrencyHandler:
             currency: Currency code
         """
         self.currency_mappings[bank_name.lower()] = currency.upper()
-        print(f"       Added currency mapping: {bank_name} → {currency}")
+        logger.debug(f"       Added currency mapping: {bank_name} → {currency}")

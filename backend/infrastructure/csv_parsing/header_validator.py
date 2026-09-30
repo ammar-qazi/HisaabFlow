@@ -64,5 +64,4 @@ def find_and_validate_header(
             f"Found: {actual_header}, Expected: {expected_headers}"
         )
 
-    print(f"Header validation passed for row {configured_header_row + 1} with ratio {match_ratio:.2f}")
     return actual_header

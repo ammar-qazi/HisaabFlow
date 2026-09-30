@@ -14,6 +14,9 @@ from backend.core.bank_detection import BankDetector
 from backend.infrastructure.config.unified_config_service import get_unified_config_service, safe_config_path
 from backend.shared.models.csv_models import BankDetectionResult
 from backend.services.bank_detection_cache import get_bank_detection_cache
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class CSVProcessingService:
@@ -41,7 +44,7 @@ class CSVProcessingService:
         # Domain services - these stay as direct dependencies
         self.config_service = get_unified_config_service()
         
-        print(f"ℹ [CSVProcessingService] Initialized with injected components")
+        logger.debug(f"ℹ [CSVProcessingService] Initialized with injected components")
     
     def process_single_file(self, file_info: Dict[str, Any], parse_config: Any, 
                            enable_cleaning: bool = True) -> Dict[str, Any]:
@@ -56,7 +59,7 @@ class CSVProcessingService:
         Returns:
             dict: Processing result
         """
-        print(f"ℹ [CSVProcessingService] Processing file: {file_info['file_id']}")
+        logger.debug(f"ℹ [CSVProcessingService] Processing file: {file_info['file_id']}")
         
         file_path = file_info["temp_path"]
         filename = file_info["original_name"]
@@ -120,9 +123,9 @@ class CSVProcessingService:
             }
             
         except Exception as e:
-            print(f"[ERROR] File processing exception for {filename}: {str(e)}")
+            logger.error(f"[ERROR] File processing exception for {filename}: {str(e)}")
             import traceback
-            print(f"   Full traceback: {traceback.format_exc()}")
+            logger.error(f"   Full traceback: {traceback.format_exc()}")
             return {
                 "file_id": file_info["file_id"],
                 "filename": filename,
@@ -141,10 +144,10 @@ class CSVProcessingService:
         # The frontend always sends 'utf-8'. Keep it when the whole file really
         # is UTF-8; otherwise (e.g. cp1250 exports) detect the encoding.
         if not effective_encoding or (effective_encoding.lower() == 'utf-8' and not self._is_valid_utf8(file_path)):
-            print(f"      Config encoding is '{effective_encoding}'. Detecting encoding for '{filename}'")
+            logger.debug(f"      Config encoding is '{effective_encoding}'. Detecting encoding for '{filename}'")
             detection_result = self.encoding_detector.detect_encoding(file_path)
             effective_encoding = detection_result['encoding']
-            print(f"      Detected encoding for '{filename}': {effective_encoding} (confidence: {detection_result['confidence']:.2f})")
+            logger.debug(f"      Detected encoding for '{filename}': {effective_encoding} (confidence: {detection_result['confidence']:.2f})")
         
         return effective_encoding
     
@@ -183,7 +186,7 @@ class CSVProcessingService:
         cache = get_bank_detection_cache()
         cached_result = cache.get(filename, file_path)
         if cached_result:
-            print(f"      ✅ [CACHE] Using cached bank detection for {filename}: {cached_result['bank_name']} (confidence: {cached_result['confidence']:.2f})")
+            logger.debug(f"      ✅ [CACHE] Using cached bank detection for {filename}: {cached_result['bank_name']} (confidence: {cached_result['confidence']:.2f})")
             
             # Extract component scores from cached reasons
             filename_score = self._extract_component_score(cached_result['reasons'], 'filename_match')
@@ -216,7 +219,7 @@ class CSVProcessingService:
             }
         
         # Fallback to original detection if no cache available
-        print(f"      🔍 [DETECTION] No cached result available, performing fresh bank detection for {filename}")
+        logger.debug(f"      🔍 [DETECTION] No cached result available, performing fresh bank detection for {filename}")
         
         # Read raw content for content signature matching with encoding fallback
         raw_content = ""
@@ -227,17 +230,17 @@ class CSVProcessingService:
                 raw_content = f.read(2000)  # First 2KB for signatures
         except UnicodeDecodeError:
             # If the provided encoding fails, try to re-detect the correct encoding
-            print(f"      Encoding {encoding} failed, re-detecting encoding for {filename}")
+            logger.warning(f"      Encoding {encoding} failed, re-detecting encoding for {filename}")
             try:
                 detection_result = self.encoding_detector.detect_encoding(file_path)
                 encoding_used = detection_result['encoding']
-                print(f"      Re-detected encoding: {encoding_used} (confidence: {detection_result['confidence']:.2f})")
+                logger.debug(f"      Re-detected encoding: {encoding_used} (confidence: {detection_result['confidence']:.2f})")
                 with open(file_path, 'r', encoding=encoding_used, newline='') as f:
                     raw_content = f.read(2000)
             except Exception as e2:
-                print(f"Warning: Re-detection also failed: {e2}")
+                logger.warning(f"Warning: Re-detection also failed: {e2}")
         except Exception as e:
-            print(f"Warning: Could not read raw content: {e}")
+            logger.debug(f"Warning: Could not read raw content: {e}")
         
         # Create fresh BankDetector with latest patterns
         bank_detector = BankDetector(self.config_service)
@@ -287,15 +290,15 @@ class CSVProcessingService:
     
     def _apply_preprocessing(self, file_path: str, config: Any, quick_detection: Dict[str, Any]) -> Dict[str, Any]:
         """Apply generic CSV preprocessing"""
-        print(f"      Generic CSV preprocessing (bank-agnostic)")
+        logger.debug(f"      Generic CSV preprocessing (bank-agnostic)")
         
         # Check if we should skip empty row removal for absolute positioning banks
         skip_empty_row_removal = False
         if quick_detection and quick_detection.get('uses_absolute_positioning', False):
             skip_empty_row_removal = True
-            print(f"      Using bank-aware preprocessing for {quick_detection['bank_name']} (preserving empty rows)")
+            logger.debug(f"      Using bank-aware preprocessing for {quick_detection['bank_name']} (preserving empty rows)")
         else:
-            print(f"      Using bank-agnostic CSV preprocessing")
+            logger.debug(f"      Using bank-agnostic CSV preprocessing")
         
         # Apply generic CSV preprocessing
         encoding = config.encoding if hasattr(config, 'encoding') else config.get('encoding')
@@ -318,10 +321,10 @@ class CSVProcessingService:
                 'original_rows': preprocessing_result['original_rows'],
                 'processed_rows': preprocessing_result['processed_rows']
             }
-            print(f"      [SUCCESS] Generic preprocessing applied: {len(preprocessing_result['issues_fixed'])} issues fixed")
-            print(f"         [DATA] Rows: {preprocessing_result['original_rows']} → {preprocessing_result['processed_rows']}")
+            logger.debug(f"      [SUCCESS] Generic preprocessing applied: {len(preprocessing_result['issues_fixed'])} issues fixed")
+            logger.debug(f"         [DATA] Rows: {preprocessing_result['original_rows']} → {preprocessing_result['processed_rows']}")
         else:
-            print(f"      Generic preprocessing skipped (no issues found)")
+            logger.debug(f"      Generic preprocessing skipped (no issues found)")
         
         return {
             'file_path': actual_file_path,
@@ -334,7 +337,7 @@ class CSVProcessingService:
         """Detect bank and validate header using robust header validation - optimized to reuse initial detection"""
         from backend.infrastructure.csv_parsing.header_validator import find_and_validate_header, HeaderValidationError
         
-        print(f"      ⚡ [OPTIMIZED] Using cached bank detection for header validation: {filename}")
+        logger.debug(f"      ⚡ [OPTIMIZED] Using cached bank detection for header validation: {filename}")
         
         # Use the initial detection result instead of re-detecting
         bank_detection_result = type('BankDetectionResult', (), {
@@ -345,7 +348,7 @@ class CSVProcessingService:
         
         if bank_detection_result.bank_name != 'unknown' and bank_detection_result.confidence >= 0.5:
             detected_bank_name = bank_detection_result.bank_name
-            print(f"      ✅ [CACHED] Using detected bank: {detected_bank_name} (confidence: {bank_detection_result.confidence:.2f})")
+            logger.debug(f"      ✅ [CACHED] Using detected bank: {detected_bank_name} (confidence: {bank_detection_result.confidence:.2f})")
             
             header_row_0_indexed = None
             try:
@@ -377,7 +380,7 @@ class CSVProcessingService:
                 
                 effective_header_row = header_row_0_indexed
                 effective_data_start_row = effective_header_row + 1
-                print(f"      Header validated for {detected_bank_name}. header_row={effective_header_row}, data_start_row={effective_data_start_row}")
+                logger.debug(f"      Header validated for {detected_bank_name}. header_row={effective_header_row}, data_start_row={effective_data_start_row}")
                 
                 return bank_detection_result, {
                     'header_row': effective_header_row,
@@ -385,7 +388,7 @@ class CSVProcessingService:
                 }
                 
             except (ValueError, HeaderValidationError) as e:
-                print(f"      [ERROR] Header detection/validation failed for {detected_bank_name}: {e}")
+                logger.error(f"      [ERROR] Header detection/validation failed for {detected_bank_name}: {e}")
                 if header_row_0_indexed is None:
                     # Config missing or has no header_row: fall back to the first row
                     return bank_detection_result, {
@@ -393,7 +396,7 @@ class CSVProcessingService:
                         'data_start_row': 1,
                         'error': str(e)
                     }
-                print(f"      [FIX] Using configured header_row anyway: {header_row_0_indexed}")
+                logger.debug(f"      [FIX] Using configured header_row anyway: {header_row_0_indexed}")
                 # CRITICAL FIX: Still use the configured header_row even if validation fails
                 return bank_detection_result, {
                     'header_row': header_row_0_indexed,
@@ -401,7 +404,7 @@ class CSVProcessingService:
                     'error': str(e)
                 }
         else:
-            print(f"      No specific bank detected with sufficient confidence, using fallback")
+            logger.debug(f"      No specific bank detected with sufficient confidence, using fallback")
             return bank_detection_result, {
                 'header_row': 0,
                 'data_start_row': 1
@@ -409,7 +412,7 @@ class CSVProcessingService:
     
     def _parse_with_bank_info(self, file_path: str, config: Any, header_info: Dict[str, Any]) -> Dict[str, Any]:
         """Parse file with enhanced parser using bank-detected info"""
-        print(f"      Parsing with UnifiedCSVParser")
+        logger.debug(f"      Parsing with UnifiedCSVParser")
         
         header_row_for_unified = header_info['header_row']
         data_start_row_for_unified = header_info['data_start_row']
@@ -421,7 +424,6 @@ class CSVProcessingService:
         
         encoding = config.encoding if hasattr(config, 'encoding') else config.get('encoding')
         
-        print(f"         UnifiedParser params: encoding='{encoding}', header_row={header_row_for_unified}, start_row={data_start_row_for_unified}, max_rows={max_rows_for_unified}")
         
         # Parse with injected CSV parser - FIXED: Now properly passes header_row from bank config
         parse_result = self.csv_parser.parse_csv(
@@ -432,13 +434,13 @@ class CSVProcessingService:
             max_rows=max_rows_for_unified
         )
         
-        print(f"         UnifiedParser result success: {parse_result.get('success')}")
+        logger.debug(f"         UnifiedParser result success: {parse_result.get('success')}")
         
         if parse_result.get('success'):
             parsed_headers = parse_result.get('headers', [])
-            print(f"         Headers parsed: {parsed_headers}")
+            logger.debug(f"         Headers parsed: {parsed_headers}")
         else:
-            print(f"         UnifiedParser failed. Error: {parse_result.get('error')}")
+            logger.warning(f"         UnifiedParser failed. Error: {parse_result.get('error')}")
         
         return parse_result
     
@@ -488,7 +490,7 @@ class CSVProcessingService:
         # Check for bank mismatch between phases
         bank_mismatch = initial_detection['bank_name'] != header_detection['bank_name']
         if bank_mismatch and initial_detection['bank_name'] != 'unknown' and header_detection['bank_name'] != 'unknown':
-            print(f"Warning: Bank mismatch - Initial: {initial_detection['bank_name']}, Header: {header_detection['bank_name']}")
+            logger.debug(f"Warning: Bank mismatch - Initial: {initial_detection['bank_name']}, Header: {header_detection['bank_name']}")
         
         return {
             'bank_name': final_bank,
@@ -510,7 +512,7 @@ class CSVProcessingService:
     def _finalize_bank_detection(self, filename: str, file_path: str, parse_result: Dict[str, Any],
                                 initial_detection: Dict[str, Any], preprocessing_info: Dict[str, Any]) -> Dict[str, Any]:
         """Finalize bank detection using optimized approach - reuse cached results when possible"""
-        print(f"      ⚡ [OPTIMIZED] Finalizing bank detection for {filename}")
+        logger.debug(f"      ⚡ [OPTIMIZED] Finalizing bank detection for {filename}")
         
         headers = parse_result.get('headers', [])
         
@@ -520,7 +522,7 @@ class CSVProcessingService:
         
         if cached_result and cached_result.get('headers'):
             # We have a complete cached result - reuse it entirely
-            print(f"      ✅ [CACHE] Reusing complete bank detection from cache")
+            logger.debug(f"      ✅ [CACHE] Reusing complete bank detection from cache")
             
             # Extract all component scores from cached result
             filename_score = self._extract_component_score(cached_result['reasons'], 'filename_match')
@@ -548,8 +550,7 @@ class CSVProcessingService:
                 }
             }
             
-            print(f"      ✅ [FINAL] Bank detected: {final_result['bank_name']} (confidence={final_result['confidence']:.2f})")
-            print(f"      Component scores - Filename: {filename_score:.1f}, Content: {content_score:.1f}, Header: {header_score:.1f}")
+            logger.debug(f"      ✅ [FINAL] Bank detected: {final_result['bank_name']} (confidence={final_result['confidence']:.2f})")
             
             # Store comprehensive bank detection info
             return {
@@ -560,14 +561,14 @@ class CSVProcessingService:
             }
         
         # Fallback to fresh header detection if no cache available (should rarely happen)
-        print(f"      🔍 [DETECTION] No complete cache available, performing fresh header detection for {filename}")
+        logger.debug(f"      🔍 [DETECTION] No complete cache available, performing fresh header detection for {filename}")
         header_detection = self._header_bank_detection(filename, headers)
         
         # Phase 3: Hybrid confidence calculation
         hybrid_result = self._calculate_hybrid_confidence(initial_detection, header_detection)
         
-        print(f"      ✅ [FINAL] Bank detected: {hybrid_result['bank_name']} (confidence={hybrid_result['confidence']:.2f})")
-        print(f"      Component scores - Filename: {hybrid_result['detection_phases']['initial']['components']['filename_score']:.1f}, Content: {hybrid_result['detection_phases']['initial']['components']['content_score']:.1f}, Header: {hybrid_result['detection_phases']['header']['components']['header_score']:.1f}")
+        logger.debug(f"      ✅ [FINAL] Bank detected: {hybrid_result['bank_name']} (confidence={hybrid_result['confidence']:.2f})")
+        logger.debug(f"      Component scores - Filename: {hybrid_result['detection_phases']['initial']['components']['filename_score']:.1f}, Content: {hybrid_result['detection_phases']['initial']['components']['content_score']:.1f}, Header: {hybrid_result['detection_phases']['header']['components']['header_score']:.1f}")
         
         # Store comprehensive bank detection info
         return {
@@ -583,7 +584,7 @@ class CSVProcessingService:
         final_result = parse_result
         
         if enable_cleaning:
-            print(f"      Applying data cleaning...")
+            logger.debug(f"      Applying data cleaning...")
             
             # Create bank-specific cleaning config
             bank_cleaning_config = None
@@ -596,10 +597,9 @@ class CSVProcessingService:
                 if bank_config:
                     if bank_config.data_cleaning:
                         amount_format = bank_config.data_cleaning.amount_format
-                        print(f"         Using bank-specific amount format: {amount_format.name if amount_format else 'None'}")
                     if bank_config.csv_config and bank_config.csv_config.date_format:
                         date_format = bank_config.csv_config.date_format
-                        print(f"         Using bank-specific date format: {date_format}")
+                        logger.debug(f"         Using bank-specific date format: {date_format}")
                 
                 detection_patterns = self.config_service.get_detection_patterns()
                 expected_headers = []
@@ -610,7 +610,7 @@ class CSVProcessingService:
                 default_currency = 'PKR'  # fallback
                 if bank_config and bank_config.currency_primary:
                     default_currency = bank_config.currency_primary
-                    print(f"         Using bank-specific currency: {default_currency} from {bank_name} config")
+                    logger.debug(f"         Using bank-specific currency: {default_currency} from {bank_name} config")
                 
                 bank_cleaning_config = {
                     'column_mapping': bank_column_mapping,
@@ -619,7 +619,7 @@ class CSVProcessingService:
                     'default_currency': default_currency,
                     'data_cleaning': bank_config.data_cleaning if bank_config else None
                 }
-                print(f"         Using bank-specific cleaning config for {bank_name}")
+                logger.debug(f"         Using bank-specific cleaning config for {bank_name}")
             
             # Create DataCleaner with bank-specific amount format and date format
             data_cleaner = DataCleaner(amount_format=amount_format, config_date_format=date_format)
@@ -638,9 +638,9 @@ class CSVProcessingService:
                     'original_headers': parse_result.get('headers', []),
                     'bank_info': bank_info
                 }
-                print(f"         [SUCCESS] Data cleaning successful: {cleaning_result['row_count']} clean rows")
+                logger.debug(f"         [SUCCESS] Data cleaning successful: {cleaning_result['row_count']} clean rows")
             else:
-                print(f"         [WARNING] Data cleaning failed, using uncleaned data")
+                logger.warning(f"         [WARNING] Data cleaning failed, using uncleaned data")
                 final_result['cleaning_applied'] = False
                 final_result['bank_info'] = bank_info
         else:

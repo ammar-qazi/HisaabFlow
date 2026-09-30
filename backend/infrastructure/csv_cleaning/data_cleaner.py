@@ -13,6 +13,9 @@ from .date_cleaner import DateCleaner
 from .currency_handler import CurrencyHandler
 from .data_validator import DataValidator
 from .quality_checker import QualityChecker
+import logging
+
+logger = logging.getLogger(__name__)
 
 class DataCleaner:
     """
@@ -42,8 +45,8 @@ class DataCleaner:
             Dict with cleaned data structure including updated column mapping
         """
         try:
-            print(f"\n STARTING DATA CLEANING")
-            print(f"   [DATA] Input: {parsed_data.get('row_count', 0)} rows")
+            logger.debug(f"\n STARTING DATA CLEANING")
+            logger.debug(f"   [DATA] Input: {parsed_data.get('row_count', 0)} rows")
             
             if not parsed_data.get('success', False) or not parsed_data.get('data'):
                 return {
@@ -63,10 +66,10 @@ class DataCleaner:
                 
                 if missing_columns:
                     bank_name = template_config.get('bank_name', 'unknown')
-                    print(f"      [ERROR] Column mapping validation failed for {bank_name}")
-                    print(f"         Missing columns: {missing_columns}")
-                    print(f"         Available headers: {parsed_headers}")
-                    print(f"         Expected headers should be parsed from correct header row")
+                    logger.error(f"      [ERROR] Column mapping validation failed for {bank_name}")
+                    logger.debug(f"         Missing columns: {missing_columns}")
+                    logger.debug(f"         Available headers: {parsed_headers}")
+                    logger.debug(f"         Expected headers should be parsed from correct header row")
                     
                     return {
                         'success': False,
@@ -114,8 +117,8 @@ class DataCleaner:
             # Step 9: Quality assessment
             quality_report = self.quality_checker.check_data_quality(valid_data)
             
-            print(f"   [SUCCESS] Cleaning complete: {len(valid_data)} clean rows")
-            print(f"    Updated column mapping: {updated_column_mapping}")
+            logger.debug(f"   [SUCCESS] Cleaning complete: {len(valid_data)} clean rows")
+            logger.debug(f"    Updated column mapping: {updated_column_mapping}")
             
             return {
                 'success': True,
@@ -135,9 +138,9 @@ class DataCleaner:
             }
             
         except Exception as e:
-            print(f"   [ERROR]  Cleaning error: {str(e)}")
+            logger.error(f"   [ERROR]  Cleaning error: {str(e)}")
             import traceback
-            print(f"    Traceback: {traceback.format_exc()}")
+            logger.error(f"    Traceback: {traceback.format_exc()}")
             return {
                 'success': False,
                 'error': f'Data cleaning failed: {str(e)}'
@@ -147,7 +150,7 @@ class DataCleaner:
         """
         Step 1: Focus on target data only - remove unwanted columns and rows
         """
-        print(f"   Step 1: Focusing target data")
+        logger.debug(f"   Step 1: Focusing target data")
         
         if not data:
             return []
@@ -211,7 +214,7 @@ class DataCleaner:
         
         # For unknown banks, be more inclusive - if we found very few columns, keep all
         if is_unknown_bank and len(target_columns) < 3:
-            print(f"       Unknown bank with few matching columns ({len(target_columns)}), keeping all columns")
+            logger.debug(f"       Unknown bank with few matching columns ({len(target_columns)}), keeping all columns")
             target_columns = set(headers)
         
         # If no specific targets found at all, keep all columns
@@ -223,24 +226,22 @@ class DataCleaner:
                          [c for c in column_mapping.values() if c in target_columns and c not in headers]
         target_columns = list(dict.fromkeys(target_columns))
         
-        print(f"       Target columns: {target_columns}")
+        logger.debug(f"       Target columns: {target_columns}")
         
         # Get skip patterns from data cleaning configuration
         skip_patterns = []
-        print(f"       [DEBUG] template_config keys: {list(template_config.keys()) if template_config else 'None'}")
+        logger.debug(f"       [DEBUG] template_config keys: {list(template_config.keys()) if template_config else 'None'}")
         
         if template_config and 'data_cleaning' in template_config:
             data_cleaning_config = template_config['data_cleaning']
             if hasattr(data_cleaning_config, 'skip_rows_containing'):
                 skip_patterns = data_cleaning_config.skip_rows_containing
-                print(f"       [DEBUG] Found skip patterns: {skip_patterns}")
         elif template_config and 'data_cleaning_config' in template_config:
             data_cleaning_config = template_config['data_cleaning_config']
             if hasattr(data_cleaning_config, 'skip_rows_containing'):
                 skip_patterns = data_cleaning_config.skip_rows_containing
-                print(f"       [DEBUG] Found skip patterns: {skip_patterns}")
         else:
-            print(f"       [DEBUG] No data_cleaning config found in template_config")
+            logger.debug(f"       [DEBUG] No data_cleaning config found in template_config")
         
         # Filter data to only include target columns
         focused_data = []
@@ -252,7 +253,6 @@ class DataCleaner:
                 for pattern in skip_patterns:
                     if pattern.lower() in row_content.lower():
                         should_skip = True
-                        print(f"      [SKIP] Row containing '{pattern}': {row_content[:50]}...")
                         break
             
             if should_skip:
@@ -267,7 +267,7 @@ class DataCleaner:
             if any(str(value).strip() for value in focused_row.values()):
                 focused_data.append(focused_row)
         
-        print(f"      [SUCCESS] Focused data: {len(focused_data)} rows, {len(target_columns)} columns")
+        logger.debug(f"      [SUCCESS] Focused data: {len(focused_data)} rows, {len(target_columns)} columns")
         return focused_data
     
     def _count_numeric_columns(self, data: List[Dict]) -> int:
