@@ -106,9 +106,7 @@ def _run_pipeline(client: TestClient, filenames):
                 "filename": item["filename"],
                 "success": item["parse_result"].get("success"),
                 "bank_info": item.get("bank_info"),
-                # Header order currently comes from a Python set in
-                # data_cleaner.py, so it changes with the hash seed.
-                "headers": sorted(item["parse_result"].get("headers") or []),
+                "headers": item["parse_result"].get("headers"),
                 "row_count": item["parse_result"].get("row_count"),
                 "error": item["parse_result"].get("error"),
             }
@@ -135,11 +133,7 @@ def _run_pipeline(client: TestClient, filenames):
             result["transform_error"] = transform.json().get("detail")
             return result
         transformed = transform.json()
-        summary = transformed.get("transformation_summary") or {}
-        # Built from a set in export_formatting_service.py, so order varies.
-        if "banks_processed" in summary:
-            summary["banks_processed"] = sorted(summary["banks_processed"])
-        result["transformation_summary"] = summary
+        result["transformation_summary"] = transformed.get("transformation_summary")
         result["transfer_analysis"] = transformed.get("transfer_analysis")
         result["transformed_data"] = transformed.get("transformed_data")
 

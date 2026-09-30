@@ -215,12 +215,12 @@
       "error": null,
       "filename": "m-02-2025.csv",
       "headers": [
-        "Currency",
-        "amount",
-        "balance",
         "date",
         "note",
-        "title"
+        "title",
+        "amount",
+        "balance",
+        "Currency"
       ],
       "row_count": 34,
       "success": true
@@ -238,17 +238,17 @@
       "error": null,
       "filename": "statement_20141677_USD_2025-01-04_2025-06-02.csv",
       "headers": [
-        "Note",
-        "PayeeAccountNumber",
-        "RunningBalance",
-        "TotalFees",
+        "date",
         "amount",
         "currency",
-        "date",
-        "exchangetoamount",
-        "exchangetocurrency",
+        "title",
         "note",
-        "title"
+        "RunningBalance",
+        "exchangetocurrency",
+        "PayeeAccountNumber",
+        "Note",
+        "TotalFees",
+        "exchangetoamount"
       ],
       "row_count": 45,
       "success": true
@@ -266,17 +266,17 @@
       "error": null,
       "filename": "statement_23243482_EUR_2025-01-04_2025-06-02.csv",
       "headers": [
-        "Note",
-        "PayeeAccountNumber",
-        "RunningBalance",
-        "TotalFees",
+        "date",
         "amount",
         "currency",
-        "date",
-        "exchangetoamount",
-        "exchangetocurrency",
+        "title",
         "note",
-        "title"
+        "RunningBalance",
+        "exchangetocurrency",
+        "PayeeAccountNumber",
+        "Note",
+        "TotalFees",
+        "exchangetoamount"
       ],
       "row_count": 2,
       "success": true
@@ -294,14 +294,14 @@
       "error": null,
       "filename": "12345678-00000000-87654321_2025-06-01_2025-06-30.csv",
       "headers": [
-        "PartnerAccountNumber",
-        "PartnerIban",
-        "amount",
         "backupdate",
-        "backuptitle",
+        "amount",
         "currency",
+        "title",
+        "PartnerIban",
+        "PartnerAccountNumber",
         "date",
-        "title"
+        "backuptitle"
       ],
       "row_count": 14,
       "success": true
@@ -319,13 +319,13 @@
       "error": null,
       "filename": "account-statement_2024-04-01_2025-06-25_en-us_b9705c.csv",
       "headers": [
-        "Balance",
+        "note",
         "StartedDate",
+        "date",
+        "title",
         "amount",
         "currency",
-        "date",
-        "note",
-        "title"
+        "Balance"
       ],
       "row_count": 9,
       "success": true
@@ -343,12 +343,12 @@
       "error": null,
       "filename": "AccountFullStatement.CSV",
       "headers": [
-        "AvailableBalance",
-        "Currency",
-        "credit",
         "date",
+        "title",
         "debit",
-        "title"
+        "credit",
+        "AvailableBalance",
+        "Currency"
       ],
       "row_count": 6,
       "success": true
@@ -763,11 +763,11 @@
   "transform_status": 200,
   "transformation_summary": {
     "banks_processed": [
-      "Erste",
-      "Meezan",
       "nayapay",
+      "wise",
+      "Erste",
       "revolut",
-      "wise"
+      "Meezan"
     ],
     "failed_transformations": 0,
     "successful_transformations": 6,

@@ -197,7 +197,7 @@ class CSVProcessingService:
                     config_file_path = safe_config_path(self.config_service.config_dir, cached_result['bank_name'])
                     if os.path.exists(config_file_path):
                         raw_config = configparser.ConfigParser(allow_no_value=True)
-                        raw_config.read(config_file_path)
+                        raw_config.read(config_file_path, encoding='utf-8')
                         header_row = raw_config.getint('csv_config', 'header_row', fallback=None)
                         uses_absolute_positioning = header_row is not None
                 except Exception:
@@ -256,7 +256,7 @@ class CSVProcessingService:
                 config_file_path = safe_config_path(self.config_service.config_dir, initial_result.bank_name)
                 if os.path.exists(config_file_path):
                     raw_config = configparser.ConfigParser(allow_no_value=True)
-                    raw_config.read(config_file_path)
+                    raw_config.read(config_file_path, encoding='utf-8')
                     header_row = raw_config.getint('csv_config', 'header_row', fallback=None)
                     uses_absolute_positioning = header_row is not None
             except Exception:
@@ -348,6 +348,7 @@ class CSVProcessingService:
             detected_bank_name = bank_detection_result.bank_name
             print(f"      ✅ [CACHED] Using detected bank: {detected_bank_name} (confidence: {bank_detection_result.confidence:.2f})")
             
+            header_row_0_indexed = None
             try:
                 # Get config from the unified service
                 bank_config = self.config_service.get_bank_config(detected_bank_name)
@@ -359,7 +360,7 @@ class CSVProcessingService:
                 # Read header_row directly from config file
                 config_file_path = safe_config_path(self.config_service.config_dir, detected_bank_name)
                 raw_config = configparser.ConfigParser(allow_no_value=True)
-                raw_config.read(config_file_path)
+                raw_config.read(config_file_path, encoding='utf-8')
                 
                 configured_row_1_indexed = raw_config.getint('csv_config', 'header_row', fallback=None)
                 if configured_row_1_indexed is None:
@@ -386,6 +387,13 @@ class CSVProcessingService:
                 
             except (ValueError, HeaderValidationError) as e:
                 print(f"      [ERROR] Header detection/validation failed for {detected_bank_name}: {e}")
+                if header_row_0_indexed is None:
+                    # Config missing or has no header_row: fall back to the first row
+                    return bank_detection_result, {
+                        'header_row': 0,
+                        'data_start_row': 1,
+                        'error': str(e)
+                    }
                 print(f"      [FIX] Using configured header_row anyway: {header_row_0_indexed}")
                 # CRITICAL FIX: Still use the configured header_row even if validation fails
                 return bank_detection_result, {
@@ -610,7 +618,7 @@ class CSVProcessingService:
                     'bank_name': bank_name,
                     'expected_headers': expected_headers,
                     'default_currency': default_currency,
-                    'data_cleaning': bank_config.data_cleaning
+                    'data_cleaning': bank_config.data_cleaning if bank_config else None
                 }
                 print(f"         Using bank-specific cleaning config for {bank_name}")
             

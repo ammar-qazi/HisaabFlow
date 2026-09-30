@@ -33,18 +33,18 @@
       "error": null,
       "filename": "umsatz-1234________1234-20180227.CSV",
       "headers": [
-        "Aee+Buchungsreferenz",
-        "Bar-Entgelt+Buchungsreferenz",
         "Belegdatum",
-        "Buchungsbetrag",
         "Buchungsdatum",
-        "Buchungsreferenz",
-        "Buchungswährung",
-        "Currency",
         "Originalbetrag",
         "Originalwährung",
+        "Buchungsbetrag",
+        "Buchungswährung",
         "Transaktionsbeschreibung",
-        "TransaktionsbeschreibungZusatz"
+        "TransaktionsbeschreibungZusatz",
+        "Buchungsreferenz",
+        "Bar-Entgelt+Buchungsreferenz",
+        "Aee+Buchungsreferenz",
+        "Currency"
       ],
       "row_count": 1,
       "success": true

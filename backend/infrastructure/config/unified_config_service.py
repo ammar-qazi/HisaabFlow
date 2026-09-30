@@ -182,7 +182,7 @@ class UnifiedConfigService:
         app_config_path = os.path.join(self.config_dir, "app.conf")
         
         if os.path.exists(app_config_path):
-            self._app_config.read(app_config_path)
+            self._app_config.read(app_config_path, encoding='utf-8')
         else:
             print("[WARNING] [UnifiedConfigService] app.conf not found, using defaults")
             # Set defaults
@@ -248,7 +248,7 @@ class UnifiedConfigService:
     def _load_bank_config(self, config_path: str, bank_name: str) -> Optional[UnifiedBankConfig]:
         """Load individual bank configuration"""
         config = configparser.ConfigParser(allow_no_value=True)
-        config.read(config_path)
+        config.read(config_path, encoding='utf-8')
         
         # Define reserved sections that are not categories
         reserved_sections = [
@@ -723,22 +723,22 @@ class UnifiedConfigService:
     
     def get_csv_config(self, bank_name: str) -> Optional[CSVConfig]:
         """Get CSV configuration for bank"""
-        bank_config = self._bank_configs.get(bank_name)
+        bank_config = self.get_bank_config(bank_name)
         return bank_config.csv_config if bank_config else None
     
     def get_column_mapping(self, bank_name: str) -> Dict[str, str]:
         """Get column mapping for bank"""
-        bank_config = self._bank_configs.get(bank_name)
+        bank_config = self.get_bank_config(bank_name)
         return bank_config.column_mapping if bank_config else {}
     
     def get_account_mapping(self, bank_name: str) -> Dict[str, str]:
         """Get account mapping for bank"""
-        bank_config = self._bank_configs.get(bank_name)
+        bank_config = self.get_bank_config(bank_name)
         return bank_config.account_mapping if bank_config else {}
     
     def get_transfer_patterns(self, bank_name: str, direction: str) -> List[str]:
         """Get transfer patterns for bank and direction (outgoing/incoming)"""
-        bank_config = self._bank_configs.get(bank_name)
+        bank_config = self.get_bank_config(bank_name)
         if not bank_config:
             return []
         
@@ -759,7 +759,7 @@ class UnifiedConfigService:
         merchant_lower = merchant.lower()
         
         # First tier: Bank-specific categorization rules (highest priority)
-        bank_config = self._bank_configs.get(bank_name)
+        bank_config = self.get_bank_config(bank_name)
         if bank_config:
             # Check bank-specific categorization rules (now loaded from sections)
             # Sort patterns by length (longest first) for specificity-based matching
@@ -846,7 +846,7 @@ class UnifiedConfigService:
     
     def apply_description_cleaning(self, bank_name: str, description: str) -> str:
         """Apply bank-specific description cleaning rules with multi-line support"""
-        bank_config = self._bank_configs.get(bank_name)
+        bank_config = self.get_bank_config(bank_name)
         if not bank_config or not bank_config.data_cleaning or not bank_config.data_cleaning.description_cleaning_rules:
             return description
 
@@ -886,7 +886,7 @@ class UnifiedConfigService:
     
     def get_data_cleaning_config(self, bank_name: str) -> Optional[DataCleaningConfig]:
         """Get data cleaning configuration for bank"""
-        bank_config = self._bank_configs.get(bank_name)
+        bank_config = self.get_bank_config(bank_name)
         return bank_config.data_cleaning if bank_config else None
     
     def has_bank_config(self, bank_name: str) -> bool:
@@ -1006,7 +1006,7 @@ class UnifiedConfigService:
                         config[section_name][key] = str(value)
             
             # Write to file
-            with open(config_path, 'w') as config_file:
+            with open(config_path, 'w', encoding='utf-8') as config_file:
                 config.write(config_file)
             
             print(f"[SUCCESS] [UnifiedConfigService] Saved configuration for {bank_name}")
@@ -1095,6 +1095,10 @@ def get_unified_config_service(config_dir: str = None) -> UnifiedConfigService:
     
     if _unified_config_service is None:
         _unified_config_service = UnifiedConfigService(config_dir)
+    elif config_dir and os.path.realpath(config_dir) != os.path.realpath(_unified_config_service.config_dir):
+        # The singleton keeps the directory it was created with
+        print(f"[WARNING] [UnifiedConfigService] Ignoring config_dir {config_dir!r}; "
+              f"already using {_unified_config_service.config_dir!r}")
     
     return _unified_config_service
 

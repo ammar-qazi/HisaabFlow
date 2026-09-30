@@ -67,12 +67,12 @@
       "error": null,
       "filename": "test_data_asd.csv",
       "headers": [
-        "Currency",
-        "amount",
-        "balance",
         "date",
         "note",
-        "title"
+        "title",
+        "amount",
+        "balance",
+        "Currency"
       ],
       "row_count": 34,
       "success": true

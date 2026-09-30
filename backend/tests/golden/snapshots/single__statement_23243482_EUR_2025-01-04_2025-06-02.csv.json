@@ -37,17 +37,17 @@
       "error": null,
       "filename": "statement_23243482_EUR_2025-01-04_2025-06-02.csv",
       "headers": [
-        "Note",
-        "PayeeAccountNumber",
-        "RunningBalance",
-        "TotalFees",
+        "date",
         "amount",
         "currency",
-        "date",
-        "exchangetoamount",
-        "exchangetocurrency",
+        "title",
         "note",
-        "title"
+        "RunningBalance",
+        "exchangetocurrency",
+        "PayeeAccountNumber",
+        "Note",
+        "TotalFees",
+        "exchangetoamount"
       ],
       "row_count": 2,
       "success": true

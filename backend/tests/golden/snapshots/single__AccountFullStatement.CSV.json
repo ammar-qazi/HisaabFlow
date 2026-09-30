@@ -41,12 +41,12 @@
       "error": null,
       "filename": "AccountFullStatement.CSV",
       "headers": [
-        "AvailableBalance",
-        "Currency",
-        "credit",
         "date",
+        "title",
         "debit",
-        "title"
+        "credit",
+        "AvailableBalance",
+        "Currency"
       ],
       "row_count": 6,
       "success": true

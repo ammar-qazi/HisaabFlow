@@ -228,8 +228,13 @@ class DataCleaner:
         # If no specific targets found at all, keep all columns
         if not target_columns:
             target_columns = set(headers)
+
+        # Keep the file's column order (a bare set would vary between runs)
+        target_columns = [h for h in headers if h in target_columns] + \
+                         [c for c in column_mapping.values() if c in target_columns and c not in headers]
+        target_columns = list(dict.fromkeys(target_columns))
         
-        print(f"       Target columns: {sorted(target_columns)}")
+        print(f"       Target columns: {target_columns}")
         
         # Get skip patterns from data cleaning configuration
         skip_patterns = []

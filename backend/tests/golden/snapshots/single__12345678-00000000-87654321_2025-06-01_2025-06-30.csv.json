@@ -49,14 +49,14 @@
       "error": null,
       "filename": "12345678-00000000-87654321_2025-06-01_2025-06-30.csv",
       "headers": [
-        "PartnerAccountNumber",
-        "PartnerIban",
-        "amount",
         "backupdate",
-        "backuptitle",
+        "amount",
         "currency",
+        "title",
+        "PartnerIban",
+        "PartnerAccountNumber",
         "date",
-        "title"
+        "backuptitle"
       ],
       "row_count": 14,
       "success": true

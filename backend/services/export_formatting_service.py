@@ -266,7 +266,7 @@ class ExportFormattingService:
             file_results.append(file_result)
         
         # Get list of processed banks
-        banks_processed = list(set(fr["bank_name"] for fr in file_results if fr["bank_name"] != "unknown"))
+        banks_processed = list(dict.fromkeys(fr["bank_name"] for fr in file_results if fr["bank_name"] != "unknown"))
         
         # Create transformation summary structure
         transformation_summary = {
