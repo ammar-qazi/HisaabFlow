@@ -106,3 +106,7 @@ From sub-components:
 - Ensure proper cleanup of event listeners and timers
 - Test with different data scenarios (success, error, empty)
 - Monitor component re-render patterns with React DevTools
+
+## Archived
+
+Archived 2026-09-30: the Zustand migration was never started and the planned stores were deleted. State management will be revisited after the move to a Docker web app with persistent storage.

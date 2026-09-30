@@ -104,3 +104,7 @@ const useFileStore = create(
 - **Development Speed**: 50% faster component development
 - **Debugging**: Superior React DevTools integration
 - **Maintainability**: 90% less complex state management code
+
+## Archived
+
+Archived 2026-09-30: the Zustand migration was never started and the planned stores were deleted. State management will be revisited after the move to a Docker web app with persistent storage.

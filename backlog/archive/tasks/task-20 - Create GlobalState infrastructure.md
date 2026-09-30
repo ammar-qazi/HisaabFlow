@@ -49,3 +49,7 @@ Week 1 foundation task for Phase 5 Frontend State Management. **Expert panel una
 - **TypeScript**: Full TypeScript support with minimal setup
 - **DevTools**: React DevTools integration available
 - **Bundle Size**: Only 2.7KB vs complex Context infrastructure
+
+## Archived
+
+Archived 2026-09-30: the Zustand migration was never started and the planned stores were deleted. State management will be revisited after the move to a Docker web app with persistent storage.

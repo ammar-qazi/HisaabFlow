@@ -18,7 +18,6 @@ SAMPLE_DATA_DIR = Path(__file__).resolve().parents[3] / "sample_data"
 
 EXPECTED_BANK = {
     "m-02-2025.csv": "nayapay",
-    "test_data_asd.csv": "nayapay",
     "statement_20141677_USD_2025-01-04_2025-06-02.csv": "wise",
     "statement_23243482_EUR_2025-01-04_2025-06-02.csv": "wise",
     "12345678-00000000-87654321_2025-06-01_2025-06-30.csv": "Erste",

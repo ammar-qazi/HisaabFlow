@@ -97,3 +97,7 @@ const { templates, setTemplates } = useFileStore()
 - Validate store state persistence
 - Monitor for performance improvements
 - Ensure proper error boundaries
+
+## Archived
+
+Archived 2026-09-30: the Zustand migration was never started and the planned stores were deleted. State management will be revisited after the move to a Docker web app with persistent storage.

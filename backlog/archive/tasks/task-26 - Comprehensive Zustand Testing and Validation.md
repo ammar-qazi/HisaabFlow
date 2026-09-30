@@ -149,3 +149,7 @@ This migration is considered successful if:
 - [ ] Developer experience is significantly improved
 - [ ] No regressions in user experience
 - [ ] Future development velocity is increased
+
+## Archived
+
+Archived 2026-09-30: the Zustand migration was never started and the planned stores were deleted. State management will be revisited after the move to a Docker web app with persistent storage.

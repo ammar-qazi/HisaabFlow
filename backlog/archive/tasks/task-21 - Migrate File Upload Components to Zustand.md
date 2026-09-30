@@ -78,3 +78,7 @@ const { dragOver, setDragOver } = useUIStore()
   - File operations → useFileStore
   - Drag/drop UI → useUIStore
 - **Test thoroughly**: This validates the entire new Zustand architecture
+
+## Archived
+
+Archived 2026-09-30: the Zustand migration was never started and the planned stores were deleted. State management will be revisited after the move to a Docker web app with persistent storage.

@@ -80,7 +80,7 @@ The frontend is a single-page application built with React and packaged as a des
 *   **`AppLogic.js`**: The core component that manages the application's state and renders the different steps of the workflow.
 *   **Components**: The UI is built from a set of reusable React components located in the `frontend/src/components` directory.
 *   **Steps**: The application is divided into a series of steps, each corresponding to a specific part of the workflow (e.g., `FileUploadStep`, `ConfigureAndReviewStep`).
-*   **State Management**: The application currently uses a combination of local component state (managed with React's `useState` hook) and props to manage the application's state. A migration to a more centralized state management solution like Zustand is planned.
+*   **State Management**: The application currently uses a combination of local component state (managed with React's `useState` hook) and props to manage the application's state. A planned Zustand migration was dropped; state handling will be revisited once the app has persistent storage.
 *   **API Services**: The frontend communicates with the backend through a set of API service functions located in the `frontend/src/services` directory.
 
 ## Key Technologies
