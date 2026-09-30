@@ -19,7 +19,7 @@ export const createProcessingHandlers = (state) => {
   } = state;
 
   // parseAllFiles function remains the same...
-  const parseAllFiles = async () => {
+  const parseAllFiles = async ({ advance = true } = {}) => {
     if (uploadedFiles.length === 0) return;
     
     setError(null);
@@ -71,7 +71,9 @@ export const createProcessingHandlers = (state) => {
       });
       
       setParsedResults(results);
-      setCurrentStep(2);
+      if (advance) {
+        setCurrentStep(2);
+      }
       
     } catch (err) {
       setError(`Parsing failed: ${err.response?.data?.detail || err.message}`);

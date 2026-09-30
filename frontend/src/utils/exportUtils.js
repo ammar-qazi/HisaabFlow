@@ -13,6 +13,7 @@ const API_V1_BASE = `${API_BASE}/api/v1`;
  */
 export const exportData = async (transformedData, setError) => {
   if (!transformedData) return;
+  setError(null);
   
   try {
     const response = await axios.post(`${API_V1_BASE}/export`, transformedData, {
@@ -32,5 +33,6 @@ export const exportData = async (transformedData, setError) => {
     
   } catch (err) {
     setError(`Export failed: ${err.response?.data?.detail || err.message}`);
+    throw err; // let the caller show the export as failed
   }
 };

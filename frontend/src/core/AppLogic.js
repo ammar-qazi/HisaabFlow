@@ -55,6 +55,13 @@ function AppLogic() {
     loadConfigurations();
   }, []);
 
+  // Handlers report failures through setError; nothing rendered it before
+  React.useEffect(() => {
+    if (error) {
+      toast.error(error);
+    }
+  }, [error]);
+
   const applyTemplate = async (fileIndex, configName, showNotification = true) => {
     const result = await ConfigurationService.loadConfiguration(configName);
     if (result.success && result.config) {
@@ -88,17 +95,7 @@ function AppLogic() {
   const { parseAllFiles, transformAllFiles } = createProcessingHandlers(handlerState);
   const { updateFileConfig, updateColumnMapping } = createConfigHandlers(handlerState);
   
-  const parseAllFilesNoAdvance = async () => {
-    const originalSetCurrentStep = handlerState.setCurrentStep;
-    handlerState.setCurrentStep = (step) => { 
-      console.log(`Workflow: setCurrentStep(${step}) call ignored during parseAllFilesNoAdvance`);
-    };
-    try {
-      await parseAllFiles();
-    } finally {
-      handlerState.setCurrentStep = originalSetCurrentStep;
-    }
-  };
+  const parseAllFilesNoAdvance = () => parseAllFiles({ advance: false });
 
   const handleStartOver = () => {
     setCurrentStep(1); setUploadedFiles([]); setParsedResults([]);
@@ -106,7 +103,7 @@ function AppLogic() {
     setManuallyConfirmedTransfers([]); // Reset manual confirmations
   };  
   
-  const handleExport = () => exportData(transformedData, toast.success, setError);
+  const handleExport = () => exportData(transformedData, setError);
 
   const getStepInfo = () => {
     const steps = {

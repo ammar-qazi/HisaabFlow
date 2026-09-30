@@ -207,6 +207,14 @@ export class ConfigurationService {
       
       const response = await axios.post(`${API_V1_BASE}/unknown-bank/save-config`, saveRequest);
       
+      // The endpoint answers 200 with success: false for e.g. an existing bank
+      if (response.data.success === false) {
+        return {
+          success: false,
+          error: `Failed to save configuration: ${response.data.message || response.data.error}`
+        };
+      }
+
       console.log('[SUCCESS] Configuration saved successfully:', response.data);
       return {
         success: true,
