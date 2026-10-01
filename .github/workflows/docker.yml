@@ -1,0 +1,42 @@
+name: Docker
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t hisaabflow:ci .
+
+      - name: Start container
+        run: |
+          mkdir -p data
+          docker run -d --name hisaabflow -p 127.0.0.1:8000:8000 -v "$PWD/data:/data" hisaabflow:ci
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8000/health && exit 0
+            sleep 1
+          done
+          echo "Backend did not become healthy"; exit 1
+
+      - name: Smoke test
+        run: |
+          # UI served from the same origin as the API
+          curl -sf http://127.0.0.1:8000/ | grep -q "<title>HisaabFlow</title>"
+          # All shipped bank configs copied into the volume and loaded
+          curl -sf http://127.0.0.1:8000/api/v1/configs | python3 -c "
+          import json, sys
+          banks = json.load(sys.stdin)['raw_bank_names']
+          assert sorted(banks) == sorted(['wise', 'nayapay', 'Meezan', 'revolut', 'Erste']), banks
+          "
+          test -f data/configs/app.conf
+          # The removed Electron shutdown endpoint stays gone
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:8000/shutdown)" = "405"
+
+      - name: Container logs
+        if: always()
+        run: docker logs hisaabflow || true
