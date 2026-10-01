@@ -17,6 +17,7 @@ if project_root not in sys.path:
 
 # Import AmountFormat after path setup
 from backend.shared.amount_formats import AmountFormat, RegionalFormatRegistry
+from backend.infrastructure.config.paths import get_config_dir
 import logging
 
 logger = logging.getLogger(__name__)
@@ -156,24 +157,7 @@ class UnifiedConfigService:
     
     def _resolve_config_dir(self, config_dir: Optional[str]) -> str:
         """Resolve configuration directory path"""
-        if config_dir:
-            return config_dir
-            
-        # Try to get config directory through utility function first
-        try:
-            from backend.infrastructure.csv_parsing.utils import get_config_dir_for_manager
-            user_config_dir = get_config_dir_for_manager()
-            if user_config_dir:
-                return user_config_dir
-        except ImportError:
-            pass
-        
-        # Default: project_root/configs
-        # From backend/shared/config/ go up to project root
-        current_dir = os.path.dirname(os.path.abspath(__file__))  # backend/shared/config/
-        backend_dir = os.path.dirname(os.path.dirname(current_dir))  # backend/
-        project_root = os.path.dirname(backend_dir)  # project root
-        return os.path.join(project_root, 'configs')
+        return config_dir or get_config_dir()
     
     # ========== App Configuration ==========
     
@@ -1036,17 +1020,13 @@ class UnifiedConfigService:
 _unified_config_service: Optional[UnifiedConfigService] = None
 
 
-def get_unified_config_service(config_dir: str = None) -> UnifiedConfigService:
-    """Get singleton instance of unified config service"""
+def get_unified_config_service() -> UnifiedConfigService:
+    """Get singleton instance of unified config service (config dir from get_config_dir())"""
     global _unified_config_service
-    
+
     if _unified_config_service is None:
-        _unified_config_service = UnifiedConfigService(config_dir)
-    elif config_dir and os.path.realpath(config_dir) != os.path.realpath(_unified_config_service.config_dir):
-        # The singleton keeps the directory it was created with
-        logger.warning(f"[WARNING] [UnifiedConfigService] Ignoring config_dir {config_dir!r}; "
-              f"already using {_unified_config_service.config_dir!r}")
-    
+        _unified_config_service = UnifiedConfigService()
+
     return _unified_config_service
 
 

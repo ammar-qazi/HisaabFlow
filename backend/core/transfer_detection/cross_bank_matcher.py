@@ -15,11 +15,11 @@ logger = logging.getLogger(__name__)
 class CrossBankMatcher:
     """Handles cross-bank transfer detection using configuration-driven rules"""
     
-    def __init__(self, config_dir: str = "configs", config_service=None):
+    def __init__(self, config_service=None):
         if config_service:
             self.config = config_service
         else:
-            self.config = get_unified_config_service(config_dir)
+            self.config = get_unified_config_service()
         self.date_tolerance_hours = self.config.get_date_tolerance()
         self.confidence_threshold = self.config.get_confidence_threshold()
         # self.currency_converter = CurrencyConverter() # Already initialized in main_detector

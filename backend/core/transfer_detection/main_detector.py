@@ -20,11 +20,11 @@ class TransferDetector:
     4. 24-hour date tolerance with fallback to traditional amount matching
     """
     
-    def __init__(self, config_dir: str = "configs", config_service=None):
+    def __init__(self, config_service=None):
         if config_service:
             self.config = config_service
         else:
-            self.config = get_unified_config_service(config_dir)
+            self.config = get_unified_config_service()
             
         # Pass the unified config service to CrossBankMatcher
         self.cross_bank_matcher = CrossBankMatcher(config_service=self.config)

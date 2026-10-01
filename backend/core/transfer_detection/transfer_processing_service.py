@@ -2,7 +2,6 @@
 Transfer processing service for orchestrating transfer detection and categorization
 """
 from typing import Dict, List, Any, Optional
-from pathlib import Path
 
 from backend.core.transfer_detection.main_detector import TransferDetector
 from backend.infrastructure.config.unified_config_service import get_unified_config_service
@@ -16,14 +15,8 @@ class TransferProcessingService:
     """Service focused on transfer detection and processing"""
     
     def __init__(self):
-        # Determine config directory path
-        current_file_dir = Path(__file__).resolve().parent
-        project_root = current_file_dir.parent.parent.parent
-        config_dir_path = project_root / "configs"
-        config_dir_path_str = str(config_dir_path)
-        
         # Create unified config service instance for transfer detection
-        self.config_service = get_unified_config_service(config_dir_path_str)
+        self.config_service = get_unified_config_service()
         self.transfer_detector = TransferDetector(config_service=self.config_service)
         
         logger.debug(f"ℹ [TransferProcessingService] Initialized with TransferDetector")

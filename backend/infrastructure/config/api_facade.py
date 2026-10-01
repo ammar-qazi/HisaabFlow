@@ -12,8 +12,8 @@ class APIConfigFacade:
     Maintains 100% backward compatibility during migration
     """
     
-    def __init__(self, config_dir: str = None):
-        self.unified_service = get_unified_config_service(config_dir)
+    def __init__(self):
+        self.unified_service = get_unified_config_service()
     
     # Additional methods for backward compatibility with current API endpoints
     def list_configured_banks(self) -> List[str]:

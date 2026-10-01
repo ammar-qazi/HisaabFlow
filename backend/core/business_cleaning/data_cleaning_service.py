@@ -2,7 +2,6 @@
 Data cleaning service for description cleaning and categorization
 """
 from typing import Dict, List, Any
-from pathlib import Path
 
 from backend.infrastructure.config.unified_config_service import get_unified_config_service
 from backend.shared.utils.bank_lookup import bank_for_row
@@ -15,14 +14,8 @@ class DataCleaningService:
     """Service focused on data cleaning and categorization"""
     
     def __init__(self):
-        # Determine config directory path
-        current_file_dir = Path(__file__).resolve().parent
-        project_root = current_file_dir.parent.parent.parent
-        config_dir_path = project_root / "configs"
-        config_dir_path_str = str(config_dir_path)
-        
         # Create unified config service instance
-        self.config_service = get_unified_config_service(config_dir_path_str)
+        self.config_service = get_unified_config_service()
         
         logger.debug(f"ℹ [DataCleaningService] Initialized with unified config service")
     

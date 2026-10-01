@@ -3,8 +3,8 @@ Shared pytest setup.
 
 Tests run against a throwaway copy of configs/ so they never read or write
 the real configuration. This module is imported by pytest before any test
-module, so the environment variable and the config singleton are in place
-before backend code resolves its config directory.
+module, so HISAABFLOW_CONFIG_DIR is set before backend code resolves its
+config directory (backend/infrastructure/config/paths.py).
 """
 import hashlib
 import os
@@ -23,16 +23,6 @@ TEST_CONFIG_DIR = _TEST_ROOT / "configs"
 shutil.copytree(REPO_CONFIG_DIR, TEST_CONFIG_DIR)
 
 os.environ["HISAABFLOW_CONFIG_DIR"] = str(TEST_CONFIG_DIR)
-os.environ.pop("HISAABFLOW_USER_DIR", None)
-
-# The config service is a process-wide singleton that keeps whichever
-# directory it was first created with. Create it here so it points at the
-# test copy no matter which service touches it first.
-from backend.infrastructure.config.unified_config_service import (  # noqa: E402
-    get_unified_config_service,
-)
-
-get_unified_config_service(str(TEST_CONFIG_DIR))
 
 
 def _hash_dir(path: Path) -> dict:
