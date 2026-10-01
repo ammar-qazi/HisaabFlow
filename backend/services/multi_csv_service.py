@@ -1,13 +1,12 @@
 """
 Multi-CSV parsing service for coordinating CSV processing operations
 """
-import os
-from typing import Any, Dict, List
-from backend.shared.models.csv_models import CSVRow, BankDetectionResult
-from decimal import Decimal
 
 from backend.services.export_formatting_service import ExportFormattingService
 from backend.infrastructure.config.unified_config_service import get_unified_config_service
+import logging
+
+logger = logging.getLogger(__name__)
 
 class MultiCSVService:
     """Service for coordinating multi-CSV parsing operations using focused services"""
@@ -20,7 +19,7 @@ class MultiCSVService:
         self.csv_processing_service = create_csv_processing_service(preview_service=preview_service)
         self.export_formatting_service = ExportFormattingService()
         
-        print(f"ℹ [MultiCSVService] Initialized with focused services and bank detection caching")
+        logger.debug(f"ℹ [MultiCSVService] Initialized with focused services and bank detection caching")
     
     def parse_multiple_files(self, file_infos: list, parse_configs: list, 
                            enable_cleaning: bool = True, use_pydantic: bool = False):
@@ -37,16 +36,16 @@ class MultiCSVService:
             dict: Multi-CSV parsing result
         """
         user_name = self.config_service.get_user_name()
-        print(f"ℹ [MultiCSVService] parse_multiple_files called for {len(file_infos)} files")
-        print(f"   User name from config: {user_name}")
-        print(f"   Data cleaning enabled: {enable_cleaning}")
+        logger.debug(f"ℹ [MultiCSVService] parse_multiple_files called for {len(file_infos)} files")
+        logger.debug(f"   User name from config: {user_name}")
+        logger.debug(f"   Data cleaning enabled: {enable_cleaning}")
         
         try:
             results = []
             
             # Process each file using the focused CSV processing service
             for i, (file_info, config) in enumerate(zip(file_infos, parse_configs)):
-                print(f"   Processing file {i+1}/{len(file_infos)}: {file_info['file_id']}")
+                logger.debug(f"   Processing file {i+1}/{len(file_infos)}: {file_info['file_id']}")
                 
                 # Use the focused CSV processing service
                 processing_result = self.csv_processing_service.process_single_file(
@@ -54,7 +53,7 @@ class MultiCSVService:
                 )
                 
                 if not processing_result['success']:
-                    print(f"      [ERROR] Failed to process file: {processing_result.get('error', 'Unknown error')}")
+                    logger.error(f"      [ERROR] Failed to process file: {processing_result.get('error', 'Unknown error')}")
                     results.append(processing_result)
                     continue
                 
@@ -71,9 +70,9 @@ class MultiCSVService:
                             )
                             final_data_for_response = pydantic_data
                             data_type_for_response = 'pydantic'
-                            print(f"      Mapped {len(pydantic_data)} rows to CSVRow models for {processing_result['filename']}")
+                            logger.debug(f"      Mapped {len(pydantic_data)} rows to CSVRow models for {processing_result['filename']}")
                         except Exception as e:
-                            print(f"      [WARNING] Pydantic mapping failed for {processing_result['filename']}: {e}")
+                            logger.warning(f"      [WARNING] Pydantic mapping failed for {processing_result['filename']}: {e}")
                 
                 # Update the result with the processed data
                 processing_result['parse_result']['data'] = final_data_for_response
@@ -81,7 +80,7 @@ class MultiCSVService:
                 
                 results.append(processing_result)
             
-            print(f"   Successfully processed all {len(results)} files")
+            logger.debug(f"   Successfully processed all {len(results)} files")
             return {
                 "success": True,
                 "parsed_csvs": results,
@@ -89,9 +88,9 @@ class MultiCSVService:
             }
             
         except Exception as e:
-            print(f"[ERROR] Multi-CSV parse exception: {str(e)}")
+            logger.error(f"[ERROR] Multi-CSV parse exception: {str(e)}")
             import traceback
-            print(f"   Full traceback: {traceback.format_exc()}")
+            logger.error(f"   Full traceback: {traceback.format_exc()}")
             return {
                 "success": False,
                 "error": str(e)

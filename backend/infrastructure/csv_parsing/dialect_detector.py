@@ -2,9 +2,11 @@
 CSV dialect detection utilities
 """
 import csv
-import io
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List
 from .exceptions import DialectDetectionError
+import logging
+
+logger = logging.getLogger(__name__)
 
 class DialectDetector:
     """Detects CSV dialect parameters with confidence scoring"""
@@ -39,7 +41,7 @@ class DialectDetector:
                 'detected_patterns': dict
             }
         """
-        print(f" Detecting CSV dialect for file: {file_path}")
+        logger.debug(f" Detecting CSV dialect for file: {file_path}")
         
         try:
             # Read sample content
@@ -53,19 +55,19 @@ class DialectDetector:
             if not lines:
                 raise DialectDetectionError("No lines found in file", file_path)
             
-            print(f"   [DATA] Analyzing {len(lines)} sample lines")
+            logger.debug(f"   [DATA] Analyzing {len(lines)} sample lines")
             
             # Detect delimiter
             delimiter_result = self._detect_delimiter(lines)
-            print(f"   [SUCCESS] Delimiter: '{delimiter_result['delimiter']}' (confidence: {delimiter_result['confidence']:.2f})")
+            logger.debug(f"   [SUCCESS] Delimiter: '{delimiter_result['delimiter']}' (confidence: {delimiter_result['confidence']:.2f})")
             
             # Detect quote character and quoting mode
             quote_result = self._detect_quoting(lines, delimiter_result['delimiter'])
-            print(f"   [SUCCESS] Quoting: char='{quote_result['quotechar']}', mode={quote_result['quoting']} (confidence: {quote_result['confidence']:.2f})")
+            logger.debug(f"   [SUCCESS] Quoting: char='{quote_result['quotechar']}', mode={quote_result['quoting']} (confidence: {quote_result['confidence']:.2f})")
             
             # Detect line terminator
             line_terminator = self._detect_line_terminator(file_path, encoding)
-            print(f"   [SUCCESS] Line terminator: {repr(line_terminator)}")
+            logger.debug(f"   [SUCCESS] Line terminator: {repr(line_terminator)}")
             
             # Calculate overall confidence
             overall_confidence = (delimiter_result['confidence'] + quote_result['confidence']) / 2
@@ -84,7 +86,7 @@ class DialectDetector:
             }
             
         except Exception as e:
-            print(f"[ERROR]  Dialect detection failed: {str(e)}")
+            logger.error(f"[ERROR]  Dialect detection failed: {str(e)}")
             # Return safe defaults
             return {
                 'delimiter': ',',
@@ -217,7 +219,7 @@ class DialectDetector:
                 # If most/all fields are quoted, this suggests quote-all
                 if quoted_fields >= max(4, non_empty_trailing * 0.8):  # At least 80% of fields quoted
                     quote_all_lines += 1
-                    print(f"    Line {total_lines}: {quoted_fields} quoted fields detected as quote-all pattern")
+                    logger.debug(f"    Line {total_lines}: {quoted_fields} quoted fields detected as quote-all pattern")
         
         if total_lines == 0:
             return csv.QUOTE_MINIMAL
@@ -225,10 +227,10 @@ class DialectDetector:
         quote_all_ratio = quote_all_lines / total_lines
         
         if quote_all_ratio >= 0.75:  # 75%+ of lines follow quote-all pattern
-            print(f"   Quote-all pattern detected (ratio: {quote_all_ratio:.2f})")
+            logger.debug(f"   Quote-all pattern detected (ratio: {quote_all_ratio:.2f})")
             return csv.QUOTE_ALL
         else:
-            print(f"    Selective quoting detected (quote-all ratio: {quote_all_ratio:.2f})")
+            logger.debug(f"    Selective quoting detected (quote-all ratio: {quote_all_ratio:.2f})")
             return csv.QUOTE_MINIMAL
     
     def _detect_line_terminator(self, file_path: str, encoding: str) -> str:
@@ -285,16 +287,16 @@ class DialectDetector:
             result = line_terminator_map.get(detected_pattern, '\n')
             
             # Log the detection results for debugging
-            print(f"       Line ending analysis:")
+            logger.debug(f"       Line ending analysis:")
             for pattern, count in line_ending_counts.items():
                 if count > 0:
                     pattern_name = line_terminator_map.get(pattern, str(pattern))
-                    print(f"         {repr(pattern_name)}: {count} occurrences")
+                    logger.debug(f"         {repr(pattern_name)}: {count} occurrences")
             
-            print(f"       Selected line terminator: {repr(result)} ({max_count} occurrences)")
+            logger.debug(f"       Selected line terminator: {repr(result)} ({max_count} occurrences)")
             
             return result
             
         except Exception as e:
-            print(f"       [WARNING] Line terminator detection failed: {e}, using default")
+            logger.warning(f"       [WARNING] Line terminator detection failed: {e}, using default")
             return '\n'  # Safe default

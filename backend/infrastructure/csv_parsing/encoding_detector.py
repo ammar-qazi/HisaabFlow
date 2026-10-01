@@ -3,14 +3,17 @@ Encoding detection utilities for CSV files
 """
 import codecs
 import os
-from typing import Dict, List, Optional
+from typing import Dict
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Attempt to import chardet
 try:
     import chardet
 except ImportError:
     chardet = None
-    print("[WARNING]  chardet library not found. Encoding detection will rely solely on the internal heuristic chain.")
+    logger.warning("[WARNING]  chardet library not found. Encoding detection will rely solely on the internal heuristic chain.")
 
 
 class EncodingDetector:
@@ -50,7 +53,7 @@ class EncodingDetector:
                 'attempted_encodings': list
             }
         """
-        print(f" Detecting encoding for file: {file_path}")
+        logger.debug(f" Detecting encoding for file: {file_path}")
         
         attempted_encodings = []
 
@@ -63,7 +66,7 @@ class EncodingDetector:
                 if not sample_bytes:
                     # Handle empty file scenario early if possible
                     # _test_encoding will also handle this, but good to note
-                    print(f"   ℹ File is empty or sample is empty.")
+                    logger.debug(f"   ℹ File is empty or sample is empty.")
                     # Fall through to manual chain which might assign a default for empty files
                 else:
                     chardet_raw_result = chardet.detect(sample_bytes)
@@ -76,7 +79,7 @@ class EncodingDetector:
                         # or sometimes 'UTF-8-SIG'. We prefer 'utf-8-sig' if a BOM is present.
                         # Our _is_bom_present will verify actual BOM.
                         
-                        print(f"    Chardet guess: {chardet_enc_norm} (raw confidence: {chardet_conf:.2f})")
+                        logger.debug(f"    Chardet guess: {chardet_enc_norm} (raw confidence: {chardet_conf:.2f})")
 
                         try:
                             # Test chardet's suggestion using our _test_encoding for consistent confidence
@@ -88,10 +91,10 @@ class EncodingDetector:
                                 'source': 'chardet_tested',
                                 'error': None
                             })
-                            print(f"   [SUCCESS] Chardet guess '{chardet_enc_norm}' tested: confidence {effective_confidence:.2f}")
+                            logger.debug(f"   [SUCCESS] Chardet guess '{chardet_enc_norm}' tested: confidence {effective_confidence:.2f}")
                             if effective_confidence >= self.CHARDET_TESTED_ACCEPTANCE_THRESHOLD:
                                 bom_detected = self._is_bom_present(file_path, chardet_enc_norm)
-                                print(f"   Using chardet's suggestion '{chardet_enc_norm}' (BOM: {bom_detected})")
+                                logger.debug(f"   Using chardet's suggestion '{chardet_enc_norm}' (BOM: {bom_detected})")
                                 return {
                                     'encoding': chardet_enc_norm,
                                     'confidence': effective_confidence,
@@ -100,13 +103,13 @@ class EncodingDetector:
                                 }
                         except Exception as e_test_chardet:
                             error_msg = f"Chardet guess '{chardet_enc_norm}' failed _test_encoding: {str(e_test_chardet)}"
-                            print(f"   [ERROR]  {error_msg}")
+                            logger.error(f"   [ERROR]  {error_msg}")
                             attempted_encodings.append({
                                 'encoding': chardet_enc_norm, 'confidence': 0.0,
                                 'source': 'chardet_tested', 'error': error_msg
                             })
                     else: # chardet_enc is None
-                        print(f"   ℹ Chardet could not determine encoding (confidence: {chardet_conf:.2f}).")
+                        logger.debug(f"   ℹ Chardet could not determine encoding (confidence: {chardet_conf:.2f}).")
                         attempted_encodings.append({
                             'encoding': None, 'confidence': 0.0, 'source': 'chardet',
                             'error': 'Chardet returned no encoding'})
@@ -114,14 +117,14 @@ class EncodingDetector:
                 raise
             except Exception as e_chardet_global:
                 error_msg = f"Error during chardet processing: {str(e_chardet_global)}"
-                print(f"   [ERROR]  {error_msg}")
+                logger.error(f"   [ERROR]  {error_msg}")
                 attempted_encodings.append({
                     'encoding': None, 'confidence': 0.0, 'source': 'chardet',
                     'error': error_msg
                 })
 
         # Step 2: Try each encoding in the fallback chain
-        print(f"   ℹ Trying manual encoding chain...")
+        logger.debug(f"   ℹ Trying manual encoding chain...")
         for encoding_name in self.encoding_chain:
             try:
                 confidence = self._test_encoding(file_path, encoding_name, sample_size)
@@ -129,18 +132,18 @@ class EncodingDetector:
                     'encoding': encoding_name, 'confidence': confidence,
                     'source': 'manual_chain', 'error': None
                 })
-                print(f"   [SUCCESS] Manual '{encoding_name}': confidence {confidence:.2f}")
+                logger.debug(f"   [SUCCESS] Manual '{encoding_name}': confidence {confidence:.2f}")
                 
                 if confidence >= self.HIGH_CONFIDENCE_THRESHOLD:
                     bom_detected = self._is_bom_present(file_path, encoding_name)
-                    print(f"   Using manual encoding '{encoding_name}' (BOM: {bom_detected})")
+                    logger.debug(f"   Using manual encoding '{encoding_name}' (BOM: {bom_detected})")
                     return {
                         'encoding': encoding_name, 'confidence': confidence,
                         'bom_detected': bom_detected, 'attempted_encodings': attempted_encodings
                     }
             except Exception as e_manual: # Should be rare as _test_encoding handles most
                 error_msg = f"Error testing manual encoding '{encoding_name}': {str(e_manual)}"
-                print(f"   [ERROR]  {error_msg}")
+                logger.error(f"   [ERROR]  {error_msg}")
                 attempted_encodings.append({
                     'encoding': encoding_name, 'confidence': 0.0,
                     'source': 'manual_chain', 'error': error_msg
@@ -153,7 +156,7 @@ class EncodingDetector:
                 best_attempt = max(valid_attempts, key=lambda x: x['confidence'])
                 chosen_encoding = best_attempt['encoding']
                 bom_detected = self._is_bom_present(file_path, chosen_encoding)
-                print(f"    Best encoding from all attempts: '{chosen_encoding}' (confidence: {best_attempt['confidence']:.2f}, BOM: {bom_detected})")
+                logger.debug(f"    Best encoding from all attempts: '{chosen_encoding}' (confidence: {best_attempt['confidence']:.2f}, BOM: {bom_detected})")
                 return {
                     'encoding': chosen_encoding,
                     'confidence': best_attempt['confidence'],
@@ -162,7 +165,7 @@ class EncodingDetector:
                 }
         
         # Step 4: Last resort fallback
-        print("[WARNING] No encoding detection succeeded, falling back to utf-8")
+        logger.warning("[WARNING] No encoding detection succeeded, falling back to utf-8")
         bom_detected_fallback = self._is_bom_present(file_path, 'utf-8') # Unlikely for plain utf-8
         return {
             'encoding': 'utf-8',

@@ -2,8 +2,7 @@ import { useCallback } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
-const API_BASE = window.BACKEND_URL || 'http://127.0.0.1:8000';
-const API_V1_BASE = `${API_BASE}/api/v1`;
+import { API_V1_BASE } from '../services/api';
 
 /**
  * Custom hook for preview-related handlers
@@ -96,18 +95,7 @@ export const usePreviewHandlers = (
     return null;
   }, [uploadedFiles, setUploadedFiles, setLoading, setError, applyTemplate, processDetectionResult, generateSuccessMessage]);
 
-  const previewFileById = useCallback(async (fileId) => {
-    const fileIndex = uploadedFiles.findIndex(f => f.fileId === fileId);
-    if (fileIndex === -1) {
-      setError('File not found');
-      return;
-    }
-    
-    await previewFile(fileIndex);
-  }, [uploadedFiles, setError, previewFile]);
-
   return {
-    previewFileById,
     previewFile
   };
 };

@@ -31,10 +31,7 @@ function ConfigureAndReviewStep({
 }) {
   const theme = useTheme();
   const [showAdvancedConfig, setShowAdvancedConfig] = useState(false);
-
-
-
-  if (currentStep < 2 || uploadedFiles.length === 0) return null;
+  const isActive = currentStep >= 2 && uploadedFiles.length > 0;
 
   // Filter parsedResults to only include files that are currently uploaded
   // This ensures the Config & Review page stays in sync when files are removed
@@ -56,7 +53,7 @@ function ConfigureAndReviewStep({
 
   // Show specific notifications once detection is complete
   useEffect(() => {
-    if (allFilesParsed && uploadedFiles.length > 0) {
+    if (isActive && allFilesParsed) {
       const knownFiles = uploadedFiles.filter(file => file.detectedBank && (file.confidence || 0) >= 0.5);
       const unknownFilesList = getUnknownBankFiles(uploadedFiles);
 
@@ -73,7 +70,10 @@ function ConfigureAndReviewStep({
         );
       }
     }
-  }, [allFilesParsed, uploadedFiles.length]);
+  }, [isActive, allFilesParsed, uploadedFiles.length]);
+
+  // Hooks must run on every render, so the early return comes after them
+  if (!isActive) return null;
 
   const handleConfigCreated = async (newConfig) => {
     console.log('[DEBUG] New bank configuration created:', newConfig);

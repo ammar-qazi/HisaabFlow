@@ -3,10 +3,11 @@ CSV parsing strategies with automatic fallbacks
 Handles multiple parsing approaches for different CSV formats
 """
 import csv
-import io
 import pandas as pd
 from typing import Dict, List, Optional
-from .exceptions import DataExtractionError
+import logging
+
+logger = logging.getLogger(__name__)
 
 class ParsingStrategies:
     """Multiple parsing approaches with automatic fallbacks"""
@@ -31,41 +32,41 @@ class ParsingStrategies:
         Returns:
             dict: {'success': bool, 'raw_rows': List[List[str]], 'error': str, 'strategy_used': str}
         """
-        print(f" Trying parsing strategies for file: {file_path}")
+        logger.debug(f" Trying parsing strategies for file: {file_path}")
         
         last_error = None
         
         # Strategy 1: Try Pandas first
-        print("   [DATA] Strategy 1: Pandas")
+        logger.debug("   [DATA] Strategy 1: Pandas")
         result = self._parse_with_pandas(file_path, encoding, dialect_result, header_row, max_rows, start_row)
         if result['success']:
-            print(f"   [SUCCESS] Pandas parsing succeeded")
+            logger.debug(f"   [SUCCESS] Pandas parsing succeeded")
             result['strategy_used'] = 'pandas'
             return result
         else:
-            print(f"   [ERROR]  Pandas failed: {result['error']}")
+            logger.debug(f"   [ERROR]  Pandas failed: {result['error']}")
             last_error = result['error']
         
         # Strategy 2: Try CSV module
-        print("    Strategy 2: CSV module")
+        logger.debug("    Strategy 2: CSV module")
         result = self._parse_with_csv_module(file_path, encoding, dialect_result, header_row, max_rows, start_row)
         if result['success']:
-            print(f"   [SUCCESS] CSV module parsing succeeded")
+            logger.debug(f"   [SUCCESS] CSV module parsing succeeded")
             result['strategy_used'] = 'csv_module'
             return result
         else:
-            print(f"   [ERROR]  CSV module failed: {result['error']}")
+            logger.debug(f"   [ERROR]  CSV module failed: {result['error']}")
             last_error = result['error']
         
         # Strategy 3: Manual parsing as last resort
-        print("    Strategy 3: Manual parsing")
+        logger.debug("    Strategy 3: Manual parsing")
         result = self._parse_manually(file_path, encoding, dialect_result, header_row, max_rows, start_row)
         if result['success']:
-            print(f"   [SUCCESS] Manual parsing succeeded")
+            logger.debug(f"   [SUCCESS] Manual parsing succeeded")
             result['strategy_used'] = 'manual'
             return result
         else:
-            print(f"   [ERROR]  Manual parsing failed: {result['error']}")
+            logger.debug(f"   [ERROR]  Manual parsing failed: {result['error']}")
             last_error = result['error']
         
         # All strategies failed
@@ -110,7 +111,7 @@ class ParsingStrategies:
                 pandas_params['skipinitialspace'] = True
             
             # Read CSV with detected line terminator
-            print(f"         Using pandas with lineterminator: {repr(pandas_params['lineterminator'])}")
+            logger.debug(f"         Using pandas with lineterminator: {repr(pandas_params['lineterminator'])}")
             df = pd.read_csv(**pandas_params)
             
             # Convert to list of lists
@@ -120,7 +121,7 @@ class ParsingStrategies:
             for i, row in enumerate(raw_rows):
                 raw_rows[i] = [str(cell) if pd.notna(cell) else '' for cell in row]
             
-            print(f"      [DATA] Pandas read {len(raw_rows)} rows with {len(raw_rows[0]) if raw_rows else 0} columns")
+            logger.debug(f"      [DATA] Pandas read {len(raw_rows)} rows with {len(raw_rows[0]) if raw_rows else 0} columns")
             
             return {
                 'success': True,
@@ -151,11 +152,11 @@ class ParsingStrategies:
                 lineterminator = dialect_result.get('line_terminator', '\n')  # Use detected line terminator
             
             # Log the line terminator being used
-            print(f"         Using CSV module with lineterminator: {repr(CustomDialect.lineterminator)}")
+            logger.debug(f"         Using CSV module with lineterminator: {repr(CustomDialect.lineterminator)}")
             
             # Special handling for quote-all format (Forint Bank style)
             if dialect_result.get('quoting') == csv.QUOTE_ALL:
-                print(f"      Detected quote-all format, using specialized handling")
+                logger.debug(f"      Detected quote-all format, using specialized handling")
                 CustomDialect.quoting = csv.QUOTE_ALL
                 CustomDialect.doublequote = True
             
@@ -176,7 +177,7 @@ class ParsingStrategies:
                                 else:
                                     clean_header_row.append(str(cell))
                             header_row_data = clean_header_row
-                            print(f"        Read header from row {header_row}: {clean_header_row[:3]}...")
+                            logger.debug(f"        Read header from row {header_row}: {clean_header_row[:3]}...")
                             break
             
             # Read file with custom dialect
@@ -212,7 +213,7 @@ class ParsingStrategies:
                     rows_processed += 1
             
             start_info = f" (starting from row {start_row})" if start_row is not None else ""
-            print(f"       CSV module read {len(raw_rows)} rows with {len(raw_rows[0]) if raw_rows else 0} columns{start_info}")
+            logger.debug(f"       CSV module read {len(raw_rows)} rows with {len(raw_rows[0]) if raw_rows else 0} columns{start_info}")
             
             return {
                 'success': True,
@@ -239,7 +240,7 @@ class ParsingStrategies:
             detected_line_terminator = dialect_result.get('line_terminator', '\n')
             
             # For manual parsing, we need to handle line terminators properly
-            print(f"         Using manual parsing with lineterminator: {repr(detected_line_terminator)}")
+            logger.debug(f"         Using manual parsing with lineterminator: {repr(detected_line_terminator)}")
             
             # Read the entire file and split by the detected line terminator
             with open(file_path, 'r', encoding=encoding) as f:
@@ -266,7 +267,7 @@ class ParsingStrategies:
                 
                 raw_rows.append(fields)
             
-            print(f"       Manual parsing read {len(raw_rows)} rows with {len(raw_rows[0]) if raw_rows else 0} columns")
+            logger.debug(f"       Manual parsing read {len(raw_rows)} rows with {len(raw_rows[0]) if raw_rows else 0} columns")
             
             return {
                 'success': True,

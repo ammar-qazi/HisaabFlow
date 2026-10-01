@@ -4,22 +4,25 @@ Handles unknown bank CSV analysis, configuration generation, and validation
 """
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Form
 from typing import Dict, Any, Optional
-import io
 import os
 import uuid
 from backend.services.unknown_bank_service import UnknownBankService
-from backend.services.unknown_bank_service import BankConfigInput, ConfigValidationResult
+from backend.services.unknown_bank_service import BankConfigInput
 from backend.infrastructure.csv_parsing.structure_analyzer import UnknownBankAnalysis
-from backend.shared.amount_formats.regional_formats import AmountFormat, RegionalFormatRegistry
+from backend.shared.amount_formats.regional_formats import AmountFormat
+from backend.infrastructure.config.unified_config_service import is_valid_bank_name
 from backend.api.models import (
-    UnknownBankAnalysisResponse, UnknownBankAnalysisRequest,
-    GenerateBankConfigRequest, GenerateBankConfigResponse,
-    ValidateBankConfigRequest, ValidateBankConfigResponse,
-    SaveBankConfigRequest, SaveBankConfigResponse,
-    AmountFormatAnalysisModel, AmountFormatModel, FieldMappingSuggestionModel,
-    BankConfigInputModel, ConfigValidationResultModel,
-    ValidateDatePatternRequest, ValidateDatePatternResponse, DatePatternValidationResult
+    UnknownBankAnalysisResponse, GenerateBankConfigRequest,
+    GenerateBankConfigResponse, ValidateBankConfigRequest,
+    ValidateBankConfigResponse, SaveBankConfigRequest,
+    SaveBankConfigResponse, AmountFormatAnalysisModel,
+    AmountFormatModel, FieldMappingSuggestionModel, ConfigValidationResultModel,
+    ValidateDatePatternRequest, ValidateDatePatternResponse,
+    DatePatternValidationResult
 )
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Router for unknown bank endpoints
 unknown_bank_router = APIRouter(prefix="/unknown-bank", tags=["unknown-bank"])
@@ -52,8 +55,8 @@ async def analyze_unknown_csv(
     Returns:
         UnknownBankAnalysisResponse with analysis results
     """
-    print(f"ℹ [API] Analyzing unknown bank CSV: {file.filename}")
-    print(f"ℹ [API] Header row parameter received: {header_row}")
+    logger.debug(f"ℹ [API] Analyzing unknown bank CSV: {file.filename}")
+    logger.debug(f"ℹ [API] Header row parameter received: {header_row}")
     
     temp_file_path = None
     try:
@@ -118,7 +121,7 @@ async def analyze_unknown_csv(
             )
         
         # Create response
-        print(f"  DEBUG: API - analysis.encoding being returned: {analysis.encoding}")
+        logger.debug(f"  DEBUG: API - analysis.encoding being returned: {analysis.encoding}")
         response = UnknownBankAnalysisResponse(
             success=True,
             filename=analysis.filename,
@@ -139,11 +142,11 @@ async def analyze_unknown_csv(
         response_dict = response.dict()
         response_dict['analysis_id'] = analysis_id
         
-        print(f"  Analysis complete. ID: {analysis_id}, Confidence: {analysis.structure_confidence:.2f}")
+        logger.debug(f"  Analysis complete. ID: {analysis_id}, Confidence: {analysis.structure_confidence:.2f}")
         return response_dict
         
     except Exception as e:
-        print(f"[ERROR] [API] Unknown CSV analysis failed: {str(e)}")
+        logger.error(f"[ERROR] [API] Unknown CSV analysis failed: {str(e)}")
         return UnknownBankAnalysisResponse(
             success=False,
             filename=file.filename or "unknown.csv",
@@ -192,7 +195,6 @@ async def generate_bank_config(
     Returns:
         GenerateBankConfigResponse with generated configuration
     """
-    print(f"ℹ [API] Generating config for bank: {request.config_input.bank_name}")
     
     try:
         # Retrieve stored analysis
@@ -237,7 +239,7 @@ async def generate_bank_config(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"[ERROR] [API] Config generation failed: {str(e)}")
+        logger.error(f"[ERROR] [API] Config generation failed: {str(e)}")
         return GenerateBankConfigResponse(
             success=False,
             config={},
@@ -261,7 +263,7 @@ async def validate_bank_config(
     Returns:
         ValidateBankConfigResponse with validation results
     """
-    print(f"ℹ [API] Validating bank config")
+    logger.debug(f"ℹ [API] Validating bank config")
     
     try:
         # Retrieve stored analysis
@@ -290,7 +292,7 @@ async def validate_bank_config(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"[ERROR] [API] Config validation failed: {str(e)}")
+        logger.error(f"[ERROR] [API] Config validation failed: {str(e)}")
         return ValidateBankConfigResponse(
             success=False,
             validation_result=ConfigValidationResultModel(
@@ -319,8 +321,15 @@ async def save_bank_config(
     Returns:
         SaveBankConfigResponse with save results
     """
-    bank_name = request.config.get('bank_info', {}).get('bank_name', 'unknown')
-    print(f"ℹ [API] Saving bank config: {bank_name}")
+    # Resolve the name the same way UnknownBankService.save_bank_config does
+    bank_info = request.config.get('bank_info', {})
+    bank_name = bank_info.get('name') or bank_info.get('bank_name', '')
+    if not is_valid_bank_name(bank_name):
+        raise HTTPException(
+            status_code=400,
+            detail="Bank name may only contain letters, digits, '_' and '-'.",
+        )
+    logger.debug(f"ℹ [API] Saving bank config: {bank_name}")
     
     try:
         # Check if config already exists (unless force overwrite)
@@ -359,7 +368,7 @@ async def save_bank_config(
             )
         
     except Exception as e:
-        print(f"[ERROR] [API] Config save failed: {str(e)}")
+        logger.error(f"[ERROR] [API] Config save failed: {str(e)}")
         return SaveBankConfigResponse(
             success=False,
             config_file="",
@@ -408,7 +417,7 @@ async def validate_header_row(
     Returns:
         Validation results with preview data
     """
-    print(f"ℹ [API] Validating header row {header_row} for: {file.filename}")
+    logger.debug(f"ℹ [API] Validating header row {header_row} for: {file.filename}")
     
     temp_file_path = None
     try:
@@ -429,11 +438,11 @@ async def validate_header_row(
             delimiter=','  # Could be auto-detected in future
         )
         
-        print(f"  Header row validation: {'Valid' if validation_result['valid'] else 'Invalid'}")
+        logger.debug(f"  Header row validation: {'Valid' if validation_result['valid'] else 'Invalid'}")
         return validation_result
         
     except Exception as e:
-        print(f"[ERROR] [API] Header row validation failed: {str(e)}")
+        logger.error(f"[ERROR] [API] Header row validation failed: {str(e)}")
         return {
             'valid': False,
             'error': f'Validation failed: {str(e)}',
@@ -458,7 +467,7 @@ async def validate_date_pattern(
     Returns:
         ValidateDatePatternResponse with validation results
     """
-    print(f"ℹ [API] Validating date pattern: '{request.pattern}' against {len(request.sample_dates)} samples")
+    logger.debug(f"ℹ [API] Validating date pattern: '{request.pattern}' against {len(request.sample_dates)} samples")
     
     try:
         from datetime import datetime
@@ -475,7 +484,6 @@ async def validate_date_pattern(
                     parsed_date=parsed_date.isoformat(),
                     formatted_back=formatted_back
                 ))
-                print(f"  ✅ '{sample}' → {parsed_date.strftime('%Y-%m-%d')}")
                 
             except ValueError as e:
                 results.append(DatePatternValidationResult(
@@ -483,13 +491,12 @@ async def validate_date_pattern(
                     success=False,
                     error=str(e)
                 ))
-                print(f"  ❌ '{sample}' → {str(e)}")
         
         success_count = sum(1 for r in results if r.success)
         success_rate = success_count / len(results) if results else 0
         is_valid = success_count > 0
         
-        print(f"  Pattern validation: {success_count}/{len(results)} samples successful ({success_rate:.1%})")
+        logger.debug(f"  Pattern validation: {success_count}/{len(results)} samples successful ({success_rate:.1%})")
         
         return ValidateDatePatternResponse(
             success=True,
@@ -500,7 +507,7 @@ async def validate_date_pattern(
         )
         
     except Exception as e:
-        print(f"[ERROR] [API] Date pattern validation failed: {str(e)}")
+        logger.error(f"[ERROR] [API] Date pattern validation failed: {str(e)}")
         return ValidateDatePatternResponse(
             success=False,
             pattern=request.pattern,

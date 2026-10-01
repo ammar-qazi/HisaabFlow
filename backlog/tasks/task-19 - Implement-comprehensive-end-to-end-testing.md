@@ -1,10 +1,10 @@
 ---
 id: task-19
 title: Implement comprehensive end-to-end testing
-status: Todo
+status: In Progress
 assignee: []
 created_date: '2025-07-09'
-updated_date: '2025-07-09'
+updated_date: '2026-09-30'
 labels: [testing, e2e, automation]
 dependencies: []
 ---
@@ -157,3 +157,8 @@ Test complete workflow through existing endpoints:
 This implementation builds on the existing strong testing foundation while adding comprehensive workflow validation. The focus is on testing real user scenarios with actual bank data rather than isolated unit tests.
 
 The E2E tests will serve as regression protection and confidence validation for releases, ensuring that changes don't break the core user workflow across different bank configurations.
+
+## Progress
+
+- Backend side covered by `backend/tests/golden/`: every file in `sample_data/` goes through upload, preview, parse, transform and export via the API, compared against snapshots.
+- Still open: automated browser tests of the UI flow.

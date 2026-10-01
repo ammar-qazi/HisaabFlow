@@ -1,15 +1,15 @@
 """
 Data transformation service for orchestrating transformation workflows
 """
-from pathlib import Path
-import json
 
 from backend.core.data_transformation.cashew_transformation_service import CashewTransformationService
 from backend.core.transfer_detection.transfer_processing_service import TransferProcessingService
 from backend.core.business_cleaning.data_cleaning_service import DataCleaningService
 from backend.services.export_formatting_service import ExportFormattingService
-from backend.core.bank_detection import BankDetector
 from backend.infrastructure.config.unified_config_service import get_unified_config_service
+import logging
+
+logger = logging.getLogger(__name__)
 
 class TransformationService:
     """Service for orchestrating transformation workflows using focused services"""
@@ -23,32 +23,7 @@ class TransformationService:
         self.data_cleaning_service = DataCleaningService()
         self.export_formatting_service = ExportFormattingService()
         
-        print(f"ℹ [TransformationService] Initialized with focused services")
-    
-    def transform_single_data(self, data: list, column_mapping: dict, bank_name: str = "", 
-                            categorization_rules: list = None, default_category_rules: dict = None,
-                            account_mapping: dict = None, config: dict = None):
-        """
-        Transform single dataset to Cashew format
-        
-        Args:
-            data: List of data rows
-            column_mapping: Column mapping dictionary
-            bank_name: Bank name for transformation
-            categorization_rules: Optional categorization rules
-            default_category_rules: Optional default category rules
-            account_mapping: Optional account mapping
-            config: Bank configuration for fallback logic
-            
-        Returns:
-            dict: Transformation result
-        """
-        print(f"ℹ [TransformationService] transform_single_data called for bank: {bank_name}")
-        
-        return self.cashew_transformation_service.transform_single_data(
-            data, column_mapping, bank_name, categorization_rules, 
-            default_category_rules, account_mapping, config
-        )
+        logger.debug(f"ℹ [TransformationService] Initialized with focused services")
     
     def transform_multi_csv_data(self, raw_data: dict):
         """
@@ -62,15 +37,15 @@ class TransformationService:
         Returns:
             dict: Multi-CSV transformation result
         """
-        print(f"ℹ [TransformationService] Multi-CSV transform request received")
+        logger.debug(f"ℹ [TransformationService] Multi-CSV transform request received")
         
         try:
-            print(f"   Request keys: {list(raw_data.keys())}")
+            logger.debug(f"   Request keys: {list(raw_data.keys())}")
             
             # Extract manually confirmed pairs if provided
             manually_confirmed_pairs = raw_data.get('manually_confirmed_pairs', [])
             if manually_confirmed_pairs:
-                print(f"   Received {len(manually_confirmed_pairs)} manually confirmed transfer pairs")
+                logger.debug(f"   Received {len(manually_confirmed_pairs)} manually confirmed transfer pairs")
             
             # Extract CSV data list
             csv_data_list = raw_data.get('csv_data_list', [])
@@ -83,7 +58,7 @@ class TransformationService:
             account_mapping = raw_data.get('account_mapping')
             bank_configs = self._get_bank_configs_for_data(raw_data)
             
-            print(f"   Step 1: Cashew transformation...")
+            logger.debug(f"   Step 1: Cashew transformation...")
             transformation_result = self.cashew_transformation_service.transform_multi_csv_data(
                 csv_data_list, categorization_rules, default_category_rules, account_mapping, bank_configs
             )
@@ -92,18 +67,18 @@ class TransformationService:
                 raise Exception(f"Cashew transformation failed: {transformation_result.get('error', 'Unknown error')}")
             
             result = transformation_result['data']
-            print(f"   [SUCCESS] Transformation successful: {len(result)} rows transformed")
+            logger.debug(f"   [SUCCESS] Transformation successful: {len(result)} rows transformed")
             
             # Step 2: Apply data cleaning and categorization
-            print(f"   Step 2: Data cleaning and categorization...")
+            logger.debug(f"   Step 2: Data cleaning and categorization...")
             enhanced_result = self.data_cleaning_service.apply_advanced_processing(result, csv_data_list)
             
             # Step 3: Run transfer detection
-            print(f"   Step 3: Transfer detection...")
+            logger.debug(f"   Step 3: Transfer detection...")
             transfer_analysis_raw = self.transfer_processing_service.run_transfer_detection(enhanced_result, csv_data_list)
             
             # Step 4: Apply transfer categorization
-            print(f"   Step 4: Transfer categorization...")
+            logger.debug(f"   Step 4: Transfer categorization...")
             final_result = self.transfer_processing_service.apply_transfer_categorization(
                 transfer_analysis_raw.get('processed_transactions', enhanced_result),
                 transfer_analysis_raw,
@@ -111,7 +86,7 @@ class TransformationService:
             )
             
             # Step 5: Format for API response
-            print(f"   Step 5: Format for API response...")
+            logger.debug(f"   Step 5: Format for API response...")
             transfer_analysis = self.export_formatting_service.format_transfer_analysis(transfer_analysis_raw)
             cleaned_transformed_data = self.export_formatting_service.clean_transformed_data(final_result)
             
@@ -119,8 +94,8 @@ class TransformationService:
                 csv_data_list, cleaned_transformed_data
             )
             
-            print(f"   [DATA] Transfer pairs found: {transfer_analysis.get('summary', {}).get('transfer_pairs_found', 0)}")
-            print(f"   [DATA] Potential transfers: {transfer_analysis.get('summary', {}).get('potential_transfers', 0)}")
+            logger.debug(f"   [DATA] Transfer pairs found: {transfer_analysis.get('summary', {}).get('transfer_pairs_found', 0)}")
+            logger.debug(f"   [DATA] Potential transfers: {transfer_analysis.get('summary', {}).get('potential_transfers', 0)}")
             
             # Response matching MultiCSVResponse model exactly
             response_data = {
@@ -131,13 +106,13 @@ class TransformationService:
                 "file_results": formatting_result["file_results"]
             }
             
-            print(f"   Sending response with {len(cleaned_transformed_data)} cleaned transformed_data rows")
+            logger.debug(f"   Sending response with {len(cleaned_transformed_data)} cleaned transformed_data rows")
             return response_data
             
         except Exception as e:
-            print(f"[ERROR] Multi-CSV transform exception: {str(e)}")
+            logger.error(f"[ERROR] Multi-CSV transform exception: {str(e)}")
             import traceback
-            print(f"   Full traceback: {traceback.format_exc()}")
+            logger.error(f"   Full traceback: {traceback.format_exc()}")
             return {
                 "success": False,
                 "error": str(e)
@@ -173,9 +148,9 @@ class TransformationService:
                             }
                         }
                         configs[detected_bank] = config_dict
-                        print(f"      Loaded config for {detected_bank}")
+                        logger.debug(f"      Loaded config for {detected_bank}")
                 except Exception as e:
-                    print(f"      [WARNING] Error loading config for {detected_bank}: {e}")
+                    logger.warning(f"      [WARNING] Error loading config for {detected_bank}: {e}")
         
         return configs
     
@@ -193,7 +168,7 @@ class TransformationService:
         Returns:
             dict: Updated transformed data with proper categorization
         """
-        print(f"ℹ [TransformationService] Applying transfer categorization only...")
+        logger.debug(f"ℹ [TransformationService] Applying transfer categorization only...")
         
         # Extract data from request
         transformed_data = request_data.get('transformed_data', [])

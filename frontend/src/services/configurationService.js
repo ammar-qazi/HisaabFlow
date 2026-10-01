@@ -1,7 +1,6 @@
 import axios from 'axios';
 
-const API_BASE = window.BACKEND_URL || 'http://127.0.0.1:8000';
-const API_V1_BASE = `${API_BASE}/api/v1`;
+import { API_V1_BASE } from './api';
 
 // Configure axios defaults
 axios.defaults.timeout = 15000;
@@ -207,6 +206,14 @@ export class ConfigurationService {
       
       const response = await axios.post(`${API_V1_BASE}/unknown-bank/save-config`, saveRequest);
       
+      // The endpoint answers 200 with success: false for e.g. an existing bank
+      if (response.data.success === false) {
+        return {
+          success: false,
+          error: `Failed to save configuration: ${response.data.message || response.data.error}`
+        };
+      }
+
       console.log('[SUCCESS] Configuration saved successfully:', response.data);
       return {
         success: true,

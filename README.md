@@ -11,42 +11,24 @@ A powerful, configuration-driven bank statement parser that transforms messy CSV
 - 🔄 **Transfer Detection**: Automatically identifies and matches transfers between accounts
 - 🔧 **Configuration-Driven**: Customizable rules via simple `.conf` files
 - 📈 **Clean Export**: Structured CSV output optimized for Cashew and other budgeting tools
-- 🖥️ **Desktop App**: Native Electron application with modern React UI
+- 🐳 **Runs in Docker**: One container serves the web UI and API on your machine
 - 🛡️ **Privacy First**: All processing happens locally on your machine
 
 ## Quick Start
 
-**Download the latest release from [GitHub Releases](https://github.com/ammar-qazi/HisaabFlow/releases)**
-
-**Linux (AppImage):**
-
-```bash
-chmod +x HisaabFlow.AppImage
-./HisaabFlow.AppImage
-```
-
-**macOS:**
-
-```bash
-# Download HisaabFlow.dmg and drag to Applications
-```
-
-**Windows:**
-
-```bash
-# Download HisaabFlow.exe
-# Note: You may see a security warning since the app is unsigned
-# Click "More info" → "Run anyway" to proceed
-```
-
-**Build from Source:**
+You need [Docker](https://docs.docker.com/get-docker/) with Docker Compose.
 
 ```bash
 git clone https://github.com/ammar-qazi/HisaabFlow.git
 cd HisaabFlow
-chmod +x start_app.sh
-./start_app.sh
+docker compose up -d --build     # or: make up
 ```
+
+Open http://127.0.0.1:8000. The app only listens on your own machine.
+
+- Your configuration lives in `./data/configs` on your computer. Edit the `.conf` files there; they are kept across restarts and upgrades. On first start the shipped configs are copied in, and any shipped config you don't have yet is added later. Your own edits are never overwritten.
+- Files in `./data` are owned by uid/gid 1000. If your user has a different id, start with `HISAABFLOW_UID=$(id -u) HISAABFLOW_GID=$(id -g) docker compose up -d`.
+- Stop with `docker compose down` (or `make down`). Upgrade with `git pull` and `docker compose up -d --build`.
 
 ## Supported Banks
 
@@ -76,13 +58,15 @@ chmod +x start_app.sh
 
 HisaabFlow uses `.conf` files for flexible, bank-specific processing rules:
 
-**App-wide settings** (`configs/app.conf`):
+**App-wide settings** (`data/configs/app.conf`):
 
 ```conf
-[transfer_detection]
-confidence_threshold = 0.7
+[general]
 date_tolerance_hours = 72
 user_name = Your Name Here
+
+[transfer_detection]
+confidence_threshold = 0.7
 
 # Category-based patterns applied to all banks
 [Shopping]
@@ -101,7 +85,7 @@ KFC.*
 Starbucks.*
 ```
 
-**Bank-specific overrides** (e.g., `configs/nayapay.conf`):
+**Bank-specific overrides** (e.g., `data/configs/nayapay.conf`):
 
 ```conf
 [bank_info]
@@ -159,6 +143,34 @@ Currently optimized for **Cashew** expense tracker with planned support for:
 - Money Lover
 - YNAB (You Need A Budget)
 - Generic CSV formats
+
+## Development
+
+Without Docker, with Python 3.11 and Node 22:
+
+```bash
+pip install -r backend/requirements-dev.txt
+(cd frontend && npm ci)
+make dev
+```
+
+Open http://127.0.0.1:3000. The React dev server reloads on changes and forwards `/api` to the backend on port 8000, which reloads too. Ctrl+C stops both. Without `HISAABFLOW_CONFIG_DIR` set, the backend reads the repository's `configs/` directly.
+
+## Running Tests
+
+```bash
+pip install -r backend/requirements-dev.txt
+pytest
+```
+
+Tests run against a temporary copy of `configs/`, and the run fails if any test changes the real files.
+
+`backend/tests/golden/` runs every file in `sample_data/` through upload, preview, parse, transform and export, and compares the result with the snapshots in `backend/tests/golden/snapshots/`. If you change the output on purpose, regenerate the snapshots and review the diff before committing:
+
+```bash
+UPDATE_GOLDEN=1 pytest backend/tests/golden
+git diff backend/tests/golden/snapshots
+```
 
 ## License
 

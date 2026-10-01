@@ -7,6 +7,9 @@ from typing import List, Dict, Any
 from datetime import datetime
 import re
 import pandas as pd
+import logging
+
+logger = logging.getLogger(__name__)
 
 class DateCleaner:
     """
@@ -38,14 +41,14 @@ class DateCleaner:
         Returns:
             List[Dict]: Data with cleaned date values
         """
-        print(f"    Step 5: Cleaning date columns")
+        logger.debug(f"    Step 5: Cleaning date columns")
         
         if not data:
             return []
         
         # Identify date columns
         date_cols = self._identify_date_columns(data)
-        print(f"       Date columns found: {date_cols}")
+        logger.debug(f"       Date columns found: {date_cols}")
         
         cleaned_data = []
         for row_idx, row in enumerate(data):
@@ -57,13 +60,13 @@ class DateCleaner:
                     
                     # Debug first few rows
                     if row_idx < 3:
-                        print(f"       Row {row_idx} {col}: '{value}' → '{cleaned_value}'")
+                        pass
                 else:
                     cleaned_row[col] = value
             
             cleaned_data.append(cleaned_row)
         
-        print(f"      [SUCCESS] Date cleaning complete")
+        logger.debug(f"      [SUCCESS] Date cleaning complete")
         return cleaned_data
     
     def _identify_date_columns(self, data: List[Dict]) -> List[str]:
@@ -156,17 +159,6 @@ class DateCleaner:
             # If no format matches, return original
             return value_str
             
-        except Exception as e:
-            print(f"      [WARNING]  Could not parse date value: '{value}' - {e}")
+        except Exception:
             return str(value) if value else ''
     
-    def add_custom_date_format(self, date_format: str):
-        """
-        Add a custom date format to the parser
-        
-        Args:
-            date_format: Python strptime format string
-        """
-        if date_format not in self.date_formats:
-            self.date_formats.append(date_format)
-            print(f"       Added custom date format: {date_format}")

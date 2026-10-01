@@ -7,36 +7,6 @@ from pydantic import BaseModel
 from typing import Dict, List, Optional, Union, Any
 
 
-class PreviewRequest(BaseModel):
-    file_path: str
-    encoding: Optional[str] = None
-
-
-class ParseRangeRequest(BaseModel):
-    start_row: int
-    end_row: Optional[int] = None
-    start_col: int = 0
-    end_col: Optional[int] = None
-    encoding: Optional[str] = None
-    enable_cleaning: bool = True
-
-
-class CategorizationRule(BaseModel):
-    pattern: str
-    category: str
-    amount_threshold: Optional[float] = None
-    currency: Optional[str] = None
-
-
-class TransformRequest(BaseModel):
-    data: List[Dict[str, Union[str, int, float]]]
-    column_mapping: Dict[str, str]
-    bank_name: str = ""
-    categorization_rules: Optional[List[CategorizationRule]] = None
-    default_category_rules: Optional[Dict[str, str]] = None
-    account_mapping: Optional[Dict[str, str]] = None
-
-
 class ParseConfig(BaseModel):
     start_row: int
     end_row: Optional[int] = None
@@ -52,23 +22,6 @@ class MultiCSVParseRequest(BaseModel):
     enable_cleaning: bool = True
 
 
-class CSVDataItem(BaseModel):
-    data: List[Dict[str, Union[str, int, float]]]
-    bank_name: str
-    file_id: str
-    original_name: str
-
-
-class MultiCSVTransformRequest(BaseModel):
-    csv_data_list: List[CSVDataItem]
-    enable_transfer_detection: bool = True
-
-
-class SaveTemplateRequest(BaseModel):
-    template_name: str
-    config: Dict[str, Union[str, int, float, bool, List[str]]]
-
-
 class UploadResponse(BaseModel):
     success: bool
     file_id: str
@@ -76,31 +29,11 @@ class UploadResponse(BaseModel):
     size: int
 
 
-class CleaningSummary(BaseModel):
-    original_rows: int
-    final_rows: int
-    rows_removed: int
-    numeric_columns_cleaned: int
-    date_columns_cleaned: int
-    currency_column_added: bool
-    quality_grade: str
-
-
-class ParseResponse(BaseModel):
+class TransferCategorizationResponse(BaseModel):
     success: bool
-    headers: List[str]
-    data: List[Dict[str, Union[str, int, float]]]
-    row_count: int
-    parser_used: Optional[str] = None
-    cleaning_applied: Optional[bool] = False
-    cleaning_summary: Optional[CleaningSummary] = None
-    error: Optional[str] = None
-
-
-class TransformResponse(BaseModel):
-    success: bool
-    data: List[Dict[str, Union[str, int, float]]]
-    row_count: int
+    transformed_data: List[Dict[str, Union[str, int, float]]] = []
+    updated_transactions: int = 0
+    category_applied: Optional[str] = None
     error: Optional[str] = None
 
 
@@ -195,13 +128,6 @@ class ConfigResponse(BaseModel):
     source: str
 
 
-class SaveConfigResponse(BaseModel):
-    success: bool
-    message: str
-    config_file: str
-    suggestion: str
-
-
 class ReloadConfigsResponse(BaseModel):
     """Response model for configuration reload operation"""
 
@@ -228,14 +154,6 @@ class PreviewResponse(BaseModel):
     error: Optional[str] = None
 
 
-class DetectRangeResponse(BaseModel):
-    success: bool
-    suggested_header_row: int
-    total_rows: int
-    confidence: float
-    error: Optional[str] = None
-
-
 class CleanupResponse(BaseModel):
     success: bool
 
@@ -254,7 +172,6 @@ class HealthResponse(BaseModel):
 
 
 # Unknown Bank Support Models
-from backend.shared.amount_formats.regional_formats import AmountFormat
 
 
 class FieldMappingSuggestionModel(BaseModel):
@@ -388,14 +305,6 @@ class SaveBankConfigResponse(BaseModel):
     reload_success: bool
     message: str
     error: Optional[str] = None
-
-
-class UnknownBankAnalysisRequest(BaseModel):
-    """Request model for analyzing unknown bank CSV"""
-
-    file_id: str  # Reference to uploaded file
-    encoding: Optional[str] = None
-    delimiter: Optional[str] = None
 
 
 class ValidateDatePatternRequest(BaseModel):

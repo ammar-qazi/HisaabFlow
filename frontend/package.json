@@ -1,128 +1,26 @@
 {
   "name": "hisaabflow",
   "version": "1.1.2",
-  "description": "Desktop app for parsing bank statement CSVs",
+  "description": "Web app for parsing bank statement CSVs",
   "author": "Ammar <ammarqazi.official@gmail.com>",
-  "homepage": "./",
+  "homepage": "/",
   "repository": {
     "type": "git",
     "url": "https://github.com/ammar-qazi/HisaabFlow.git"
   },
-  "main": "public/electron.js",
   "private": true,
   "dependencies": {
-    "ag-grid-community": "^30.0.0",
-    "ag-grid-react": "^30.0.0",
     "axios": "^1.4.0",
-    "concurrently": "^8.0.0",
-    "electron-is-dev": "^2.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hot-toast": "^2.5.2",
-    "react-scripts": "5.0.1",
-    "wait-on": "^7.0.0",
-    "zustand": "^5.0.6"
+    "react-scripts": "5.0.1"
   },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "electron": "electron .",
-    "electron-dev": "concurrently \"npm start\" \"wait-on http://localhost:3000 && electron .\" --kill-others",
-    "electron-pack": "npm run build && electron-builder",
-    "preelectron-pack": "npm run build",
-    "dist": "npm run build && electron-builder --publish never",
-    "dist:all": "npm run build && electron-builder --mac --win --linux --publish never",
-    "dist:linux": "npm run build && electron-builder --linux --publish never",
-    "dist:mac": "npm run build && electron-builder --mac --publish never",
-    "dist:win": "npm run build && electron-builder --win --publish never"
-  },
-  "build": {
-    "appId": "com.hisaabflow.app",
-    "productName": "HisaabFlow",
-    "icon": "assets/icon.png",
-    "publish": {
-      "provider": "github"
-    },
-    "directories": {
-      "output": "dist"
-    },
-    "nsis": {
-      "oneClick": false,
-      "perMachine": false,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "allowToChangeInstallationDirectory": true
-    },
-    "files": [
-      "build/**/*",
-      "node_modules/**/*",
-      "public/electron.js",
-      "scripts/**/*"
-    ],
-    "mac": {
-      "target": "dmg",
-      "category": "public.app-category.finance",
-      "extraResources": [
-        {
-          "from": "compiled-backend/hisaabflow-backend",
-          "to": "hisaabflow-backend"
-        },
-        {
-          "from": "../configs",
-          "to": "configs"
-        },
-        {
-          "from": "../sample_data",
-          "to": "sample_data"
-        }
-      ]
-    },
-    "linux": {
-      "target": "AppImage",
-      "category": "Office",
-      "extraResources": [
-        {
-          "from": "compiled-backend/hisaabflow-backend",
-          "to": "hisaabflow-backend"
-        },
-        {
-          "from": "../configs",
-          "to": "configs"
-        },
-        {
-          "from": "../sample_data",
-          "to": "sample_data"
-        }
-      ]
-    },
-    "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64",
-            "ia32"
-          ]
-        }
-      ],
-      "compression": "normal",
-      "extraResources": [
-        {
-          "from": "compiled-backend/hisaabflow-backend.exe",
-          "to": "hisaabflow-backend.exe"
-        },
-        {
-          "from": "../configs",
-          "to": "configs"
-        },
-        {
-          "from": "../sample_data",
-          "to": "sample_data"
-        }
-      ]
-    }
+    "eject": "react-scripts eject"
   },
   "browserslist": {
     "production": [
@@ -137,8 +35,6 @@
     ]
   },
   "devDependencies": {
-    "adm-zip": "^0.5.16",
-    "electron": "^25.0.0",
-    "electron-builder": "^24.0.0"
+    "http-proxy-middleware": "^2.0.10"
   }
 }

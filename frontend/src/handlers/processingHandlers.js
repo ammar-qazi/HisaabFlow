@@ -1,8 +1,7 @@
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
-const API_BASE = window.BACKEND_URL || 'http://127.0.0.1:8000';
-const API_V1_BASE = `${API_BASE}/api/v1`;
+import { API_V1_BASE } from '../services/api';
 
 // Processing functions
 export const createProcessingHandlers = (state) => {
@@ -19,7 +18,7 @@ export const createProcessingHandlers = (state) => {
   } = state;
 
   // parseAllFiles function remains the same...
-  const parseAllFiles = async () => {
+  const parseAllFiles = async ({ advance = true } = {}) => {
     if (uploadedFiles.length === 0) return;
     
     setError(null);
@@ -71,7 +70,9 @@ export const createProcessingHandlers = (state) => {
       });
       
       setParsedResults(results);
-      setCurrentStep(2);
+      if (advance) {
+        setCurrentStep(2);
+      }
       
     } catch (err) {
       setError(`Parsing failed: ${err.response?.data?.detail || err.message}`);

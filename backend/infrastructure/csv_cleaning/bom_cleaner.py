@@ -7,6 +7,9 @@ This module provides fallback cleanup for cases where proper encoding wasn't use
 """
 
 from typing import List, Dict
+import logging
+
+logger = logging.getLogger(__name__)
 
 class BOMCleaner:
     """
@@ -35,11 +38,11 @@ class BOMCleaner:
         
         # Check first row for BOM characters
         if not self.has_bom_characters(data):
-            print(f"      [SUCCESS] No BOM characters detected, skipping BOM cleanup")
+            logger.debug(f"      [SUCCESS] No BOM characters detected, skipping BOM cleanup")
             return data
         
-        print(f"       BOM characters detected, cleaning column names...")
-        print(f"       RECOMMENDATION: Use utf-8-sig encoding when reading CSV files")
+        logger.debug(f"       BOM characters detected, cleaning column names...")
+        logger.debug(f"       RECOMMENDATION: Use utf-8-sig encoding when reading CSV files")
         
         # Strip BOM from all column names
         cleaned_data = []
@@ -52,11 +55,11 @@ class BOMCleaner:
                 
                 # Debug first few BOM cleanups
                 if len(cleaned_data) < 3 and clean_col != str(col):
-                    print(f"       BOM cleanup: '{col}' → '{clean_col}'")
+                    logger.debug(f"       BOM cleanup: '{col}' → '{clean_col}'")
             
             cleaned_data.append(cleaned_row)
         
-        print(f"      [SUCCESS] BOM cleanup complete: {len(cleaned_data)} rows processed")
+        logger.debug(f"      [SUCCESS] BOM cleanup complete: {len(cleaned_data)} rows processed")
         return cleaned_data
     
     def has_bom_characters(self, data: List[Dict]) -> bool:

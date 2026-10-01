@@ -2,20 +2,29 @@
 Bank detector for identifying bank type from CSV files
 """
 import re
-from typing import Any, Dict, List, Tuple
+from typing import List, Tuple
 from backend.infrastructure.config.unified_config_service import get_unified_config_service, BankDetectionInfo
 from backend.shared.models.csv_models import BankDetectionResult
+import logging
+
+logger = logging.getLogger(__name__)
 
 class BankDetector:
     """Detects bank type from CSV files using content signatures and header analysis"""
+
+    # Below this score a full detection (filename + content + headers) is a
+    # guess, not a detection. Parsing and the frontend already treat anything
+    # under 0.5 as "no config".
+    MIN_CONFIDENCE = 0.5
     
     def __init__(self, config_service=None):
         self.config_service = config_service or get_unified_config_service()
         self.detection_patterns = self.config_service.get_detection_patterns()
         
-        print(f" BankDetector initialized with {len(self.detection_patterns)} bank patterns")
+        logger.debug(f" BankDetector initialized with {len(self.detection_patterns)} bank patterns")
     
-    def detect_bank(self, filename: str, csv_content: str, headers: List[str]) -> BankDetectionResult:
+    def detect_bank(self, filename: str, csv_content: str, headers: List[str],
+                    min_confidence: float = 0.0) -> BankDetectionResult:
         """
         Detect bank type from filename, content, and headers
         
@@ -23,13 +32,14 @@ class BankDetector:
             filename: Name of the CSV file
             csv_content: Raw CSV content (first few lines)
             headers: List of CSV headers
+            min_confidence: Report 'unknown' if the best match scores lower.
+                Leave at 0 for partial detections (content-only or
+                headers-only) whose scores are combined later.
             
         Returns:
             BankDetectionResult with bank name and confidence score
         """
-        print(f" Detecting bank for file: {filename}")
-        print(f" Headers found: {headers}")
-        print(f" Content preview: {csv_content[:200]}...")
+        logger.debug(f" Detecting bank for file: {filename}")
         
         candidates = []
         
@@ -38,17 +48,24 @@ class BankDetector:
             
             if confidence > 0:
                 candidates.append(BankDetectionResult(bank_name=bank_name, confidence=confidence, reasons=reasons))
-                print(f" {bank_name}: confidence={confidence:.2f}, reasons={reasons}")
+                logger.debug(f" {bank_name}: confidence={confidence:.2f}, reasons={reasons}")
         
         # Sort by confidence (highest first)
         candidates.sort(key=lambda x: x.confidence, reverse=True)
         
-        if candidates:
+        if candidates and candidates[0].confidence >= min_confidence:
             best_match = candidates[0]
-            print(f"Best match: {best_match}")
             return best_match
+        elif candidates:
+            best_guess = candidates[0]
+            logger.debug(f" Best guess {best_guess.bank_name} ({best_guess.confidence:.2f}) is below {min_confidence}, using unknown")
+            return BankDetectionResult(
+                bank_name='unknown',
+                confidence=best_guess.confidence,
+                reasons=[f"best_guess:{best_guess.bank_name}"] + best_guess.reasons,
+            )
         else:
-            print(f" No bank detected, using unknown")
+            logger.debug(f" No bank detected, using unknown")
             return BankDetectionResult(bank_name='unknown', confidence=0.0, reasons=['No patterns matched'])
     
     def _calculate_confidence(self, filename: str, content: str, headers: List[str], 
@@ -86,7 +103,7 @@ class BankDetector:
         max_score = 0.0
         
         # Debug filename matching
-        print(f" Checking filename '{filename}' against patterns: {patterns}")
+        logger.debug(f" Checking filename '{filename}' against patterns: {patterns}")
         
         for pattern in patterns:
             pattern_lower = pattern.lower()
@@ -98,48 +115,48 @@ class BankDetector:
                 inner_pattern = pattern[1:-1].lower()  # Remove surrounding *
                 if inner_pattern in filename_lower:
                     score = 0.9  # High confidence for glob patterns
-                    print(f"[SUCCESS] Glob pattern '{pattern}' matched filename '{filename}' (contains '{inner_pattern}')")
+                    logger.debug(f"[SUCCESS] Glob pattern '{pattern}' matched filename '{filename}' (contains '{inner_pattern}')")
                 else:
-                    print(f"[ERROR]  Glob pattern '{pattern}' did not match filename '{filename}'")
+                    logger.debug(f"[ERROR]  Glob pattern '{pattern}' did not match filename '{filename}'")
             elif any(char in pattern for char in ['^', '$', '\\d', '\\w', '+', '?', '[', ']', '(', ')']) or (pattern.count('*') > 0 and not (pattern.startswith('*') and pattern.endswith('*'))):
                 try:
                     # Treat as regex pattern
                     if re.match(pattern, filename, re.IGNORECASE):
                         score = 1.0
-                        print(f"[SUCCESS] Regex pattern '{pattern}' matched filename '{filename}'")
+                        logger.debug(f"[SUCCESS] Regex pattern '{pattern}' matched filename '{filename}'")
                     else:
-                        print(f"[ERROR]  Regex pattern '{pattern}' did not match filename '{filename}'")
+                        logger.debug(f"[ERROR]  Regex pattern '{pattern}' did not match filename '{filename}'")
                 except re.error as e:
-                    print(f"[WARNING] Invalid regex pattern '{pattern}': {e}")
+                    logger.warning(f"[WARNING] Invalid regex pattern '{pattern}': {e}")
                     # Fallback to simple string matching
                     if pattern_lower in filename_lower:
                         score = 0.7  # Lower confidence for fallback
-                        print(f"[SUCCESS] Fallback string match for pattern '{pattern}'")
+                        logger.debug(f"[SUCCESS] Fallback string match for pattern '{pattern}'")
             else:
                 # Simple string containment check
                 if pattern_lower in filename_lower:
                     score = 0.8  # Good confidence for simple patterns
-                    print(f"[SUCCESS] Simple pattern '{pattern}' found in filename '{filename}'")
+                    logger.debug(f"[SUCCESS] Simple pattern '{pattern}' found in filename '{filename}'")
                 else:
-                    print(f"[ERROR]  Simple pattern '{pattern}' not found in filename '{filename}'")
+                    logger.debug(f"[ERROR]  Simple pattern '{pattern}' not found in filename '{filename}'")
             
             max_score = max(max_score, score)
         
-        print(f"Final filename score: {max_score}")
+        logger.debug(f"Final filename score: {max_score}")
         return max_score
     
     def _check_content_signatures(self, content: str, signatures: List[str]) -> float:
         """Check if content contains bank-specific signatures"""
         if not signatures:
-            print("[DEBUG] No content signatures to check")
+            logger.debug("[DEBUG] No content signatures to check")
             return 0.0
             
         content_lower = content.lower()
         matches = 0
         
-        print(f"\n[DEBUG] Content Signature Matching")
-        print(f"[DEBUG] Looking for {len(signatures)} signatures in content:")
-        print("-" * 80)
+        logger.debug(f"\n[DEBUG] Content Signature Matching")
+        logger.debug(f"[DEBUG] Looking for {len(signatures)} signatures in content:")
+        logger.debug("-" * 80)
         
         for signature in signatures:
             signature_lower = signature.lower()
@@ -150,14 +167,13 @@ class BankDetector:
                 context_start = max(0, pos - 20)
                 context_end = min(len(content_lower), pos + len(signature_lower) + 20)
                 context = content_lower[context_start:context_end].replace('\n', ' ').replace('\r', ' ')
-                print(f"✅ FOUND: '{signature}'")
-                print(f"   Context: ...{context}...")
+                logger.debug(f"✅ FOUND: '{signature}'")
+                logger.debug(f"   Context: ...{context}...")
             else:
-                print(f"❌ MISSING: '{signature}'")
+                logger.debug(f"❌ MISSING: '{signature}'")
         
         score = matches / len(signatures) if signatures else 0.0
-        print(f"\n[DEBUG] Signature matching complete: {matches}/{len(signatures)} signatures found (score: {score:.2f})")
-        print("=" * 80)
+        logger.debug("=" * 80)
         
         return score
     
@@ -186,34 +202,6 @@ class BankDetector:
         
         # Return percentage of required headers found
         return matches / len(required_headers)
-    
-    def detect_bank_from_data(self, filename: str, data_rows: List[Dict[str, Any]]) -> BankDetectionResult:
-        """
-        Detect bank from parsed CSV data
-        
-        Args:
-            filename: Name of the CSV file
-            data_rows: List of parsed CSV rows as dictionaries
-            
-        Returns:
-            BankDetectionResult
-        """
-        if not data_rows:
-            return BankDetectionResult(bank_name='unknown', confidence=0.0, reasons=['No data provided'])
-        
-        # Extract headers from first row
-        headers = list(data_rows[0].keys())
-        
-        # Create content string from data values for signature matching
-        content_parts = []
-        for i, row in enumerate(data_rows[:5]):  # Check first 5 rows
-            content_parts.extend(str(value) for value in row.values() if value)
-            if i >= 4:  # Limit content for performance
-                break
-        
-        content = ' '.join(content_parts)
-        
-        return self.detect_bank(filename, content, headers)
     
     def get_available_banks(self) -> List[str]:
         """Get list of available bank names"""

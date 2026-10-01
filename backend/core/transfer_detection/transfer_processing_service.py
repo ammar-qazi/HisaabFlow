@@ -2,27 +2,24 @@
 Transfer processing service for orchestrating transfer detection and categorization
 """
 from typing import Dict, List, Any, Optional
-from pathlib import Path
 
 from backend.core.transfer_detection.main_detector import TransferDetector
 from backend.infrastructure.config.unified_config_service import get_unified_config_service
+from backend.shared.utils.bank_lookup import bank_for_row
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class TransferProcessingService:
     """Service focused on transfer detection and processing"""
     
     def __init__(self):
-        # Determine config directory path
-        current_file_dir = Path(__file__).resolve().parent
-        project_root = current_file_dir.parent.parent.parent
-        config_dir_path = project_root / "configs"
-        config_dir_path_str = str(config_dir_path)
-        
         # Create unified config service instance for transfer detection
-        self.config_service = get_unified_config_service(config_dir_path_str)
+        self.config_service = get_unified_config_service()
         self.transfer_detector = TransferDetector(config_service=self.config_service)
         
-        print(f"ℹ [TransferProcessingService] Initialized with TransferDetector")
+        logger.debug(f"ℹ [TransferProcessingService] Initialized with TransferDetector")
     
     def run_transfer_detection(self, data: List[Dict[str, Any]], 
                               csv_data_list: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -36,13 +33,12 @@ class TransferProcessingService:
         Returns:
             dict: Transfer detection results
         """
-        print(f"ℹ [TransferProcessingService] Running transfer detection...")
-        print(f"   [DATA] Input data rows: {len(data)}")
+        logger.debug(f"ℹ [TransferProcessingService] Running transfer detection...")
+        logger.debug(f"   [DATA] Input data rows: {len(data)}")
         
         # DEBUG: Show sample data structure
         if data:
-            print(f"      Sample row keys: {list(data[0].keys())}")
-            print(f"      Sample row: {data[0]}")
+            pass
         
         # Group data by account/bank for transfer detection
         accounts = {}
@@ -52,14 +48,14 @@ class TransferProcessingService:
                 accounts[account] = []
             accounts[account].append(row)
         
-        print(f"      Accounts found: {list(accounts.keys())}")
+        logger.debug(f"      Accounts found: {list(accounts.keys())}")
         
         # Create csv_data_list format for transfer detector with bank info
         csv_data_for_detector = []
         
         for account, rows in accounts.items():
-            # Find the matching CSV data for this account to get bank info
-            bank_info = self._find_bank_info_for_account(account, csv_data_list)
+            bank_name = bank_for_row(rows[0], csv_data_list, self.config_service)
+            bank_info = {'bank_name': bank_name} if bank_name else {}
             
             csv_data = {
                 'data': rows,
@@ -68,19 +64,19 @@ class TransferProcessingService:
                 'template_config': {}
             }
             csv_data_for_detector.append(csv_data)
-            print(f"         Account '{account}': {len(rows)} transactions")
+            logger.debug(f"         Account '{account}': {len(rows)} transactions")
         
-        print(f"      Prepared {len(csv_data_for_detector)} CSV data items for transfer detection")
+        logger.debug(f"      Prepared {len(csv_data_for_detector)} CSV data items for transfer detection")
         
         try:
             # Run transfer detection
-            print(f"      Calling TransferDetector.detect_transfers()...")
+            logger.debug(f"      Calling TransferDetector.detect_transfers()...")
             detection_result = self.transfer_detector.detect_transfers(csv_data_for_detector)
             
-            print(f"   [DATA] Transfer detection results:")
-            print(f"         Summary: {detection_result.get('summary', {})}")
-            print(f"         Transfer pairs: {len(detection_result.get('transfers', []))}")
-            print(f"         Potential transfers: {len(detection_result.get('potential_transfers', []))}")
+            logger.debug(f"   [DATA] Transfer detection results:")
+            logger.debug(f"         Summary: {detection_result.get('summary', {})}")
+            logger.debug(f"         Transfer pairs: {len(detection_result.get('transfers', []))}")
+            logger.debug(f"         Potential transfers: {len(detection_result.get('potential_transfers', []))}")
             
             return {
                 "summary": detection_result.get('summary', {}),
@@ -92,9 +88,9 @@ class TransferProcessingService:
                 "flagged_transactions": detection_result.get('flagged_transactions', [])
             }
         except Exception as e:
-            print(f"[WARNING] Transfer detection error: {e}")
+            logger.warning(f"[WARNING] Transfer detection error: {e}")
             import traceback
-            print(f"   Transfer detection traceback: {traceback.format_exc()}")
+            logger.error(f"   Transfer detection traceback: {traceback.format_exc()}")
             return {
                 "summary": {
                     "transfer_pairs_found": 0,
@@ -125,7 +121,7 @@ class TransferProcessingService:
         Returns:
             List of transactions with updated categories
         """
-        print(f"ℹ [TransferProcessingService] Applying transfer categorization...")
+        logger.debug(f"ℹ [TransferProcessingService] Applying transfer categorization...")
         
         # Combine auto-detected and manually confirmed transfer pairs
         auto_detected_pairs = transfer_analysis.get('transfers', [])
@@ -134,16 +130,16 @@ class TransferProcessingService:
         # Combine all transfer pairs for categorization
         all_transfer_pairs = auto_detected_pairs + manually_confirmed_pairs
         
-        print(f"   Auto-detected pairs: {len(auto_detected_pairs)}")
-        print(f"   Manually confirmed pairs: {len(manually_confirmed_pairs)}")
-        print(f"   Total pairs to categorize: {len(all_transfer_pairs)}")
+        logger.debug(f"   Auto-detected pairs: {len(auto_detected_pairs)}")
+        logger.debug(f"   Manually confirmed pairs: {len(manually_confirmed_pairs)}")
+        logger.debug(f"   Total pairs to categorize: {len(all_transfer_pairs)}")
         
         # Get the configured category for transfers
         transfer_category = self.config_service.get_default_transfer_category()
-        print(f"   Using category '{transfer_category}' for transfer pairs")
+        logger.debug(f"   Using category '{transfer_category}' for transfer pairs")
         
         if not all_transfer_pairs:
-            print("   No transfer pairs found to categorize")
+            logger.debug("   No transfer pairs found to categorize")
             return data
         
         # Create a lookup for transfer transactions by their _transaction_index
@@ -168,7 +164,7 @@ class TransferProcessingService:
                 }
         
         if not transfer_details_by_index:
-            print("   No transactions with _transaction_index found in transfer pairs")
+            logger.debug("   No transactions with _transaction_index found in transfer pairs")
             return data
         
         matches_applied = 0
@@ -187,7 +183,6 @@ class TransferProcessingService:
                 
                 matches_applied += 1
         
-        print(f"   [SUCCESS] Applied '{transfer_category}' category and updated notes for {matches_applied} transactions")
         return data
     
     def apply_transfer_categorization_only(self, transformed_data: List[Dict[str, Any]],
@@ -204,12 +199,12 @@ class TransferProcessingService:
         Returns:
             dict: Updated transformed data with proper categorization
         """
-        print(f"ℹ [TransferProcessingService] Applying transfer categorization only...")
+        logger.debug(f"ℹ [TransferProcessingService] Applying transfer categorization only...")
         
         try:
-            print(f"   Transformed data rows: {len(transformed_data)}")
-            print(f"   Manually confirmed pairs: {len(manually_confirmed_pairs)}")
-            print(f"   Existing transfer pairs: {len(transfer_analysis.get('transfers', []))}")
+            logger.debug(f"   Transformed data rows: {len(transformed_data)}")
+            logger.debug(f"   Manually confirmed pairs: {len(manually_confirmed_pairs)}")
+            logger.debug(f"   Existing transfer pairs: {len(transfer_analysis.get('transfers', []))}")
             
             if not transformed_data:
                 return {
@@ -234,7 +229,7 @@ class TransferProcessingService:
                     if 'Transfer' in note:
                         updated_count += 1
             
-            print(f"   [SUCCESS] Updated categories for {updated_count} transactions")
+            logger.debug(f"   [SUCCESS] Updated categories for {updated_count} transactions")
             
             return {
                 "success": True,
@@ -244,27 +239,11 @@ class TransferProcessingService:
             }
             
         except Exception as e:
-            print(f"[ERROR] Transfer categorization error: {str(e)}")
+            logger.error(f"[ERROR] Transfer categorization error: {str(e)}")
             import traceback
-            print(f"   Full traceback: {traceback.format_exc()}")
+            logger.error(f"   Full traceback: {traceback.format_exc()}")
             return {
                 "success": False,
                 "error": str(e)
             }
     
-    def _find_bank_info_for_account(self, account: str, csv_data_list: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Find bank info for a specific account from CSV data list"""
-        for csv_item in csv_data_list:
-            csv_bank_info = csv_item.get('bank_info', {})
-            if csv_bank_info:
-                detected_bank = csv_bank_info.get('bank_name', csv_bank_info.get('detected_bank'))
-                if detected_bank and detected_bank != 'unknown':
-                    try:
-                        bank_config = self.config_service.get_bank_config(detected_bank)
-                        if bank_config:
-                            cashew_account = bank_config.cashew_account or ''
-                            if cashew_account == account:
-                                return csv_bank_info
-                    except:
-                        continue
-        return {}

@@ -1,17 +1,24 @@
 """
 Export formatting service for API response formatting and data type validation
 """
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 from decimal import Decimal
 
 from backend.shared.models.csv_models import CSVRow
+import logging
 
+logger = logging.getLogger(__name__)
+
+
+
+# Metadata the frontend needs back: rows and transfer pairs are matched on it
+API_METADATA_FIELDS = {'_transaction_index'}
 
 class ExportFormattingService:
     """Service focused on export formatting and data validation"""
     
     def __init__(self):
-        print(f"ℹ [ExportFormattingService] Initialized")
+        logger.debug(f"ℹ [ExportFormattingService] Initialized")
     
     def clean_transformed_data(self, data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
@@ -25,7 +32,7 @@ class ExportFormattingService:
         Returns:
             List of cleaned data dictionaries
         """
-        print(f"ℹ [ExportFormattingService] Cleaning transformed data for API response...")
+        logger.debug(f"ℹ [ExportFormattingService] Cleaning transformed data for API response...")
         
         cleaned_data = []
         metadata_fields_removed = []
@@ -35,8 +42,9 @@ class ExportFormattingService:
             cleaned_row = {}
             
             for key, value in row.items():
-                # Skip metadata fields (starting with _)
-                if key.startswith('_'):
+                # Skip metadata fields (starting with _), except the index that
+                # /apply-transfer-categorization uses to match confirmed pairs
+                if key.startswith('_') and key not in API_METADATA_FIELDS:
                     if key not in metadata_fields_removed:
                         metadata_fields_removed.append(key)
                     continue
@@ -64,14 +72,14 @@ class ExportFormattingService:
         
         # Log debug information
         if metadata_fields_removed:
-            print(f"   [DEBUG] Removed metadata fields: {metadata_fields_removed}")
+            pass
         if type_conversions:
-            print(f"   [DEBUG] Type conversions made: {len(type_conversions)}")
+            logger.debug(f"   [DEBUG] Type conversions made: {len(type_conversions)}")
             # Show first few conversions as examples
             for conversion in type_conversions[:5]:
-                print(f"      {conversion}")
+                logger.debug(f"      {conversion}")
             if len(type_conversions) > 5:
-                print(f"      ... and {len(type_conversions) - 5} more")
+                logger.debug(f"      ... and {len(type_conversions) - 5} more")
         
         return cleaned_data
     
@@ -87,16 +95,14 @@ class ExportFormattingService:
         Returns:
             Cleaned transaction dictionary
         """
-        print(f"[DEBUG] Original transaction keys: {list(transaction.keys()) if transaction else 'None'}")
-        if transaction:
-            print(f"[DEBUG] Original transaction sample: {dict(list(transaction.items())[:5])}")
+        logger.debug(f"[DEBUG] Original transaction keys: {list(transaction.keys()) if transaction else 'None'}")
         
         cleaned_transaction = {}
         essential_fields = ['Date', 'Account', 'Amount', 'Currency', 'Title', 'Description', 'Note']
         
         for key, value in transaction.items():
-            # Skip metadata fields (starting with _)
-            if key.startswith('_'):
+            # Skip metadata fields (starting with _), except the row index
+            if key.startswith('_') and key not in API_METADATA_FIELDS:
                 continue
             
             # Special handling for essential display fields
@@ -121,7 +127,7 @@ class ExportFormattingService:
                     else:
                         try:
                             # Try to preserve as float if possible
-                            float_val = float(value)
+                            float(value)  # raises for non-numeric values
                             cleaned_transaction[key] = value if isinstance(value, (int, float)) else str(value)
                         except:
                             cleaned_transaction[key] = str(value)
@@ -147,9 +153,7 @@ class ExportFormattingService:
                     # Convert other types to string
                     cleaned_transaction[key] = str(value)
         
-        print(f"[DEBUG] Cleaned transaction keys: {list(cleaned_transaction.keys())}")
-        essential_data = {k: v for k, v in cleaned_transaction.items() if k in essential_fields}
-        print(f"[DEBUG] Cleaned essential fields: {essential_data}")
+        logger.debug(f"[DEBUG] Cleaned transaction keys: {list(cleaned_transaction.keys())}")
         
         return cleaned_transaction
     
@@ -163,7 +167,7 @@ class ExportFormattingService:
         Returns:
             Formatted transfer analysis data
         """
-        print(f"ℹ [ExportFormattingService] Formatting transfer analysis for API response...")
+        logger.debug(f"ℹ [ExportFormattingService] Formatting transfer analysis for API response...")
         
         transfers = transfer_analysis_raw.get('transfers', [])
         
@@ -193,11 +197,9 @@ class ExportFormattingService:
             clean_incoming = self.clean_single_transaction(incoming)
             
             # Debug: Log the exact structure being sent to frontend
-            print(f"[DEBUG] Transfer Match Structure for Frontend:")
-            print(f"  Original outgoing keys: {list(outgoing.keys()) if outgoing else 'None'}")
-            print(f"  Original incoming keys: {list(incoming.keys()) if incoming else 'None'}")
-            print(f"  Clean outgoing: {clean_outgoing}")
-            print(f"  Clean incoming: {clean_incoming}")
+            logger.debug(f"[DEBUG] Transfer Match Structure for Frontend:")
+            logger.debug(f"  Original outgoing keys: {list(outgoing.keys()) if outgoing else 'None'}")
+            logger.debug(f"  Original incoming keys: {list(incoming.keys()) if incoming else 'None'}")
             
             # Format as TransferMatch
             match = {
@@ -211,7 +213,6 @@ class ExportFormattingService:
                 "incoming": clean_incoming
             }
             
-            print(f"[DEBUG] Final match structure: {match}")
             formatted_matches.append(match)
         
         # Return formatted structure matching TransferAnalysis model
@@ -244,7 +245,7 @@ class ExportFormattingService:
         Returns:
             Formatted transformation summary
         """
-        print(f"ℹ [ExportFormattingService] Formatting transformation summary...")
+        logger.debug(f"ℹ [ExportFormattingService] Formatting transformation summary...")
         
         # Create file results for each CSV processed
         file_results = []
@@ -266,7 +267,7 @@ class ExportFormattingService:
             file_results.append(file_result)
         
         # Get list of processed banks
-        banks_processed = list(set(fr["bank_name"] for fr in file_results if fr["bank_name"] != "unknown"))
+        banks_processed = list(dict.fromkeys(fr["bank_name"] for fr in file_results if fr["bank_name"] != "unknown"))
         
         # Create transformation summary structure
         transformation_summary = {
@@ -297,7 +298,7 @@ class ExportFormattingService:
         Returns:
             List of CSVRow Pydantic models
         """
-        print(f"ℹ [ExportFormattingService] Mapping {len(data_dicts)} rows to CSVRow models...")
+        logger.debug(f"ℹ [ExportFormattingService] Mapping {len(data_dicts)} rows to CSVRow models...")
         
         csv_rows: List[CSVRow] = []
         
@@ -329,9 +330,8 @@ class ExportFormattingService:
                     balance=balance_val
                 )
                 csv_rows.append(csv_row)
-            except Exception as e:
-                print(f"[WARNING] Skipping row due to CSVRow conversion error: {e}. Row: {row_dict}")
+            except Exception:
                 continue
         
-        print(f"   Successfully mapped {len(csv_rows)} rows to CSVRow models")
+        logger.debug(f"   Successfully mapped {len(csv_rows)} rows to CSVRow models")
         return csv_rows

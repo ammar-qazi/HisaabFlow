@@ -4,6 +4,9 @@ Handles data quality assessment and reporting
 """
 
 from typing import List, Dict, Any
+import logging
+
+logger = logging.getLogger(__name__)
 
 class QualityChecker:
     """
@@ -24,7 +27,7 @@ class QualityChecker:
         if not data:
             return {'error': 'No data provided'}
         
-        print(f"       Checking data quality...")
+        logger.debug(f"       Checking data quality...")
         
         quality_report = {
             'total_rows': len(data),
@@ -44,11 +47,11 @@ class QualityChecker:
         
         # Report results
         if quality_report['issues']:
-            print(f"      [WARNING] Data quality issues detected:")
+            logger.warning(f"      [WARNING] Data quality issues detected:")
             for issue in quality_report['issues']:
-                print(f"         • {issue}")
+                logger.debug(f"         • {issue}")
         else:
-            print(f"      [SUCCESS] Data quality check passed")
+            logger.debug(f"      [SUCCESS] Data quality check passed")
         
         return quality_report
     

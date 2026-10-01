@@ -33,7 +33,7 @@ class TestMultiBankRegressionFixes:
                 'Date': '2025-01-15',
                 'Amount': -100.0,
                 'Title': 'Test transaction',
-                'Currency': 'EUR',  # Should map to 'EURO Wise'
+                'Currency': 'EUR',  # Should map to 'Wise EUR'
                 'Account': 'Wise',
                 'Category': 'Shopping',
                 '_source_bank': 'wise'
@@ -95,7 +95,7 @@ class TestMultiBankRegressionFixes:
             {
                 'Date': '2025-01-15',
                 'Amount': -1500.0,
-                'Title': 'Outgoing fund transfer to Surraiya Riaz (Asaan Ac) Meezan Bank-2660|Transaction ID 679fb6a0462d384309905d16',
+                'Title': 'Outgoing fund transfer to Sample Payee (Asaan Ac) Meezan Bank-0000|Transaction ID 000000000000000000000001',
                 'Note': 'Transfer',
                 'Account': 'NayaPay',
                 'Category': 'Transfer',
@@ -104,7 +104,7 @@ class TestMultiBankRegressionFixes:
             {
                 'Date': '2025-01-16',
                 'Amount': -10.0,
-                'Title': 'Mobile top-up purchased|Zong 03142919528 Nickname: Ammar Zong',
+                'Title': 'Mobile top-up purchased|Zong 03000000000 Nickname: Test User Zong',
                 'Note': 'Mobile',
                 'Account': 'NayaPay',
                 'Category': 'Bills',
@@ -115,7 +115,7 @@ class TestMultiBankRegressionFixes:
                 'Amount': -155.0,
                 'Title': 'Card transaction of 155.00 EUR issued by Revolut**0540* Dublin',
                 'Currency': 'EUR',
-                'Account': 'EURO Wise',
+                'Account': 'Wise EUR',
                 'Category': 'Shopping',
                 '_source_bank': 'wise'
             }
@@ -143,8 +143,8 @@ class TestMultiBankRegressionFixes:
         
         # Assert - Check that specific regex patterns worked
         expected_cleanings = {
-            0: 'Outgoing fund transfer to Surraiya Riaz (Asaan Ac) Meezan Bank-2660',  # Transaction ID cleaned per config rule
-            1: 'Mobile topup for Ammar Zong',  # Mobile top-up pattern
+            0: 'Outgoing fund transfer to Sample Payee (Asaan Ac) Meezan Bank-0000',  # Transaction ID cleaned per config rule
+            1: 'Mobile topup for Test User Zong',  # Mobile top-up pattern
             2: 'Revolut**0540* Dublin'  # Card transaction cleanup pattern working
         }
         
@@ -165,7 +165,7 @@ class TestMultiBankRegressionFixes:
             {
                 'Date': '2025-01-15',
                 'Amount': -1500.0,  # Within range (-2000 to -0.01)
-                'Title': 'Outgoing fund transfer to Adnan Saleem easypaisa Bank-0804|Transaction ID 67af0a3f5a01d525b770bde4',
+                'Title': 'Outgoing fund transfer to Payee One easypaisa Bank-0001|Transaction ID 000000000000000000000002',
                 'Note': 'Raast Out',  # Matches condition
                 'Account': 'NayaPay',
                 'Category': 'Transfer',
@@ -174,7 +174,7 @@ class TestMultiBankRegressionFixes:
             {
                 'Date': '2025-01-16',
                 'Amount': -800.0,  # Within range
-                'Title': 'Outgoing fund transfer to Muhammad Riafat easypaisa Bank-3892|Transaction ID abc123',
+                'Title': 'Outgoing fund transfer to Payee Three easypaisa Bank-0003|Transaction ID abc123',
                 'Note': 'Raast Out',  # Matches condition
                 'Account': 'NayaPay',
                 'Category': 'Transfer',
@@ -235,7 +235,7 @@ class TestMultiBankRegressionFixes:
             {
                 'Date': '2025-01-15',
                 'Amount': -1500.0,
-                'Title': 'Outgoing fund transfer to Adnan Saleem easypaisa Bank-0804|Transaction ID 12345',
+                'Title': 'Outgoing fund transfer to Payee One easypaisa Bank-0001|Transaction ID 12345',
                 'Note': 'Raast Out',
                 'Account': 'NayaPay',
                 'Category': 'Transfer',
@@ -245,7 +245,7 @@ class TestMultiBankRegressionFixes:
             {
                 'Date': '2025-01-16',
                 'Amount': -15.0,
-                'Title': 'Mobile top-up purchased|Jazz 03016190816 Nickname: Test User Jazz',
+                'Title': 'Mobile top-up purchased|Jazz 03000000001 Nickname: Test User Jazz',
                 'Note': 'Mobile',
                 'Account': 'NayaPay',
                 'Category': 'Bills',
@@ -257,7 +257,7 @@ class TestMultiBankRegressionFixes:
                 'Amount': -155.0,
                 'Title': 'Card transaction of 155.00 EUR issued by Revolut**0540* Dublin',
                 'Currency': 'EUR',
-                'Account': 'EURO Wise',  # Expected final account name
+                'Account': 'Wise EUR',  # Expected final account name
                 'Category': 'Shopping',
                 '_source_bank': 'wise'
             },
@@ -317,7 +317,7 @@ class TestMultiBankRegressionFixes:
         
         # Check that all transactions have proper account names (currency mapping worked)
         account_names = [tx['Account'] for tx in enhanced_data]
-        expected_accounts = ['NayaPay', 'NayaPay', 'EURO Wise', 'Revolut Hungarian']
+        expected_accounts = ['NayaPay', 'NayaPay', 'Wise EUR', 'Revolut Hungarian']
         
         for i, expected_account in enumerate(expected_accounts):
             assert account_names[i] == expected_account, (

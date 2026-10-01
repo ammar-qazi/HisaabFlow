@@ -1,10 +1,6 @@
-pandas>=2.0.0
-fastapi>=0.100.0
-uvicorn>=0.20.0
-python-multipart>=0.0.6
-pydantic>=2.0.0
-chardet>=5.0.0
-pytest>=7.0.0
-pytest-asyncio>=0.21.0
-pytest-cov>=4.0.0
-pytest-mock>=3.10.0
+pandas==2.3.3
+fastapi==0.142.2
+uvicorn==0.54.0
+python-multipart==0.0.32
+pydantic==2.13.5
+chardet==5.2.0

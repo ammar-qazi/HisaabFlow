@@ -97,7 +97,7 @@ class TestConditionalDescriptionOverrides:
         matching_transaction = [{
             'Date': '2025-01-15',
             'Amount': -1500.0,  # Between -2000 and -0.01 ✓
-            'Title': 'Outgoing fund transfer to Adnan Saleem easypaisa Bank-0804|Transaction ID xyz',  # Contains 'Outgoing fund transfer to' ✓
+            'Title': 'Outgoing fund transfer to Payee One easypaisa Bank-0001|Transaction ID xyz',  # Contains 'Outgoing fund transfer to' ✓
             'Note': 'Raast Out',  # Equals 'Raast Out' ✓
             'Account': 'NayaPay',
             'Category': 'Transfer', 

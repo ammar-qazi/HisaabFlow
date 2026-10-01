@@ -5,6 +5,7 @@ import re
 from typing import Dict, List, Optional, Set
 from backend.core.transfer_detection.amount_parser import AmountParser
 from backend.core.transfer_detection.date_parser import DateParser
+from backend.shared.utils.amount_text import parse_amount_text
 
 
 class CurrencyConverter:
@@ -35,6 +36,8 @@ class CurrencyConverter:
             
             amount = AmountParser.parse_amount(transaction.get('Amount', '0'))
             date = DateParser.parse_date(transaction.get('Date', ''))
+            if date is None:
+                continue  # can't be matched to anything without a date
             conversion_info = self.extract_conversion_info(desc_for_conversion_matching, amount)
             
             if conversion_info:
@@ -45,9 +48,8 @@ class CurrencyConverter:
                     '_date': date
                 })
         
-        print(f"DEBUG CC: Initial conversion_candidates count: {len(conversion_candidates)}")
         for idx, cand in enumerate(conversion_candidates):
-            print(f"DEBUG CC: Candidate {idx}: Desc='{cand.get('Description', '')[:60]}...', Amt={cand.get('_amount')}, Date={cand.get('_date')}, Info={cand.get('_conversion_info')}, CSV='{cand.get('_csv_name')}'")
+            pass
         
         # Match conversion pairs
         for i, candidate1 in enumerate(conversion_candidates):
@@ -64,9 +66,7 @@ class CurrencyConverter:
                 
                 conv2 = candidate2['_conversion_info']
                 
-                print(f"DEBUG CC: Checking pair: C1({candidate1.get('_csv_name', 'N/A')}/{candidate1.get('_transaction_index', 'N/A')}) vs C2({candidate2.get('_csv_name', 'N/A')}/{candidate2.get('_transaction_index', 'N/A')})")
                 match_result = self.is_matching_conversion(conv1, conv2, candidate1, candidate2)
-                print(f"DEBUG CC: is_matching_conversion result for C1 vs C2: {match_result}")
                 if match_result:
                     if candidate1['_amount'] < 0 and candidate2['_amount'] > 0:
                         outgoing, incoming = candidate1, candidate2
@@ -104,7 +104,6 @@ class CurrencyConverter:
     
     def extract_conversion_info(self, description: str, amount: float) -> Optional[Dict]:
         """Extract currency conversion details from description"""
-        print(f"DEBUG CC extract_conversion_info: Received Desc='{description}', Amt={amount}")
         patterns = [
             r"converted\s+([\d,.]+)\s+(\w{3})\s+(?:from\s+\w{3}\s+balance\s+)?to\s+([\d,.]+)\s*(\w{3})",
             r"converted\s+([\d,.]+)\s+(\w{3}).*?to\s+([\d,.]+)\s*(\w{3})",
@@ -114,9 +113,12 @@ class CurrencyConverter:
         for pattern_idx, pattern in enumerate(patterns):
             match = re.search(pattern, description, re.IGNORECASE)
             if match:
-                from_amount = float(match.group(1).replace(',', ''))
+                from_amount = parse_amount_text(match.group(1))
+                to_amount = parse_amount_text(match.group(3))
+                if from_amount is None or to_amount is None:
+                    continue
+                from_amount, to_amount = float(from_amount), float(to_amount)
                 from_currency = match.group(2).upper()
-                to_amount = float(match.group(3).replace(',', ''))
                 to_currency = match.group(4).upper()
                 result_dict = {
                     'from_amount': from_amount,
@@ -124,9 +126,7 @@ class CurrencyConverter:
                     'to_amount': to_amount,
                     'to_currency': to_currency
                 }
-                # print(f"DEBUG CC extract_conversion_info: Matched pattern {pattern_idx}. Info: {result_dict}")
                 return result_dict
-        # print(f"DEBUG CC extract_conversion_info: No match for Desc='{description[:60]}...'")
         
         return None
     

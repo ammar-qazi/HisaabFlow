@@ -5,10 +5,8 @@ Replaces 4 separate ConfigManager implementations with one unified interface
 """
 import os
 import configparser
-from typing import Dict, List, Optional, Any
+from typing import Any, Callable, Dict, List, Optional
 from dataclasses import dataclass, field
-from pathlib import Path
-import csv
 import re
 import sys
 
@@ -19,6 +17,50 @@ if project_root not in sys.path:
 
 # Import AmountFormat after path setup
 from backend.shared.amount_formats import AmountFormat, RegionalFormatRegistry
+from backend.infrastructure.config.paths import get_config_dir
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+_BANK_NAME_PATTERN = re.compile(r'^[A-Za-z0-9_-]+$')
+
+
+def is_valid_bank_name(bank_name: Any) -> bool:
+    """Bank names become file names, so only allow letters, digits, '_' and '-'."""
+    return isinstance(bank_name, str) and bool(_BANK_NAME_PATTERN.match(bank_name))
+
+
+# Callbacks run after configs are reloaded, so caches in other layers
+# (e.g. bank detection results) can drop entries computed with old configs.
+_reload_listeners: List[Callable[[], None]] = []
+
+
+def register_config_reload_listener(listener: Callable[[], None]) -> None:
+    if listener not in _reload_listeners:
+        _reload_listeners.append(listener)
+
+
+def _split_list(value: Optional[str]) -> List[str]:
+    """Split a comma-separated config value, dropping empty entries.
+
+    An empty entry would match everything: '' is a substring of any filename,
+    file content or header.
+    """
+    if not value:
+        return []
+    return [item.strip() for item in value.split(',') if item.strip()]
+
+
+def safe_config_path(config_dir: str, bank_name: str) -> str:
+    """Return <config_dir>/<bank_name>.conf, refusing names that could escape config_dir."""
+    if not is_valid_bank_name(bank_name):
+        raise ValueError(f"Invalid bank name: {bank_name!r}")
+    base = os.path.realpath(config_dir)
+    path = os.path.realpath(os.path.join(base, f"{bank_name}.conf"))
+    if os.path.dirname(path) != base:
+        raise ValueError(f"Invalid bank name: {bank_name!r}")
+    return path
 
 
 @dataclass
@@ -122,28 +164,11 @@ class UnifiedConfigService:
         self._build_detection_index()
         self._configs_loaded = True
         
-        print(f"[BUILD] [UnifiedConfigService] Initialized with {len(self._detection_patterns)} bank detection patterns")
+        logger.debug(f"[BUILD] [UnifiedConfigService] Initialized with {len(self._detection_patterns)} bank detection patterns")
     
     def _resolve_config_dir(self, config_dir: Optional[str]) -> str:
         """Resolve configuration directory path"""
-        if config_dir:
-            return config_dir
-            
-        # Try to get config directory through utility function first
-        try:
-            from backend.infrastructure.csv_parsing.utils import get_config_dir_for_manager
-            user_config_dir = get_config_dir_for_manager()
-            if user_config_dir:
-                return user_config_dir
-        except ImportError:
-            pass
-        
-        # Default: project_root/configs
-        # From backend/shared/config/ go up to project root
-        current_dir = os.path.dirname(os.path.abspath(__file__))  # backend/shared/config/
-        backend_dir = os.path.dirname(os.path.dirname(current_dir))  # backend/
-        project_root = os.path.dirname(backend_dir)  # project root
-        return os.path.join(project_root, 'configs')
+        return config_dir or get_config_dir()
     
     # ========== App Configuration ==========
     
@@ -153,9 +178,9 @@ class UnifiedConfigService:
         app_config_path = os.path.join(self.config_dir, "app.conf")
         
         if os.path.exists(app_config_path):
-            self._app_config.read(app_config_path)
+            self._app_config.read(app_config_path, encoding='utf-8')
         else:
-            print("[WARNING] [UnifiedConfigService] app.conf not found, using defaults")
+            logger.warning("[WARNING] [UnifiedConfigService] app.conf not found, using defaults")
             # Set defaults
             self._app_config['general'] = {
                 'date_tolerance_hours': '72',
@@ -188,14 +213,14 @@ class UnifiedConfigService:
     
     def _build_detection_index(self) -> None:
         """Build lightweight detection index by reading only [bank_info] sections from .conf files"""
-        print(f"[BUILD] [UnifiedConfigService] Building detection index from: {self.config_dir}")
+        logger.debug(f"[BUILD] [UnifiedConfigService] Building detection index from: {self.config_dir}")
         
         if not os.path.exists(self.config_dir):
-            print(f"[ERROR] [UnifiedConfigService] Config directory not found: {self.config_dir}")
+            logger.error(f"[ERROR] [UnifiedConfigService] Config directory not found: {self.config_dir}")
             return
         
         config_files = [f for f in os.listdir(self.config_dir) if f.endswith('.conf')]
-        print(f"[BUILD] [UnifiedConfigService] Found .conf files: {config_files}")
+        logger.debug(f"[BUILD] [UnifiedConfigService] Found .conf files: {config_files}")
         
         for config_file in config_files:
             if config_file == 'app.conf':  # Skip app config
@@ -210,16 +235,16 @@ class UnifiedConfigService:
                 if bank_info_data:
                     detection_info = self._build_detection_info_from_partial(bank_info_data, bank_name)
                     self._detection_patterns[bank_name] = detection_info
-                    print(f"[SUCCESS] [UnifiedConfigService] Indexed detection patterns for bank: {bank_name}")
+                    logger.debug(f"[SUCCESS] [UnifiedConfigService] Indexed detection patterns for bank: {bank_name}")
                 else:
-                    print(f"[WARNING] [UnifiedConfigService] No [bank_info] section found in {config_file}")
+                    logger.warning(f"[WARNING] [UnifiedConfigService] No [bank_info] section found in {config_file}")
             except Exception as e:
-                print(f"[ERROR] [UnifiedConfigService] Failed to index {config_file}: {e}")
+                logger.error(f"[ERROR] [UnifiedConfigService] Failed to index {config_file}: {e}")
     
     def _load_bank_config(self, config_path: str, bank_name: str) -> Optional[UnifiedBankConfig]:
         """Load individual bank configuration"""
         config = configparser.ConfigParser(allow_no_value=True)
-        config.read(config_path)
+        config.read(config_path, encoding='utf-8')
         
         # Define reserved sections that are not categories
         reserved_sections = [
@@ -285,10 +310,10 @@ class UnifiedConfigService:
             )
             
         except KeyError as e:
-            print(f"[ERROR] [UnifiedConfigService] Missing required section in {bank_name}: {e}")
+            logger.error(f"[ERROR] [UnifiedConfigService] Missing required section in {bank_name}: {e}")
             return None
         except Exception as e:
-            print(f"[ERROR] [UnifiedConfigService] Error parsing config for {bank_name}: {e}")
+            logger.error(f"[ERROR] [UnifiedConfigService] Error parsing config for {bank_name}: {e}")
             return None
     
     def _parse_bank_info_section(self, config_path: str) -> Optional[Dict[str, str]]:
@@ -331,89 +356,32 @@ class UnifiedConfigService:
             return bank_info_data if bank_info_data else None
             
         except Exception as e:
-            print(f"[ERROR] [UnifiedConfigService] Failed to parse bank_info from {config_path}: {e}")
+            logger.error(f"[ERROR] [UnifiedConfigService] Failed to parse bank_info from {config_path}: {e}")
             return None
     
-    def _build_detection_info_from_partial(self, bank_info_data: Dict[str, str], bank_name: str) -> BankDetectionInfo:
+    def _build_detection_info_from_partial(self, bank_info_data: Dict[str, str], bank_name: str,
+                                           display_name: Optional[str] = None) -> BankDetectionInfo:
         """
-        Build BankDetectionInfo from partial bank_info data (for fast indexing).
+        Build BankDetectionInfo from a [bank_info] section.
         Used by _build_detection_index for lightweight startup.
         """
-        display_name = bank_info_data.get('display_name', bank_name.title())
-        
-        # Extract content signatures
-        content_signatures = []
-        if 'detection_content_signatures' in bank_info_data:
-            content_signatures = [sig.strip() for sig in bank_info_data['detection_content_signatures'].split(',')]
-        
-        # Extract required headers
-        required_headers = []
-        if 'expected_headers' in bank_info_data:
-            required_headers = [header.strip() for header in bank_info_data['expected_headers'].split(',')]
-        
-        # Extract filename patterns
-        filename_patterns = [bank_name.lower()]  # Default pattern
-        
-        # Add simple file patterns
-        if 'file_patterns' in bank_info_data:
-            patterns = [pattern.strip() for pattern in bank_info_data['file_patterns'].split(',')]
-            filename_patterns.extend(patterns)
-        
-        # Add regex patterns
-        if 'filename_regex_patterns' in bank_info_data:
-            regex_patterns = [pattern.strip() for pattern in bank_info_data['filename_regex_patterns'].split(',')]
-            filename_patterns.extend(regex_patterns)
-        
-        # Extract confidence weight
-        confidence_weight = float(bank_info_data.get('confidence_weight', 1.0))
-        
+        # Default pattern: the bank's own name, then configured simple and regex patterns
+        filename_patterns = [bank_name.lower()]
+        filename_patterns += _split_list(bank_info_data.get('file_patterns'))
+        filename_patterns += _split_list(bank_info_data.get('filename_regex_patterns'))
+
         return BankDetectionInfo(
             bank_name=bank_name,
-            display_name=display_name,
-            content_signatures=content_signatures,
-            required_headers=required_headers,
+            display_name=display_name or bank_info_data.get('display_name', bank_name.title()),
+            content_signatures=_split_list(bank_info_data.get('detection_content_signatures')),
+            required_headers=_split_list(bank_info_data.get('expected_headers')),
             filename_patterns=filename_patterns,
-            confidence_weight=confidence_weight
+            confidence_weight=float(bank_info_data.get('confidence_weight', 1.0))
         )
     
     def _build_detection_info(self, config: configparser.ConfigParser, bank_name: str, display_name: str) -> BankDetectionInfo:
         """Build bank detection information from config"""
-        bank_info = config['bank_info']
-        
-        # Extract content signatures
-        content_signatures = []
-        if 'detection_content_signatures' in bank_info:
-            content_signatures = [sig.strip() for sig in bank_info['detection_content_signatures'].split(',')]
-        
-        # Extract required headers
-        required_headers = []
-        if 'expected_headers' in bank_info:
-            required_headers = [header.strip() for header in bank_info['expected_headers'].split(',')]
-        
-        # Extract filename patterns
-        filename_patterns = [bank_name.lower()]  # Default pattern
-        
-        # Add simple file patterns
-        if 'file_patterns' in bank_info:
-            patterns = [pattern.strip() for pattern in bank_info['file_patterns'].split(',')]
-            filename_patterns.extend(patterns)
-        
-        # Add regex patterns
-        if 'filename_regex_patterns' in bank_info:
-            regex_patterns = [pattern.strip() for pattern in bank_info['filename_regex_patterns'].split(',')]
-            filename_patterns.extend(regex_patterns)
-        
-        # Extract confidence weight
-        confidence_weight = float(bank_info.get('confidence_weight', 1.0))
-        
-        return BankDetectionInfo(
-            bank_name=bank_name,
-            display_name=display_name,
-            content_signatures=content_signatures,
-            required_headers=required_headers,
-            filename_patterns=filename_patterns,
-            confidence_weight=confidence_weight
-        )
+        return self._build_detection_info_from_partial(dict(config['bank_info']), bank_name, display_name)
     
     def _build_csv_config(self, config: configparser.ConfigParser) -> CSVConfig:
         """Build CSV configuration from config file"""
@@ -521,7 +489,7 @@ class UnifiedConfigService:
         # Check if explicit amount format is specified
         format_name = cleaning_section.get('amount_format_name', '').lower()
         if format_name and RegionalFormatRegistry.is_valid_format_name(format_name):
-            print(f"      [FORMAT] Using predefined format: {format_name}")
+            logger.debug(f"      [FORMAT] Using predefined format: {format_name}")
             return RegionalFormatRegistry.get_format_by_name(format_name)
         
         # Build custom format from config values
@@ -538,7 +506,7 @@ class UnifiedConfigService:
             else:
                 grouping_pattern = [int(grouping_str)]
         except ValueError:
-            print(f"      [WARNING] Invalid grouping pattern '{grouping_str}', using default [3]")
+            logger.warning(f"      [WARNING] Invalid grouping pattern '{grouping_str}', using default [3]")
             grouping_pattern = [3]
         
         # Create custom format
@@ -552,10 +520,10 @@ class UnifiedConfigService:
                 name="Custom",
                 example=f"{thousand_sep}1{thousand_sep}234{decimal_sep}56"
             )
-            print(f"      [FORMAT] Created custom format: decimal='{decimal_sep}', thousand='{thousand_sep}'")
+            logger.debug(f"      [FORMAT] Created custom format: decimal='{decimal_sep}', thousand='{thousand_sep}'")
             return custom_format
         except ValueError as e:
-            print(f"      [ERROR] Invalid custom format config: {e}, using default American format")
+            logger.error(f"      [ERROR] Invalid custom format config: {e}, using default American format")
             return RegionalFormatRegistry.AMERICAN
     
     def _extract_transfer_patterns(self, config: configparser.ConfigParser, section_name: str) -> List[str]:
@@ -595,7 +563,7 @@ class UnifiedConfigService:
                     
                     overrides.append(rule_dict)
                 except ValueError:
-                    print(f"[WARNING] [UnifiedConfigService] Skipping invalid conditional override rule: {rule_name}")
+                    logger.warning(f"[WARNING] [UnifiedConfigService] Skipping invalid conditional override rule: {rule_name}")
         return overrides
     
     # ========== Public API Methods ==========
@@ -614,7 +582,10 @@ class UnifiedConfigService:
             return self._bank_configs[bank_name]
         
         # Cache miss - load from disk
-        config_path = os.path.join(self.config_dir, f"{bank_name}.conf")
+        try:
+            config_path = safe_config_path(self.config_dir, bank_name)
+        except ValueError:
+            return None
         
         # Verify file exists
         if not os.path.exists(config_path):
@@ -626,87 +597,37 @@ class UnifiedConfigService:
             if bank_config:
                 # Cache the loaded configuration
                 self._bank_configs[bank_name] = bank_config
-                print(f"[LAZY_LOAD] [UnifiedConfigService] Loaded and cached config for bank: {bank_name}")
+                logger.debug(f"[LAZY_LOAD] [UnifiedConfigService] Loaded and cached config for bank: {bank_name}")
                 return bank_config
             else:
-                print(f"[ERROR] [UnifiedConfigService] Failed to load config for bank: {bank_name}")
+                logger.error(f"[ERROR] [UnifiedConfigService] Failed to load config for bank: {bank_name}")
                 return None
         except Exception as e:
-            print(f"[ERROR] [UnifiedConfigService] Error lazy loading config for {bank_name}: {e}")
+            logger.error(f"[ERROR] [UnifiedConfigService] Error lazy loading config for {bank_name}: {e}")
             return None
     
     def get_detection_patterns(self) -> Dict[str, BankDetectionInfo]:
         """Get all bank detection patterns"""
         return self._detection_patterns.copy()
     
-    def detect_bank(self, filename: str, content_sample: str = None) -> Optional[str]:
-        """
-        Detect bank from filename and optionally content
-        Returns bank name or None if not detected
-        """
-        import re
-        
-        filename_lower = filename.lower()
-        
-        # Collect matches with confidence scores
-        matches = []
-        
-        for bank_name, detection_info in self._detection_patterns.items():
-            confidence = 0.0
-            
-            # Check filename patterns
-            for pattern in detection_info.filename_patterns:
-                pattern_lower = pattern.lower()
-                
-                # Check if it's a regex pattern (starts with ^)
-                if pattern.startswith('^') or pattern.startswith('.*'):
-                    try:
-                        if re.match(pattern, filename) or re.match(pattern, filename_lower):
-                            confidence += 100 * detection_info.confidence_weight  # Higher score for regex match
-                    except re.error:
-                        # If regex is invalid, fall back to substring match
-                        if pattern_lower in filename_lower:
-                            confidence += len(pattern) * detection_info.confidence_weight
-                else:
-                    # Simple substring match
-                    if pattern_lower in filename_lower:
-                        confidence += len(pattern) * detection_info.confidence_weight
-            
-            # Check content signatures if content provided
-            if content_sample and detection_info.content_signatures:
-                content_lower = content_sample.lower()
-                for signature in detection_info.content_signatures:
-                    if signature.lower() in content_lower:
-                        confidence += 50 * detection_info.confidence_weight
-            
-            if confidence > 0:
-                matches.append((bank_name, confidence))
-        
-        # Return highest confidence match
-        if matches:
-            matches.sort(key=lambda x: x[1], reverse=True)
-            return matches[0][0]
-        
-        return None
-    
     def get_csv_config(self, bank_name: str) -> Optional[CSVConfig]:
         """Get CSV configuration for bank"""
-        bank_config = self._bank_configs.get(bank_name)
+        bank_config = self.get_bank_config(bank_name)
         return bank_config.csv_config if bank_config else None
     
     def get_column_mapping(self, bank_name: str) -> Dict[str, str]:
         """Get column mapping for bank"""
-        bank_config = self._bank_configs.get(bank_name)
+        bank_config = self.get_bank_config(bank_name)
         return bank_config.column_mapping if bank_config else {}
     
     def get_account_mapping(self, bank_name: str) -> Dict[str, str]:
         """Get account mapping for bank"""
-        bank_config = self._bank_configs.get(bank_name)
+        bank_config = self.get_bank_config(bank_name)
         return bank_config.account_mapping if bank_config else {}
     
     def get_transfer_patterns(self, bank_name: str, direction: str) -> List[str]:
         """Get transfer patterns for bank and direction (outgoing/incoming)"""
-        bank_config = self._bank_configs.get(bank_name)
+        bank_config = self.get_bank_config(bank_name)
         if not bank_config:
             return []
         
@@ -727,7 +648,7 @@ class UnifiedConfigService:
         merchant_lower = merchant.lower()
         
         # First tier: Bank-specific categorization rules (highest priority)
-        bank_config = self._bank_configs.get(bank_name)
+        bank_config = self.get_bank_config(bank_name)
         if bank_config:
             # Check bank-specific categorization rules (now loaded from sections)
             # Sort patterns by length (longest first) for specificity-based matching
@@ -814,7 +735,7 @@ class UnifiedConfigService:
     
     def apply_description_cleaning(self, bank_name: str, description: str) -> str:
         """Apply bank-specific description cleaning rules with multi-line support"""
-        bank_config = self._bank_configs.get(bank_name)
+        bank_config = self.get_bank_config(bank_name)
         if not bank_config or not bank_config.data_cleaning or not bank_config.data_cleaning.description_cleaning_rules:
             return description
 
@@ -834,17 +755,17 @@ class UnifiedConfigService:
                     new_description = re.sub(pattern, replacement, cleaned_description, flags=re.IGNORECASE | re.DOTALL)
                     
                     if new_description != cleaned_description:
-                        print(f"      [CLEANING] Applied rule '{rule_name}': '{cleaned_description}' -> '{new_description}'")
+                        logger.debug(f"      [CLEANING] Applied rule '{rule_name}'")
                         cleaned_description = new_description
                 else:
                     # Simple replacement (less common now)
                     if rule_name in cleaned_description:
                         new_description = cleaned_description.replace(rule_name, rule_pattern)
-                        print(f"      [CLEANING] Applied simple replacement '{rule_name}': '{cleaned_description}' -> '{new_description}'")
+                        logger.debug(f"      [CLEANING] Applied simple replacement '{rule_name}'")
                         cleaned_description = new_description
 
             except re.error as e:
-                print(f"[WARNING] [UnifiedConfigService] Invalid regex in rule '{rule_name}' for bank '{bank_name}': {e}")
+                logger.warning(f"[WARNING] [UnifiedConfigService] Invalid regex in rule '{rule_name}' for bank '{bank_name}': {e}")
                 # Fallback to simple replacement if regex is invalid
                 if '|' in rule_pattern:
                     pattern, replacement = rule_pattern.rsplit('|', 1)
@@ -854,7 +775,7 @@ class UnifiedConfigService:
     
     def get_data_cleaning_config(self, bank_name: str) -> Optional[DataCleaningConfig]:
         """Get data cleaning configuration for bank"""
-        bank_config = self._bank_configs.get(bank_name)
+        bank_config = self.get_bank_config(bank_name)
         return bank_config.data_cleaning if bank_config else None
     
     def has_bank_config(self, bank_name: str) -> bool:
@@ -870,11 +791,11 @@ class UnifiedConfigService:
         """
         # Skip reload if configs are already loaded and not forced
         if self._configs_loaded and not force:
-            print("[SKIP] [UnifiedConfigService] Configs already loaded, skipping reload (use force=True to override)")
+            logger.debug("[SKIP] [UnifiedConfigService] Configs already loaded, skipping reload (use force=True to override)")
             return True
             
         try:
-            print("[INFO] [UnifiedConfigService] Reloading all configurations...")
+            logger.debug("[INFO] [UnifiedConfigService] Reloading all configurations...")
             
             # Clear both caches
             self._bank_configs.clear()
@@ -883,12 +804,15 @@ class UnifiedConfigService:
             # Rebuild detection index
             self._build_detection_index()
             self._configs_loaded = True
+
+            for listener in _reload_listeners:
+                listener()
             
-            print(f"[SUCCESS] [UnifiedConfigService] Reloaded {len(self._detection_patterns)} bank detection patterns")
+            logger.debug(f"[SUCCESS] [UnifiedConfigService] Reloaded {len(self._detection_patterns)} bank detection patterns")
             return True
             
         except Exception as e:
-            print(f"[ERROR] [UnifiedConfigService] Failed to reload configs: {e}")
+            logger.error(f"[ERROR] [UnifiedConfigService] Failed to reload configs: {e}")
             return False
     
     def add_bank_config_dynamically(self, bank_name: str, config_data: Dict[str, Any]) -> bool:
@@ -907,14 +831,14 @@ class UnifiedConfigService:
                 # Create detection info and add to index
                 detection_info = self._build_detection_info_from_partial(bank_info_data, bank_name)
                 self._detection_patterns[bank_name] = detection_info
-                print(f"[DYNAMIC_ADD] [UnifiedConfigService] Added detection patterns for new bank: {bank_name}")
+                logger.debug(f"[DYNAMIC_ADD] [UnifiedConfigService] Added detection patterns for new bank: {bank_name}")
             
             # Note: Full config will be lazy loaded when first requested via get_bank_config()
-            print(f"[SUCCESS] [UnifiedConfigService] Dynamically added bank configuration: {bank_name}")
+            logger.debug(f"[SUCCESS] [UnifiedConfigService] Dynamically added bank configuration: {bank_name}")
             return True
             
         except Exception as e:
-            print(f"[ERROR] [UnifiedConfigService] Failed to dynamically add bank config {bank_name}: {e}")
+            logger.error(f"[ERROR] [UnifiedConfigService] Failed to dynamically add bank config {bank_name}: {e}")
             return False
     
     def refresh_bank_detection_index(self, bank_name: str) -> bool:
@@ -922,13 +846,13 @@ class UnifiedConfigService:
         Refresh detection index for a specific bank (useful after config file changes).
         """
         try:
-            config_path = os.path.join(self.config_dir, f"{bank_name}.conf")
+            config_path = safe_config_path(self.config_dir, bank_name)
             
             if not os.path.exists(config_path):
                 # Remove from index if file no longer exists
                 if bank_name in self._detection_patterns:
                     del self._detection_patterns[bank_name]
-                    print(f"[REFRESH] [UnifiedConfigService] Removed detection patterns for deleted bank: {bank_name}")
+                    logger.debug(f"[REFRESH] [UnifiedConfigService] Removed detection patterns for deleted bank: {bank_name}")
                 return True
             
             # Parse bank_info and update detection index
@@ -936,20 +860,20 @@ class UnifiedConfigService:
             if bank_info_data:
                 detection_info = self._build_detection_info_from_partial(bank_info_data, bank_name)
                 self._detection_patterns[bank_name] = detection_info
-                print(f"[REFRESH] [UnifiedConfigService] Refreshed detection patterns for bank: {bank_name}")
+                logger.debug(f"[REFRESH] [UnifiedConfigService] Refreshed detection patterns for bank: {bank_name}")
                 
                 # Clear cached config to force reload
                 if bank_name in self._bank_configs:
                     del self._bank_configs[bank_name]
-                    print(f"[REFRESH] [UnifiedConfigService] Cleared cached config for bank: {bank_name}")
+                    logger.debug(f"[REFRESH] [UnifiedConfigService] Cleared cached config for bank: {bank_name}")
                 
                 return True
             else:
-                print(f"[WARNING] [UnifiedConfigService] No [bank_info] section found when refreshing {bank_name}")
+                logger.warning(f"[WARNING] [UnifiedConfigService] No [bank_info] section found when refreshing {bank_name}")
                 return False
                 
         except Exception as e:
-            print(f"[ERROR] [UnifiedConfigService] Failed to refresh detection index for {bank_name}: {e}")
+            logger.error(f"[ERROR] [UnifiedConfigService] Failed to refresh detection index for {bank_name}: {e}")
             return False
     
     # ========== Configuration Save/Load API ==========
@@ -957,7 +881,7 @@ class UnifiedConfigService:
     def save_bank_config(self, bank_name: str, config_data: Dict[str, Any]) -> bool:
         """Save bank configuration to file"""
         try:
-            config_path = os.path.join(self.config_dir, f"{bank_name}.conf")
+            config_path = safe_config_path(self.config_dir, bank_name)
             
             # Convert config_data to ConfigParser format
             config = config_parser = configparser.ConfigParser(allow_no_value=True)
@@ -971,21 +895,17 @@ class UnifiedConfigService:
                         config[section_name][key] = str(value)
             
             # Write to file
-            with open(config_path, 'w') as config_file:
+            with open(config_path, 'w', encoding='utf-8') as config_file:
                 config.write(config_file)
             
-            print(f"[SUCCESS] [UnifiedConfigService] Saved configuration for {bank_name}")
+            logger.debug(f"[SUCCESS] [UnifiedConfigService] Saved configuration for {bank_name}")
             return True
             
         except Exception as e:
-            print(f"[ERROR] [UnifiedConfigService] Failed to save config for {bank_name}: {e}")
+            logger.error(f"[ERROR] [UnifiedConfigService] Failed to save config for {bank_name}: {e}")
             return False
     
     # ========== Legacy Compatibility Methods ==========
-    
-    def detect_bank_type(self, file_name: str) -> Optional[str]:
-        """Legacy method for transfer detection compatibility"""
-        return self.detect_bank(file_name)
     
     def extract_name_from_transfer_pattern(self, pattern: str, description: str) -> Optional[str]:
         """Extract name from transfer description using pattern with {name} placeholder"""
@@ -1054,13 +974,13 @@ class UnifiedConfigService:
 _unified_config_service: Optional[UnifiedConfigService] = None
 
 
-def get_unified_config_service(config_dir: str = None) -> UnifiedConfigService:
-    """Get singleton instance of unified config service"""
+def get_unified_config_service() -> UnifiedConfigService:
+    """Get singleton instance of unified config service (config dir from get_config_dir())"""
     global _unified_config_service
-    
+
     if _unified_config_service is None:
-        _unified_config_service = UnifiedConfigService(config_dir)
-    
+        _unified_config_service = UnifiedConfigService()
+
     return _unified_config_service
 
 

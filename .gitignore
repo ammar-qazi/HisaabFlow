@@ -172,3 +172,6 @@ frontend/builder-*.yaml
 *.tmp
 *.temp
 backend.log
+
+# Docker volume: user configs (and later the database)
+data/

@@ -37,19 +37,6 @@ function TransformAndExportStep({
     (typeof transformedData === 'object' && !Array.isArray(transformedData))
   );
 
-  // Debug logging
-  console.log(' TransformAndExportStep Debug:', {
-    currentStep,
-    hasTransformedData: !!transformedData,
-    transformedDataType: Array.isArray(transformedData) ? 'array' : typeof transformedData,
-    transformedDataLength: Array.isArray(transformedData) ? transformedData.length : 'not array',
-    hasTransferAnalysis: !!transferAnalysis,
-    transferAnalysisType: typeof transferAnalysis,
-    loading,
-    totalParsedTransactions,
-    parsedResultsLength: parsedResults?.length || 0
-  });
-
   // This component should only render if currentStep is 3
   if (currentStep !== 3) return null;
 

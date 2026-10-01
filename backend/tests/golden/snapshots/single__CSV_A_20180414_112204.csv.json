@@ -1,0 +1,89 @@
+{
+  "detection": [
+    {
+      "bank_detection": {
+        "confidence": 0.0,
+        "detected_bank": "unknown",
+        "reasons": [
+          "No patterns matched"
+        ]
+      },
+      "file": "CSV_A_20180414_112204.csv",
+      "status": 200
+    }
+  ],
+  "export_csv": [
+    "{\"detail\":\"No valid data provided for export\"}"
+  ],
+  "export_status": 500,
+  "files": [
+    "CSV_A_20180414_112204.csv"
+  ],
+  "parse": [
+    {
+      "bank_info": {
+        "bank_name": "unknown",
+        "confidence": 0.0,
+        "reasons": [
+          "No patterns matched"
+        ]
+      },
+      "error": null,
+      "filename": "CSV_A_20180414_112204.csv",
+      "headers": [
+        "Iban/Bban",
+        "Munt",
+        "Datum",
+        "Rentedatum",
+        "Bedrag",
+        "SaldoNaTrn",
+        "TegenrekeningIban/Bban",
+        "NaamTegenpartij",
+        "NaamUiteindelijkePartij",
+        "NaamInitiërendePartij",
+        "Transactiereferentie",
+        "Omschrijving-1",
+        "Omschrijving-2",
+        "Omschrijving-3",
+        "OorsprBedrag",
+        "OorsprMunt",
+        "Currency"
+      ],
+      "row_count": 3,
+      "success": true
+    }
+  ],
+  "parse_status": 200,
+  "transfer_analysis": {
+    "conflicts": [],
+    "flagged_transactions": [],
+    "high_confidence_matches": 0,
+    "low_confidence_matches": 0,
+    "matches": [],
+    "medium_confidence_matches": 0,
+    "potential_pairs": [],
+    "potential_transfers": [],
+    "summary": {
+      "conflicts": 0,
+      "currency_conversions": 0,
+      "flagged_for_review": 0,
+      "other_transfers": 0,
+      "potential_pairs": 0,
+      "potential_transfers": 0,
+      "total_transactions": 0,
+      "transfer_pairs_found": 0
+    },
+    "total_matches": 0,
+    "transfers": []
+  },
+  "transform_status": 200,
+  "transformation_summary": {
+    "banks_processed": [],
+    "failed_transformations": 0,
+    "successful_transformations": 1,
+    "total_files": 1,
+    "total_rows": 0,
+    "total_transactions": 0
+  },
+  "transformed_data": []
+}

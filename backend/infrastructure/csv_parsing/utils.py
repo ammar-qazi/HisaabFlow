@@ -3,6 +3,9 @@ Utility functions for CSV parsing operations
 """
 import re
 from typing import List, Dict, Any, Optional
+import logging
+
+logger = logging.getLogger(__name__)
 
 def clean_header(header: str) -> str:
     """Clean header text by removing BOM and extra whitespace"""
@@ -174,84 +177,3 @@ def estimate_data_types(rows: List[List[str]], sample_size: int = 100) -> Dict[i
     
     return type_estimates
 
-def is_nuitka_executable() -> bool:
-    """Check if running in Nuitka compiled executable"""
-    import sys
-    
-    # Nuitka sets __compiled__ attribute
-    if hasattr(sys, '__compiled__'):
-        return True
-    
-    # Check for common Nuitka executable indicators
-    if hasattr(sys, 'frozen') and sys.frozen:
-        return True
-        
-    # Check if executable name suggests Nuitka compilation
-    if sys.executable and 'hisaabflow-backend' in sys.executable:
-        return True
-        
-    return False
-
-def get_nuitka_config_dir() -> Optional[str]:
-    """Get config directory for Nuitka executable"""
-    import os
-    import sys
-    
-    # Try to find configs directory relative to executable
-    if sys.executable:
-        # Get the directory containing the executable
-        exec_dir = os.path.dirname(os.path.abspath(sys.executable))
-        
-        # Check common Nuitka bundling locations
-        possible_paths = [
-            os.path.join(exec_dir, 'configs'),  # Same directory as executable
-            os.path.join(exec_dir, '..', 'configs'),  # Parent directory
-            os.path.join(exec_dir, 'backend', 'configs'),  # In backend subdirectory
-        ]
-        
-        for config_path in possible_paths:
-            abs_config_path = os.path.abspath(config_path)
-            if os.path.exists(abs_config_path):
-                print(f"[Nuitka] Found config directory: {abs_config_path}")
-                return abs_config_path
-        
-        print(f"[WARNING] [Nuitka] Config directory not found. Checked: {possible_paths}")
-    
-    return None
-
-def get_user_config_dir() -> Optional[str]:
-    """Get user config directory from environment variable, fallback to default"""
-    import os
-    import sys
-    
-    # Check environment variable set by Electron launcher
-    user_config_dir = os.environ.get('HISAABFLOW_CONFIG_DIR')
-    if user_config_dir and os.path.exists(user_config_dir):
-        return user_config_dir
-    
-    # Check if user directory exists
-    user_dir = os.environ.get('HISAABFLOW_USER_DIR')
-    if user_dir:
-        config_path = os.path.join(user_dir, 'configs')
-        if os.path.exists(config_path):
-            return config_path
-    
-    # Check for Nuitka runtime environment
-    if is_nuitka_executable():
-        nuitka_config_dir = get_nuitka_config_dir()
-        if nuitka_config_dir and os.path.exists(nuitka_config_dir):
-            print(f"[START] [HisaabFlow] Using Nuitka bundled config directory: {nuitka_config_dir}")
-            return nuitka_config_dir
-    
-    # Fallback to default (None means use default behavior)
-    return None
-
-def get_config_dir_for_manager() -> Optional[str]:
-    """Get config directory for BankConfigManager with fallback"""
-    user_config = get_user_config_dir()
-    if user_config:
-        print(f"[USER] [HisaabFlow] Using user config directory: {user_config}")
-        return user_config
-    
-    print("[BUILD] [HisaabFlow] Using default config directory")
-    return None

@@ -1,0 +1,241 @@
+{
+  "detection": [
+    {
+      "bank_detection": {
+        "confidence": 1.0,
+        "detected_bank": "Erste",
+        "reasons": [
+          "filename_match(1.0)",
+          "content_signature(1.0)",
+          "header_match(1.0)"
+        ]
+      },
+      "file": "12345678-00000000-87654321_2025-06-01_2025-06-30.csv",
+      "status": 200
+    }
+  ],
+  "export_csv": [
+    "Date,Amount,Category,Title,Note,Account",
+    "2025-06-29 00:00:00,-2450.0,Groceries,ALDI CEGLED,,Forint Bank",
+    "2025-06-28 00:00:00,50000.0,Income,SAMPLE TECHNOLOGIES CEGLED TEL,,Forint Bank",
+    "2025-06-24 00:00:00,-8500.0,Groceries,TESCO CEGLED,,Forint Bank",
+    "2025-06-21 00:00:00,-25000.0,Transfer,Revolut**2984*,,Forint Bank",
+    "2025-06-19 00:00:00,-1200.0,Shopping,SINSAY CEGLED,,Forint Bank",
+    "2025-06-17 00:00:00,-450.0,Expense,SAMPLE WORKPLACE DELIREST ETT,,Forint Bank",
+    "2025-06-15 00:00:00,5000.0,Income,Sample Freelance Client,,Forint Bank",
+    "2025-06-12 00:00:00,-12000.0,Home & Garden,Rent Payment,,Forint Bank",
+    "2025-06-09 00:00:00,-18063.0,Bills & Fees,ING Bank N. V. Magyarországi Fióktelepe,,Forint Bank",
+    "2025-06-07 00:00:00,-6000.0,Shopping,PEPCO 150075 CEGLED 2,,Forint Bank",
+    "2025-06-04 00:00:00,-1450.0,Shopping,TEDi-HU 3128,,Forint Bank",
+    "2025-06-02 00:00:00,-780.0,Health,Sample Patika Gyógyszertár,,Forint Bank",
+    "2025-05-31 00:00:00,-15500.0,Food & Dining,Starbucks,,Forint Bank",
+    "2025-05-31 00:00:00,-400.0,Financial & Professional Services,ATM Fee,,Forint Bank"
+  ],
+  "export_status": 200,
+  "files": [
+    "12345678-00000000-87654321_2025-06-01_2025-06-30.csv"
+  ],
+  "parse": [
+    {
+      "bank_info": {
+        "bank_name": "Erste",
+        "confidence": 1.0,
+        "reasons": [
+          "filename_match(1.0)",
+          "content_signature(1.0)",
+          "header_match(1.0)"
+        ]
+      },
+      "error": null,
+      "filename": "12345678-00000000-87654321_2025-06-01_2025-06-30.csv",
+      "headers": [
+        "backupdate",
+        "amount",
+        "currency",
+        "title",
+        "PartnerIban",
+        "PartnerAccountNumber",
+        "date",
+        "backuptitle"
+      ],
+      "row_count": 14,
+      "success": true
+    }
+  ],
+  "parse_status": 200,
+  "transfer_analysis": {
+    "conflicts": [],
+    "flagged_transactions": [],
+    "high_confidence_matches": 0,
+    "low_confidence_matches": 0,
+    "matches": [],
+    "medium_confidence_matches": 0,
+    "potential_pairs": [],
+    "potential_transfers": [],
+    "summary": {
+      "conflicts": 0,
+      "currency_conversions": 0,
+      "flagged_for_review": 0,
+      "other_transfers": 0,
+      "potential_pairs": 0,
+      "potential_transfers": 0,
+      "total_transactions": 14,
+      "transfer_pairs_found": 0
+    },
+    "total_matches": 0,
+    "transfers": []
+  },
+  "transform_status": 200,
+  "transformation_summary": {
+    "banks_processed": [
+      "Erste"
+    ],
+    "failed_transformations": 0,
+    "successful_transformations": 1,
+    "total_files": 1,
+    "total_rows": 14,
+    "total_transactions": 14
+  },
+  "transformed_data": [
+    {
+      "Account": "Forint Bank",
+      "Amount": "-2450.0",
+      "Category": "Groceries",
+      "Currency": "HUF",
+      "Date": "2025-06-29 00:00:00",
+      "Note": "",
+      "Title": "ALDI CEGLED",
+      "_transaction_index": 0
+    },
+    {
+      "Account": "Forint Bank",
+      "Amount": "50000.0",
+      "Category": "Income",
+      "Currency": "HUF",
+      "Date": "2025-06-28 00:00:00",
+      "Note": "",
+      "Title": "SAMPLE TECHNOLOGIES CEGLED TEL",
+      "_transaction_index": 1
+    },
+    {
+      "Account": "Forint Bank",
+      "Amount": "-8500.0",
+      "Category": "Groceries",
+      "Currency": "HUF",
+      "Date": "2025-06-24 00:00:00",
+      "Note": "",
+      "Title": "TESCO CEGLED",
+      "_transaction_index": 2
+    },
+    {
+      "Account": "Forint Bank",
+      "Amount": "-25000.0",
+      "Category": "Transfer",
+      "Currency": "HUF",
+      "Date": "2025-06-21 00:00:00",
+      "Note": "",
+      "Title": "Revolut**2984*",
+      "_transaction_index": 3
+    },
+    {
+      "Account": "Forint Bank",
+      "Amount": "-1200.0",
+      "Category": "Shopping",
+      "Currency": "HUF",
+      "Date": "2025-06-19 00:00:00",
+      "Note": "",
+      "Title": "SINSAY CEGLED",
+      "_transaction_index": 4
+    },
+    {
+      "Account": "Forint Bank",
+      "Amount": "-450.0",
+      "Category": "Expense",
+      "Currency": "HUF",
+      "Date": "2025-06-17 00:00:00",
+      "Note": "",
+      "Title": "SAMPLE WORKPLACE DELIREST ETT",
+      "_transaction_index": 5
+    },
+    {
+      "Account": "Forint Bank",
+      "Amount": "5000.0",
+      "Category": "Income",
+      "Currency": "HUF",
+      "Date": "2025-06-15 00:00:00",
+      "Note": "",
+      "Title": "Sample Freelance Client",
+      "_transaction_index": 6
+    },
+    {
+      "Account": "Forint Bank",
+      "Amount": "-12000.0",
+      "Category": "Home & Garden",
+      "Currency": "HUF",
+      "Date": "2025-06-12 00:00:00",
+      "Note": "",
+      "Title": "Rent Payment",
+      "_transaction_index": 7
+    },
+    {
+      "Account": "Forint Bank",
+      "Amount": "-18063.0",
+      "Category": "Bills & Fees",
+      "Currency": "HUF",
+      "Date": "2025-06-09 00:00:00",
+      "Note": "",
+      "Title": "ING Bank N. V. Magyarországi Fióktelepe",
+      "_transaction_index": 8
+    },
+    {
+      "Account": "Forint Bank",
+      "Amount": "-6000.0",
+      "Category": "Shopping",
+      "Currency": "HUF",
+      "Date": "2025-06-07 00:00:00",
+      "Note": "",
+      "Title": "PEPCO 150075 CEGLED 2",
+      "_transaction_index": 9
+    },
+    {
+      "Account": "Forint Bank",
+      "Amount": "-1450.0",
+      "Category": "Shopping",
+      "Currency": "HUF",
+      "Date": "2025-06-04 00:00:00",
+      "Note": "",
+      "Title": "TEDi-HU 3128",
+      "_transaction_index": 10
+    },
+    {
+      "Account": "Forint Bank",
+      "Amount": "-780.0",
+      "Category": "Health",
+      "Currency": "HUF",
+      "Date": "2025-06-02 00:00:00",
+      "Note": "",
+      "Title": "Sample Patika Gyógyszertár",
+      "_transaction_index": 11
+    },
+    {
+      "Account": "Forint Bank",
+      "Amount": "-15500.0",
+      "Category": "Food & Dining",
+      "Currency": "HUF",
+      "Date": "2025-05-31 00:00:00",
+      "Note": "",
+      "Title": "Starbucks",
+      "_transaction_index": 12
+    },
+    {
+      "Account": "Forint Bank",
+      "Amount": "-400.0",
+      "Category": "Financial & Professional Services",
+      "Currency": "HUF",
+      "Date": "2025-05-31 00:00:00",
+      "Note": "",
+      "Title": "ATM Fee",
+      "_transaction_index": 13
+    }
+  ]
+}

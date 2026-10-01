@@ -1,8 +1,9 @@
 """
 Amount parsing utilities for transfer detection
 """
-import re
 from typing import Union
+
+from backend.shared.utils.amount_text import parse_amount_text
 
 
 class AmountParser:
@@ -11,23 +12,13 @@ class AmountParser:
     @staticmethod
     def parse_amount(amount_str: Union[str, float, int]) -> float:
         """Parse amount string to float"""
-        try:
-            if isinstance(amount_str, (int, float)):
-                return float(amount_str)
-            
-            cleaned = re.sub(r'[^0-9.\-]', '', str(amount_str))
-            return float(cleaned) if cleaned else 0.0
-        except (ValueError, TypeError):
-            return 0.0
+        # Unreadable amounts become 0.0, which transfer matching already skips
+        # (candidates are filtered by sign before matching)
+        amount = parse_amount_text(amount_str)
+        return float(amount) if amount is not None else 0.0
     
     @staticmethod
     def amounts_match(amount1: float, amount2: float, tolerance: float = 0.01) -> bool:
         """Check if two amounts match within tolerance"""
         return abs(amount1 - amount2) < tolerance
     
-    @staticmethod
-    def calculate_percentage_difference(amount1: float, amount2: float) -> float:
-        """Calculate percentage difference between two amounts"""
-        if max(amount1, amount2) == 0:
-            return 0.0
-        return abs(amount1 - amount2) / max(amount1, amount2)

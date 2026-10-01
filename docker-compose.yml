@@ -1,0 +1,21 @@
+services:
+  hisaabflow:
+    build: .
+    image: hisaabflow:latest
+    ports:
+      # Only reachable from this machine
+      - "127.0.0.1:8000:8000"
+    volumes:
+      # Configs (and later the database) live here on the host
+      - ./data:/data
+    environment:
+      # Owner of the files in ./data; match your host user (`id -u`, `id -g`)
+      HISAABFLOW_UID: "${HISAABFLOW_UID:-1000}"
+      HISAABFLOW_GID: "${HISAABFLOW_GID:-1000}"
+      HISAABFLOW_LOG_LEVEL: "${HISAABFLOW_LOG_LEVEL:-INFO}"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

@@ -1,0 +1,84 @@
+{
+  "detection": [
+    {
+      "bank_detection": {
+        "confidence": 0.0,
+        "detected_bank": "unknown",
+        "reasons": [
+          "No patterns matched"
+        ]
+      },
+      "file": "umsatz-1234________1234-20180227.CSV",
+      "status": 200
+    }
+  ],
+  "export_csv": [
+    "{\"detail\":\"No valid data provided for export\"}"
+  ],
+  "export_status": 500,
+  "files": [
+    "umsatz-1234________1234-20180227.CSV"
+  ],
+  "parse": [
+    {
+      "bank_info": {
+        "bank_name": "unknown",
+        "confidence": 0.0,
+        "reasons": [
+          "No patterns matched"
+        ]
+      },
+      "error": null,
+      "filename": "umsatz-1234________1234-20180227.CSV",
+      "headers": [
+        "Belegdatum",
+        "Buchungsdatum",
+        "Originalbetrag",
+        "Originalwährung",
+        "Buchungsbetrag",
+        "Buchungswährung",
+        "Transaktionsbeschreibung",
+        "TransaktionsbeschreibungZusatz",
+        "Buchungsreferenz",
+        "Bar-Entgelt+Buchungsreferenz",
+        "Aee+Buchungsreferenz",
+        "Currency"
+      ],
+      "row_count": 1,
+      "success": true
+    }
+  ],
+  "parse_status": 200,
+  "transfer_analysis": {
+    "conflicts": [],
+    "flagged_transactions": [],
+    "high_confidence_matches": 0,
+    "low_confidence_matches": 0,
+    "matches": [],
+    "medium_confidence_matches": 0,
+    "potential_pairs": [],
+    "potential_transfers": [],
+    "summary": {
+      "conflicts": 0,
+      "currency_conversions": 0,
+      "flagged_for_review": 0,
+      "other_transfers": 0,
+      "potential_pairs": 0,
+      "potential_transfers": 0,
+      "total_transactions": 0,
+      "transfer_pairs_found": 0
+    },
+    "total_matches": 0,
+    "transfers": []
+  },
+  "transform_status": 200,
+  "transformation_summary": {
+    "banks_processed": [],
+    "failed_transformations": 0,
+    "successful_transformations": 1,
+    "total_files": 1,
+    "total_rows": 0,
+    "total_transactions": 0
+  },
+  "transformed_data": []
+}

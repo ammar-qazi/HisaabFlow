@@ -5,7 +5,7 @@ Provides automatic detection of amount formats from sample data with confidence 
 """
 
 import re
-from typing import List, Dict, Tuple, Optional, Any
+from typing import List, Dict, Tuple
 from dataclasses import dataclass
 from .regional_formats import AmountFormat, RegionalFormatRegistry
 

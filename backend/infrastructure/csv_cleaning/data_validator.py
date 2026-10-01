@@ -4,6 +4,9 @@ Handles validation and removal of invalid/incomplete rows
 """
 
 from typing import List, Dict
+import logging
+
+logger = logging.getLogger(__name__)
 
 class DataValidator:
     """
@@ -21,7 +24,7 @@ class DataValidator:
         Returns:
             List[Dict]: Data with invalid rows removed
         """
-        print(f"    Step 6: Removing invalid rows")
+        logger.debug(f"    Step 6: Removing invalid rows")
         
         if not data:
             return []
@@ -34,7 +37,7 @@ class DataValidator:
                 valid_data.append(row)
         
         removed_count = original_count - len(valid_data)
-        print(f"      [SUCCESS] Removed {removed_count} invalid rows, kept {len(valid_data)} valid rows")
+        logger.debug(f"      [SUCCESS] Removed {removed_count} invalid rows, kept {len(valid_data)} valid rows")
         
         return valid_data
     

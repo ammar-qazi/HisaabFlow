@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from '../ui/CoreIcons';
+import toast from 'react-hot-toast';
 import { ConfigurationService } from '../../services/configurationService';
 import { useTheme } from '../../theme/ThemeProvider';
 import InteractiveDataTable from '../transform-export/InteractiveDataTable';
@@ -396,19 +397,15 @@ function UnknownBankPanel({ unknownFiles, onConfigCreated, loading }) {
       const result = await ConfigurationService.saveBankConfig(saveRequest);
 
       if (result.success) {
-        console.log('Bank configuration saved successfully');
-        await ConfigurationService.reloadConfigurations();
+        // The backend reloads configs after saving; the parent refreshes its list
         if (onConfigCreated) {
           onConfigCreated(config);
         }
       } else {
-        console.error('Failed to save configuration:', result.error);
-        if (onConfigCreated) {
-          onConfigCreated(config);
-        }
+        toast.error(result.error);
       }
     } catch (error) {
-      console.error('Failed to save configuration:', error);
+      toast.error(`Failed to save configuration: ${error.message}`);
     }
   };
 
