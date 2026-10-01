@@ -263,9 +263,6 @@ class CrossBankMatcher:
         outgoing_patterns = self.config.get_transfer_patterns(outgoing_bank, 'outgoing')
         incoming_patterns = self.config.get_transfer_patterns(incoming_bank, 'incoming')
         
-        if debug:
-            pass
-            # Requested format for name extraction logging
 
         # Extract names from outgoing transaction
         outgoing_name = None
@@ -279,8 +276,6 @@ class CrossBankMatcher:
             if extracted_name:
                 outgoing_name = extracted_name
                 break
-        if debug: # Log extracted name as per request
-            pass
         
         # Extract names from incoming transaction  
         incoming_name = None
@@ -289,8 +284,6 @@ class CrossBankMatcher:
             if extracted_name:
                 incoming_name = extracted_name
                 break
-        if debug: # Log extracted name as per request
-            pass
         
         # If we found names in both transactions, check if they could match
         if outgoing_name and incoming_name:
@@ -304,8 +297,6 @@ class CrossBankMatcher:
         outgoing_matches = any(self._pattern_matches(pattern, outgoing_desc) for pattern in outgoing_patterns)
         incoming_matches = any(self._pattern_matches(pattern, incoming_desc) for pattern in incoming_patterns)
         
-        if debug:
-            pass
         return outgoing_matches and incoming_matches, {"reason": "Fallback pattern match", "outgoing_matches": outgoing_matches, "incoming_matches": incoming_matches}
     
     def _pattern_matches(self, pattern: str, description: str) -> bool:
