@@ -2,13 +2,13 @@
   "detection": [
     {
       "bank_detection": {
-        "confidence": 0.38,
+        "confidence": 0.3266666666666667,
         "detected_bank": "unknown",
         "reasons": [
           "best_guess:Meezan",
           "filename_match(0.9)",
           "content_signature(0.2)",
-          "header_match(0.3)"
+          "header_match(0.2)"
         ]
       },
       "file": "2019-03-02_11-50-46_bunq-statement.csv",
@@ -26,12 +26,12 @@
     {
       "bank_info": {
         "bank_name": "unknown",
-        "confidence": 0.38,
+        "confidence": 0.3266666666666667,
         "reasons": [
           "best_guess:Meezan",
           "filename_match(0.9)",
           "content_signature(0.2)",
-          "header_match(0.3)"
+          "header_match(0.2)"
         ]
       },
       "error": null,

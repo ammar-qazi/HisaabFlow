@@ -41,6 +41,17 @@ def register_config_reload_listener(listener: Callable[[], None]) -> None:
         _reload_listeners.append(listener)
 
 
+def _split_list(value: Optional[str]) -> List[str]:
+    """Split a comma-separated config value, dropping empty entries.
+
+    An empty entry would match everything: '' is a substring of any filename,
+    file content or header.
+    """
+    if not value:
+        return []
+    return [item.strip() for item in value.split(',') if item.strip()]
+
+
 def safe_config_path(config_dir: str, bank_name: str) -> str:
     """Return <config_dir>/<bank_name>.conf, refusing names that could escape config_dir."""
     if not is_valid_bank_name(bank_name):
@@ -348,86 +359,29 @@ class UnifiedConfigService:
             logger.error(f"[ERROR] [UnifiedConfigService] Failed to parse bank_info from {config_path}: {e}")
             return None
     
-    def _build_detection_info_from_partial(self, bank_info_data: Dict[str, str], bank_name: str) -> BankDetectionInfo:
+    def _build_detection_info_from_partial(self, bank_info_data: Dict[str, str], bank_name: str,
+                                           display_name: Optional[str] = None) -> BankDetectionInfo:
         """
-        Build BankDetectionInfo from partial bank_info data (for fast indexing).
+        Build BankDetectionInfo from a [bank_info] section.
         Used by _build_detection_index for lightweight startup.
         """
-        display_name = bank_info_data.get('display_name', bank_name.title())
-        
-        # Extract content signatures
-        content_signatures = []
-        if 'detection_content_signatures' in bank_info_data:
-            content_signatures = [sig.strip() for sig in bank_info_data['detection_content_signatures'].split(',')]
-        
-        # Extract required headers
-        required_headers = []
-        if 'expected_headers' in bank_info_data:
-            required_headers = [header.strip() for header in bank_info_data['expected_headers'].split(',')]
-        
-        # Extract filename patterns
-        filename_patterns = [bank_name.lower()]  # Default pattern
-        
-        # Add simple file patterns
-        if 'file_patterns' in bank_info_data:
-            patterns = [pattern.strip() for pattern in bank_info_data['file_patterns'].split(',')]
-            filename_patterns.extend(patterns)
-        
-        # Add regex patterns
-        if 'filename_regex_patterns' in bank_info_data:
-            regex_patterns = [pattern.strip() for pattern in bank_info_data['filename_regex_patterns'].split(',')]
-            filename_patterns.extend(regex_patterns)
-        
-        # Extract confidence weight
-        confidence_weight = float(bank_info_data.get('confidence_weight', 1.0))
-        
+        # Default pattern: the bank's own name, then configured simple and regex patterns
+        filename_patterns = [bank_name.lower()]
+        filename_patterns += _split_list(bank_info_data.get('file_patterns'))
+        filename_patterns += _split_list(bank_info_data.get('filename_regex_patterns'))
+
         return BankDetectionInfo(
             bank_name=bank_name,
-            display_name=display_name,
-            content_signatures=content_signatures,
-            required_headers=required_headers,
+            display_name=display_name or bank_info_data.get('display_name', bank_name.title()),
+            content_signatures=_split_list(bank_info_data.get('detection_content_signatures')),
+            required_headers=_split_list(bank_info_data.get('expected_headers')),
             filename_patterns=filename_patterns,
-            confidence_weight=confidence_weight
+            confidence_weight=float(bank_info_data.get('confidence_weight', 1.0))
         )
     
     def _build_detection_info(self, config: configparser.ConfigParser, bank_name: str, display_name: str) -> BankDetectionInfo:
         """Build bank detection information from config"""
-        bank_info = config['bank_info']
-        
-        # Extract content signatures
-        content_signatures = []
-        if 'detection_content_signatures' in bank_info:
-            content_signatures = [sig.strip() for sig in bank_info['detection_content_signatures'].split(',')]
-        
-        # Extract required headers
-        required_headers = []
-        if 'expected_headers' in bank_info:
-            required_headers = [header.strip() for header in bank_info['expected_headers'].split(',')]
-        
-        # Extract filename patterns
-        filename_patterns = [bank_name.lower()]  # Default pattern
-        
-        # Add simple file patterns
-        if 'file_patterns' in bank_info:
-            patterns = [pattern.strip() for pattern in bank_info['file_patterns'].split(',')]
-            filename_patterns.extend(patterns)
-        
-        # Add regex patterns
-        if 'filename_regex_patterns' in bank_info:
-            regex_patterns = [pattern.strip() for pattern in bank_info['filename_regex_patterns'].split(',')]
-            filename_patterns.extend(regex_patterns)
-        
-        # Extract confidence weight
-        confidence_weight = float(bank_info.get('confidence_weight', 1.0))
-        
-        return BankDetectionInfo(
-            bank_name=bank_name,
-            display_name=display_name,
-            content_signatures=content_signatures,
-            required_headers=required_headers,
-            filename_patterns=filename_patterns,
-            confidence_weight=confidence_weight
-        )
+        return self._build_detection_info_from_partial(dict(config['bank_info']), bank_name, display_name)
     
     def _build_csv_config(self, config: configparser.ConfigParser) -> CSVConfig:
         """Build CSV configuration from config file"""

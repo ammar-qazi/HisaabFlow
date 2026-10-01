@@ -99,3 +99,55 @@ def test_config_reload_clears_detection_cache(tmp_path):
         get_unified_config_service().reload_all_configs(force=True)
 
     assert cache.get("f.csv", str(path)) is None
+
+
+def test_empty_list_entries_do_not_match_everything(tmp_path):
+    # An empty detection_content_signatures, or a trailing comma, used to
+    # parse as [''], and '' is "found" in any file, header or filename.
+    from backend.infrastructure.config.unified_config_service import UnifiedConfigService
+    (tmp_path / "blank.conf").write_text(
+        "[bank_info]\nname = blank\nfile_patterns = \ndetection_content_signatures = \n"
+        "expected_headers = Date, \n", encoding="utf-8")
+    with contextlib.redirect_stdout(io.StringIO()):
+        info = UnifiedConfigService(str(tmp_path)).get_detection_patterns()["blank"]
+    assert info.content_signatures == []
+    assert info.required_headers == ["Date"]
+    assert "" not in info.filename_patterns
+
+
+def test_generated_filename_patterns_skip_generic_words():
+    from backend.infrastructure.csv_parsing.structure_analyzer import StructureAnalyzer
+    patterns = StructureAnalyzer()._generate_filename_patterns("2019-03-02_11-50-46_bunq-statement.csv")
+    assert "*statement*" not in patterns
+    assert any("bunq" in p for p in patterns)
+
+
+def test_new_bank_from_unknown_panel_does_not_take_over_wise(client, test_config_dir):
+    # Same config the unknown-bank panel generates for the bunq sample
+    bunq = (SAMPLE_DATA_DIR / "2019-03-02_11-50-46_bunq-statement.csv").read_bytes()
+    with contextlib.redirect_stdout(io.StringIO()):
+        file_id = client.post("/api/v1/upload", files={"file": ("bunq.csv", bunq, "text/csv")}).json()["file_id"]
+        analysis = client.post("/api/v1/unknown-bank/analyze-csv",
+                               files={"file": ("2019-03-02_11-50-46_bunq-statement.csv", bunq, "text/csv")}).json()
+        client.delete(f"/api/v1/cleanup/{file_id}")
+    config = {
+        "bank_info": {"name": "bunq_takeover_test", "display_name": "Bunq", "file_patterns": analysis["filename_patterns"],
+                      "detection_content_signatures": [], "expected_headers": analysis["headers"],
+                      "currency_primary": "EUR", "cashew_account": "Bunq"},
+        "csv_config": {"encoding": "utf-8", "delimiter": ",", "header_row": 1, "has_header": True,
+                       "skip_rows": 0, "date_format": "%Y-%m-%d"},
+        "column_mapping": {"date": "Date", "amount": "Amount", "title": "Description"},
+        "data_cleaning": {},
+    }
+    try:
+        with contextlib.redirect_stdout(io.StringIO()):
+            saved = client.post("/api/v1/unknown-bank/save-config", json={"config": config, "force_overwrite": True}).json()
+        assert saved["success"], saved
+        get_bank_detection_cache().clear()
+        assert _preview(client, "2019-03-02_11-50-46_bunq-statement.csv")["detected_bank"] == "bunq_takeover_test"
+        for name in ("statement_20141677_USD_2025-01-04_2025-06-02.csv", "statement_23243482_EUR_2025-01-04_2025-06-02.csv"):
+            assert _preview(client, name)["detected_bank"] == "wise"
+    finally:
+        (test_config_dir / "bunq_takeover_test.conf").unlink(missing_ok=True)
+        with contextlib.redirect_stdout(io.StringIO()):
+            get_unified_config_service().reload_all_configs(force=True)

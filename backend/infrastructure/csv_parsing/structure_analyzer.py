@@ -597,13 +597,9 @@ class StructureAnalyzer:
         # Add exact filename pattern
         patterns.append(f"*{base_name}*")
         
-        # Add patterns based on common bank naming conventions
-        if 'statement' in base_name:
-            patterns.append("*statement*")
-        if 'export' in base_name:
-            patterns.append("*export*")
-        if 'transaction' in base_name:
-            patterns.append("*transaction*")
+        # No generic words like "statement" or "export": other banks use them
+        # too (Wise exports are statement_*.csv), and a pattern that matches
+        # them lets a new config take over detection of an existing bank.
         
         # Add pattern for just the bank name part (remove dates, numbers)
         clean_name = re.sub(r'\d+', '', base_name)

@@ -2,11 +2,10 @@
   "detection": [
     {
       "bank_detection": {
-        "confidence": 0.06666666666666667,
+        "confidence": 0.0,
         "detected_bank": "unknown",
         "reasons": [
-          "best_guess:Meezan",
-          "header_match(0.2)"
+          "No patterns matched"
         ]
       },
       "file": "umsatz-1234________1234-20180227.CSV",
@@ -24,10 +23,9 @@
     {
       "bank_info": {
         "bank_name": "unknown",
-        "confidence": 0.06666666666666667,
+        "confidence": 0.0,
         "reasons": [
-          "best_guess:Meezan",
-          "header_match(0.2)"
+          "No patterns matched"
         ]
       },
       "error": null,
