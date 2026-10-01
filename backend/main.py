@@ -4,10 +4,10 @@ Bank Statement Parser - Clean Configuration-Based Backend
 Lightweight entry point with modular API components
 """
 from fastapi import FastAPI, APIRouter
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import os
 import sys
+from pathlib import Path
  
 # Add project root to path for consistent absolute imports
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -27,6 +27,7 @@ from backend.api.parse_endpoints import parse_router
 from backend.api.transform_endpoints import transform_router
 from backend.api.unknown_bank_endpoints import unknown_bank_router
 from backend.api.middleware import setup_logging_middleware
+from backend.api.frontend import register_frontend
 import logging
 
 logger = logging.getLogger(__name__)
@@ -38,17 +39,8 @@ app = FastAPI(
     description="Modular configuration-based CSV parser for HisaabFlow"
 )
 
-# Setup CORS
-app.add_middleware(
-    CORSMiddleware,
-    # CRA dev server, plus "null" for the Electron build, which loads the UI
-    # from file://. Same-origin requests (Docker, Phase 3) need no CORS entry.
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "null"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
+# No CORS: the UI is served from this app (Docker) or reaches it through the
+# CRA dev server's proxy, so the browser always sees one origin.
 setup_logging_middleware(app)
 
 v1_router = APIRouter()
@@ -59,25 +51,15 @@ v1_router.include_router(config_router, tags=["configs"])
 v1_router.include_router(unknown_bank_router, tags=["unknown-bank"])
 app.include_router(v1_router, prefix="/api/v1")
 
-@app.get("/")
-async def root():
-    return {
-        "message": "Bank Statement Parser API - Configuration Based",
-        "version": "3.0.0",
-        "architecture": "Modular API endpoints",
-        "features": [
-            "Configuration-based bank rules",
-            "No template system", 
-            "Clean modular architecture",
-            "Under 300-line main.py",
-            "Strict API contract validation with Pydantic models",
-            "Enhanced API documentation with response schemas"
-        ]
-    }
-
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
     return {"status": "healthy", "version": "3.0.0"}
+
+# The built React app, when present (the Docker image always has it).
+# Registered last so its catch-all route doesn't shadow the API.
+FRONTEND_DIR = Path(os.environ.get("HISAABFLOW_FRONTEND_DIR", Path(project_root) / "frontend" / "build"))
+if (FRONTEND_DIR / "index.html").is_file():
+    register_frontend(app, FRONTEND_DIR)
 
 # Exception handler
 @app.exception_handler(Exception)

@@ -69,11 +69,12 @@ def test_shutdown_endpoint_removed(client):
     assert client.post("/shutdown").status_code in (404, 405)
 
 
-def test_cors_rejects_unknown_origin(client):
-    response = client.get("/health", headers={"Origin": "https://evil.example"})
+@pytest.mark.parametrize("origin", ["https://evil.example", "http://localhost:3000", "null"])
+def test_no_cross_origin_access(client, origin):
+    # The UI is same-origin (served by the backend, or proxied in dev), so no
+    # other origin, including the old dev server and Electron's "null", is allowed
+    response = client.get("/api/v1/configs", headers={"Origin": origin})
     assert "access-control-allow-origin" not in response.headers
-
-
-def test_cors_allows_dev_server(client):
-    response = client.get("/health", headers={"Origin": "http://localhost:3000"})
-    assert response.headers.get("access-control-allow-origin") == "http://localhost:3000"
+    preflight = client.options("/api/v1/upload", headers={
+        "Origin": origin, "Access-Control-Request-Method": "POST"})
+    assert "access-control-allow-origin" not in preflight.headers
