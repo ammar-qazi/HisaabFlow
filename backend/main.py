@@ -71,35 +71,6 @@ async def global_exception_handler(request, exc):
     )
 
 if __name__ == "__main__":
+    # Local run without Docker: python backend/main.py
     import uvicorn
-    
-    logger.debug("\n Starting HisaabFlow Configuration-Based FastAPI Server...")
-    logger.debug("    Backend: http://127.0.0.1:8000")
-    logger.debug("    API docs: http://127.0.0.1:8000/docs")
-    logger.debug("     Architecture: Modular API routers")
-    logger.debug("    Main file: Under 300 lines")
-    logger.debug("   Mode: Nuitka compiled executable")
-    logger.debug("   ⏹  Press Ctrl+C to stop")
-    logger.debug("")
-    
-    # Parse command line arguments for executable compatibility
-    host = "127.0.0.1"
-    port = 8000
-    
-    for i, arg in enumerate(sys.argv):
-        if arg == "--host" and i + 1 < len(sys.argv):
-            host = sys.argv[i + 1]
-        elif arg == "--port" and i + 1 < len(sys.argv):
-            port = int(sys.argv[i + 1])
-    
-    try:
-        uvicorn.run(
-            "main:app",
-            host=host,
-            port=port,
-            reload=False,  # Disable reload for compiled executable
-            log_level="info"
-        )
-    except Exception as e:
-        logger.error(f"[ERROR]  Failed to start server: {e}")
-        sys.exit(1)
+    uvicorn.run(app, host="127.0.0.1", port=8000)
