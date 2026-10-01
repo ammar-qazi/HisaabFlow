@@ -123,7 +123,7 @@
         "_transaction_index": 43,
         "_transfer_direction": "outgoing",
         "_transfer_pattern": "Sent money to {name}",
-        "exchangetoamount": "0.0",
+        "exchangetoamount": "28500.0",
         "exchangetocurrency": "PKR"
       },
       {
@@ -697,7 +697,7 @@
       "Note": "TRF-NP-001",
       "Title": "Sent money to Ali Khan",
       "_transaction_index": 43,
-      "exchangetoamount": "0.0",
+      "exchangetoamount": "28500.0",
       "exchangetocurrency": "PKR"
     },
     {
