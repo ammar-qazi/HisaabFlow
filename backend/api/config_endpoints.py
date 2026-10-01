@@ -129,10 +129,12 @@ def _find_matching_bank_name(config_name: str, config_manager) -> Optional[str]:
                 logger.debug(f"[SUCCESS] Direct match: {bank}")
                 return bank
     
-    # Display name match (e.g., "NayaPay Configuration" -> "nayapay")
-    for bank_name in available_banks:
-        display_name = f"{bank_name.title()} Configuration".lower()
-        if config_name_lower == display_name:
+    # Display name match, using the same "<display_name> Configuration" names
+    # that /configs returns (e.g. "Bunqstatement Configuration" -> "bunq_test")
+    for bank_name, detection_info in config_manager.unified_service.get_detection_patterns().items():
+        names = {f"{detection_info.display_name} Configuration".lower(),
+                 f"{bank_name.title()} Configuration".lower()}
+        if config_name_lower in names:
             logger.debug(f"[SUCCESS] Display name match: {bank_name}")
             return bank_name
     
